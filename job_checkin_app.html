@@ -135,6 +135,18 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
 </head>
 <body>
 
+<!-- LINE IAB DETECTOR — แสดงเมื่อเปิดจาก LINE -->
+<div id="line-iab-overlay" style="display:none;position:fixed;inset:0;background:#0a0c11;z-index:999;align-items:center;justify-content:center;flex-direction:column;padding:32px;text-align:center;">
+  <div style="font-size:48px;margin-bottom:16px;">🌐</div>
+  <div style="font-size:20px;font-weight:700;color:#f0f2f5;margin-bottom:8px;">กรุณาเปิดใน Browser</div>
+  <div style="font-size:14px;color:#8b92a5;line-height:1.6;margin-bottom:28px;">LINE Browser ไม่รองรับระบบนี้<br>กดปุ่มด้านล่างเพื่อเปิดใน Chrome / Safari</div>
+  <button onclick="openInBrowser()" style="background:#00e187;color:#0a0c11;border:none;border-radius:16px;padding:16px 32px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;max-width:280px;">
+    เปิดใน Browser →
+  </button>
+  <div style="margin-top:16px;font-size:12px;color:#555d70;">หรือ Copy URL แล้วเปิดใน Chrome ด้วยตัวเอง</div>
+  <div style="margin-top:8px;background:#181c25;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;font-size:11px;font-family:monospace;color:#4d9cff;word-break:break-all;max-width:300px;" id="url-display"></div>
+</div>
+
 <div class="loading-overlay" id="loading">
   <div class="spinner"></div>
   <div class="loading-txt" id="loading-txt">กำลังบันทึก...</div>
@@ -491,6 +503,28 @@ function tick(){
   const t=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
   sv('clock',t);sv('cur-time',t);
 }
+// ── LINE IAB Detection ──
+(function(){
+  var ua = navigator.userAgent || '';
+  var isLineIAB = /Line\//i.test(ua);
+  if(isLineIAB){
+    var overlay = document.getElementById('line-iab-overlay');
+    overlay.style.display = 'flex';
+    document.getElementById('url-display').textContent = window.location.href;
+  }
+})();
+
+function openInBrowser(){
+  var url = window.location.href;
+  // Android — intent scheme
+  if(/Android/i.test(navigator.userAgent)){
+    window.location = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
+  } else {
+    // iOS — แค่เปิด URL ใหม่
+    window.open(url, '_blank');
+  }
+}
+
 tick();setInterval(tick,20000);
 renderProcs();
 checkStatus(); // เช็ค Job ค้างทันทีที่โหลด
