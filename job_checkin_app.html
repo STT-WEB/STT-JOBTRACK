@@ -129,6 +129,12 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
 .btn-reset:hover{background:var(--bg3);color:var(--text);}
 
 /* TOAST */
+.photo-thumb{width:80px;height:80px;border-radius:10px;object-fit:cover;border:2px solid var(--green);position:relative;}
+.photo-thumb-wrap{position:relative;flex-shrink:0;}
+.photo-del{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;}
+.photo-add-slot{width:80px;height:80px;border-radius:10px;border:2px dashed rgba(0,225,135,0.3);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;cursor:pointer;background:rgba(0,225,135,0.05);}
+.photo-add-slot span{font-size:20px;}
+.photo-add-slot small{font-size:9px;color:var(--text3);}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#ff5c5c;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:200;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
 </style>
@@ -212,15 +218,29 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
       <div class="slabel" id="lbl-proc">เลือก Process ที่ทำ</div>
       <div class="proc-grid" id="proc-grid"></div>
 
-      <div class="photo-box">
-        <div class="photo-lbl">
-          <strong id="lbl-pt">📸 ถ่ายรูปงาน</strong>
-          <span id="lbl-ps">ไม่บังคับ · ช่วย QC ตรวจสอบได้</span>
+      <!-- PHOTO SECTION — แสดงเฉพาะ Check Out -->
+      <div id="photo-section" style="display:none;">
+        <div class="slabel" id="lbl-photo-head">📸 ถ่ายรูปงาน (บังคับ · สูงสุด 3 รูป)</div>
+
+        <!-- รูปที่ถ่ายแล้ว -->
+        <div id="photo-preview-row" style="display:flex;gap:6px;padding:0 14px;margin-bottom:8px;flex-wrap:wrap;"></div>
+
+        <!-- ปุ่มถ่ายรูป -->
+        <div class="photo-box" id="photo-box-ui">
+          <div class="photo-lbl">
+            <strong id="lbl-pt">📸 ถ่ายรูปงาน</strong>
+            <span id="lbl-ps">บังคับ · ต้องถ่ายก่อน Check Out · สูงสุด 3 รูป</span>
+          </div>
+          <div class="photo-btns">
+            <button class="btn-cam" id="btn-cam-real" onclick="triggerCamera()">📷 <span id="lbl-cam">ถ่ายรูป</span></button>
+          </div>
         </div>
-        <div class="photo-btns">
-          <button class="btn-cam" id="lbl-cam" onclick="handlePhoto()">ถ่ายรูป</button>
-          <button class="btn-skip-sm" id="lbl-skip" onclick="doSubmit()">ข้าม</button>
-        </div>
+        <!-- Hidden file input -->
+        <!-- capture="environment" บังคับกล้องหลัง, ไม่มี accept="image/*" = เปิด Gallery ไม่ได้ -->
+        <input type="file" id="camera-input" capture="environment" style="display:none;" onchange="handlePhotoCapture(event)">
+
+        <!-- Photo count indicator -->
+        <div id="photo-count-bar" style="padding:0 14px 8px;font-size:11px;color:var(--text3);"></div>
       </div>
 
       <div class="submit-wrap">
@@ -308,6 +328,7 @@ const L = {
 };
 
 let lg='th', sp=null, sa=null, submitting=false, isBlocked=false;
+let capturedPhotos = []; // เก็บ base64 รูปที่ถ่าย (สูงสุด 3)
 
 function sv(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 
@@ -340,11 +361,19 @@ function renderProcs(){
 }
 
 function selAction(type){
-  if(type==='in' && isBlocked) return; // บล็อก Check In ถ้ายังค้างอยู่
+  if(type==='in' && isBlocked) return;
   sa=type;
   document.getElementById('btn-in').className='btn-in'+(type==='in'?' sel':' dim');
   document.getElementById('btn-out').className='btn-out'+(type==='out'?' sel':' dim');
-  if(type==='out'){ sp=null; } // reset process เมื่อเลือก Check Out
+  if(type==='out'){
+    sp=null;
+    // แสดง photo section เฉพาะ Check Out
+    document.getElementById('photo-section').style.display='block';
+    capturedPhotos=[];
+    renderPhotoPreview();
+  } else {
+    document.getElementById('photo-section').style.display='none';
+  }
   renderProcs();
 }
 
@@ -420,6 +449,7 @@ async function doSubmit(){
   const today=new Date().toLocaleDateString('th-TH');
 
   if(sa==='in' && sp===null){showToast('กรุณาเลือก Process ก่อน');return;}
+  if(sa==='out' && capturedPhotos.length===0){showToast('กรุณาถ่ายรูปงานก่อน Check Out');return;}
   if(!sa){showToast('กรุณาเลือก เข้างาน หรือ ออกงาน');return;}
   if(sa==='in' && isBlocked){showToast('มีงานค้าง กรุณา Check Out ก่อน');return;}
 
@@ -496,7 +526,97 @@ function resetApp(){
   renderProcs();
 }
 
-function handlePhoto(){alert('📷 Production: Camera API → Upload Google Drive อัตโนมัติ');}
+function triggerCamera(){
+  if(capturedPhotos.length>=3){showToast('ถ่ายได้สูงสุด 3 รูปเท่านั้น');return;}
+  // Reset input ทุกครั้งก่อนเปิด เพื่อบังคับถ่ายใหม่
+  const inp = document.getElementById('camera-input');
+  inp.value = '';
+  inp.click();
+}
+
+function handlePhotoCapture(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  event.target.value='';
+
+  // ตรวจสอบว่าไฟล์ถูกสร้างใหม่ (ถ่ายสด) — ไม่เกิน 60 วินาทีที่ผ่านมา
+  const fileAge = (Date.now() - file.lastModified) / 1000;
+  if(fileAge > 60){
+    showToast('กรุณาถ่ายรูปสดจากกล้องเท่านั้น ห้ามใช้รูปเก่า');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.createElement('canvas');
+      const MAX = 900;
+      let w=img.width, h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      canvas.width=w; canvas.height=h;
+      const ctx = canvas.getContext('2d');
+
+      // วาดรูป
+      ctx.drawImage(img,0,0,w,h);
+
+      // ── Watermark Timestamp ──
+      const now = new Date();
+      const stamp = now.toLocaleDateString('th-TH') + ' ' +
+                    now.getHours().toString().padStart(2,'0') + ':' +
+                    now.getMinutes().toString().padStart(2,'0') + ':' +
+                    now.getSeconds().toString().padStart(2,'0');
+      const empStamp = 'EMP: ' + EMP_NAME + ' | ' + JOB_ID;
+
+      const fontSize = Math.max(14, Math.round(w * 0.025));
+      ctx.font = 'bold ' + fontSize + 'px monospace';
+
+      // กรอบสีดำด้านล่าง
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(0, h - fontSize*3.2, w, fontSize*3.2);
+
+      // ข้อความ
+      ctx.fillStyle = '#00e187';
+      ctx.fillText('📍 ' + stamp, 10, h - fontSize*2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(empStamp, 10, h - fontSize*0.6);
+
+      const b64 = canvas.toDataURL('image/jpeg', 0.78);
+      capturedPhotos.push({ b64, timestamp: stamp, emp: EMP_NAME });
+      renderPhotoPreview();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderPhotoPreview(){
+  const row = document.getElementById('photo-preview-row');
+  const countBar = document.getElementById('photo-count-bar');
+  row.innerHTML='';
+  capturedPhotos.forEach((b64,i)=>{
+    const wrap=document.createElement('div');
+    wrap.className='photo-thumb-wrap';
+    const img=document.createElement('img');
+    img.src=typeof b64==='object'?b64.b64:b64; img.className='photo-thumb';
+    const del=document.createElement('button');
+    del.className='photo-del'; del.textContent='✕';
+    del.onclick=(()=>{const idx=i;return ()=>{capturedPhotos.splice(idx,1);renderPhotoPreview();}})();
+    wrap.appendChild(img); wrap.appendChild(del);
+    row.appendChild(wrap);
+  });
+  // แสดงปุ่ม + ถ้ายังไม่ครบ 3
+  if(capturedPhotos.length<3){
+    const slot=document.createElement('div');
+    slot.className='photo-add-slot';
+    slot.innerHTML='<span>📷</span><small>+'+(3-capturedPhotos.length)+' รูป</small>';
+    slot.onclick=triggerCamera;
+    row.appendChild(slot);
+  }
+  countBar.textContent = capturedPhotos.length + '/3 รูป' + (capturedPhotos.length===0?' · ยังไม่มีรูป — ต้องถ่ายอย่างน้อย 1 รูป':'');
+  countBar.style.color = capturedPhotos.length===0 ? 'var(--red)' : 'var(--green)';
+}
 
 function tick(){
   const n=new Date();
