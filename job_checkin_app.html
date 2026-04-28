@@ -166,7 +166,17 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
   </div>
 
   <!-- MAIN SCREEN -->
-  <div id="main">
+  <!-- LINE LOGIN SCREEN -->
+<div id="login-screen" style="display:none;padding:40px 20px;text-align:center;">
+  <div style="font-size:56px;margin-bottom:16px;">👷</div>
+  <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px;">JOBTRACK</div>
+  <div style="font-size:13px;color:var(--text2);margin-bottom:32px;line-height:1.6;">ระบบบันทึกเวลาทำงาน<br>กรุณาเข้าสู่ระบบด้วย LINE</div>
+  <button onclick="loginWithLine()" style="width:100%;background:#00B900;color:#fff;border:none;border-radius:14px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;">
+    <span style="font-size:20px;">💬</span> เข้าสู่ระบบด้วย LINE
+  </button>
+</div>
+
+<div id="main">
     <div class="lang-bar">
       <button class="lang-btn active" onclick="setLang('th')">🇹🇭 ไทย</button>
       <button class="lang-btn" onclick="setLang('la')">🇱🇦 ລາວ</button>
@@ -184,10 +194,10 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
       </div>
 
       <div class="emp-row">
-        <div class="emp-av">สช</div>
+        <div class="emp-av" id="emp-av-wrap" style="overflow:hidden;"></div>
         <div>
-          <div class="emp-name">สมชาย รักงาน</div>
-          <div class="emp-dept" id="lbl-dept">ฝ่ายผลิต · ช่างเชื่อม</div>
+          <div class="emp-name" id="emp-name-display">-</div>
+          <div class="emp-dept" id="lbl-dept">-</div>
         </div>
         <div class="emp-vf" id="lbl-vf">LINE ✓</div>
       </div>
@@ -267,7 +277,10 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
 // ============================================================
 // CONFIG
 // ============================================================
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwIDG2EWPNNtoszF7qce2mByGkWZwUMXHvtzLxkzYkgvraC7aU3QdCaODSe7nJtvfaJZQ/exec';
+const APPS_SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycbwIDG2EWPNNtoszF7qce2mByGkWZwUMXHvtzLxkzYkgvraC7aU3QdCaODSe7nJtvfaJZQ/exec';
+const LINE_CHANNEL_ID  = '2009924671';
+const LINE_REDIRECT    = 'https://stt-web.github.io/STT-JOBTRACK/callback.html';
+const LINE_AUTH_URL    = 'https://access.line.me/oauth2/v2.1/authorize';
 
 // ── ดึง Job Info จาก QR URL parameter ──
 const _params  = new URLSearchParams(window.location.search);
@@ -276,11 +289,13 @@ const JOB_NAME = _params.get('name') || 'Demo Job';
 const JOB_TYPE = _params.get('type') || 'JM';
 const JOB_CUST = _params.get('cust') || '';
 
-// Employee — Phase 3 จะดึงจาก LINE Login
-const EMP_ID   = 'EMP001';
-const EMP_NAME = 'สมชาย รักงาน';
-const EMP_DEPT = 'ฝ่ายผลิต';
-const EMP_ROLE = 'ช่างเชื่อม';
+// Employee — ดึงจาก LINE Login
+const _user    = JSON.parse(localStorage.getItem('jobtrack_user') || 'null');
+const EMP_ID   = _user ? _user.lineId      : '';
+const EMP_NAME = _user ? _user.empName     : '';
+const EMP_DEPT = _user ? _user.empDept     : '';
+const EMP_ROLE = _user ? _user.empRole     : '';
+const LINE_PIC = _user ? _user.pictureUrl  : '';
 
 // ============================================================
 // PROCESS LIST
@@ -661,6 +676,53 @@ function initJobInfo(){
   const colors = {JM:'#4d9cff',JT:'#00e187',JMS:'#ffb830',JP:'#ff5c5c','Other':'#8b92a5'};
   badge.style.color = colors[JOB_TYPE] || '#8b92a5';
 }
+// ── Init User จาก LINE Login ──
+function initUser() {
+  const user = JSON.parse(localStorage.getItem('jobtrack_user') || 'null');
+  if (!user || !user.lineId) {
+    // ยังไม่ได้ Login → แสดงหน้า Login
+    document.getElementById('login-screen').style.display = 'block';
+    document.getElementById('main').style.display = 'none';
+    return false;
+  }
+  // Login แล้ว → แสดงข้อมูล
+  const nameEl = document.getElementById('emp-name-display');
+  const deptEl = document.getElementById('lbl-dept');
+  const avEl   = document.getElementById('emp-av-wrap');
+  if(nameEl) nameEl.textContent = user.empName || user.displayName;
+  if(deptEl) deptEl.textContent = (user.empDept||'') + (user.empRole?' · '+user.empRole:'');
+  if(avEl) {
+    if(user.pictureUrl) {
+      avEl.innerHTML = '<img src="'+user.pictureUrl+'" style="width:100%;height:100%;object-fit:cover;">';
+    } else {
+      avEl.textContent = (user.empName||user.displayName||'?').charAt(0);
+    }
+  }
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+  return true;
+}
+
+function loginWithLine() {
+  sessionStorage.setItem('jobtrack_return', window.location.href);
+  const state = Math.random().toString(36).substring(2);
+  sessionStorage.setItem('line_state', state);
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id:     LINE_CHANNEL_ID,
+    redirect_uri:  LINE_REDIRECT,
+    state:         state,
+    scope:         'profile openid',
+  });
+  window.location.href = LINE_AUTH_URL + '?' + params.toString();
+}
+
+function logout() {
+  localStorage.removeItem('jobtrack_user');
+  window.location.reload();
+}
+
+initUser();
 initJobInfo();
 
 tick();setInterval(tick,20000);
