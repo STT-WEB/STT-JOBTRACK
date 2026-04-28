@@ -177,9 +177,9 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
 
     <div style="padding-bottom:8px;">
       <div class="job-banner">
-        <div class="job-tag" id="lbl-job">งาน / JOB</div>
-        <div class="job-name" id="job-display-name">T-0042 · แท็งค์น้ำมัน #4</div>
-        <div class="job-meta">ลาน B &nbsp;·&nbsp; <b>Zone 3</b></div>
+        <div class="job-tag" id="lbl-job"><span id="job-type-badge">JM</span> &nbsp;·&nbsp; <span id="lbl-job-label">งาน / JOB</span></div>
+        <div class="job-name" id="job-display-name">DEMO-001</div>
+        <div class="job-meta" id="job-cust-display" style="margin-bottom:4px;"></div>
         <div class="qr-badge"><span class="dot"></span><span id="lbl-qr">QR สแกนแล้ว</span></div>
       </div>
 
@@ -269,9 +269,14 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
 // ============================================================
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwIDG2EWPNNtoszF7qce2mByGkWZwUMXHvtzLxkzYkgvraC7aU3QdCaODSe7nJtvfaJZQ/exec';
 
-const JOB_ID   = 'T-0042';
-const JOB_NAME = 'แท็งค์น้ำมัน #4';
-const JOB_ZONE = 'ลาน B · Zone 3';
+// ── ดึง Job Info จาก QR URL parameter ──
+const _params  = new URLSearchParams(window.location.search);
+const JOB_ID   = _params.get('job')  || 'DEMO-001';
+const JOB_NAME = _params.get('name') || 'Demo Job';
+const JOB_TYPE = _params.get('type') || 'JM';
+const JOB_CUST = _params.get('cust') || '';
+
+// Employee — Phase 3 จะดึงจาก LINE Login
 const EMP_ID   = 'EMP001';
 const EMP_NAME = 'สมชาย รักงาน';
 const EMP_DEPT = 'ฝ่ายผลิต';
@@ -644,6 +649,19 @@ function openInBrowser(){
     window.open(url, '_blank');
   }
 }
+
+// ── Init Job Info จาก QR URL ──
+function initJobInfo(){
+  document.getElementById('job-display-name').textContent = JOB_ID + (JOB_NAME?' · '+JOB_NAME:'');
+  document.getElementById('job-type-badge').textContent   = JOB_TYPE;
+  if(JOB_CUST) document.getElementById('job-cust-display').textContent = JOB_CUST;
+
+  // สี badge ตามประเภทงาน
+  const badge = document.getElementById('job-type-badge');
+  const colors = {JM:'#4d9cff',JT:'#00e187',JMS:'#ffb830',JP:'#ff5c5c','Other':'#8b92a5'};
+  badge.style.color = colors[JOB_TYPE] || '#8b92a5';
+}
+initJobInfo();
 
 tick();setInterval(tick,20000);
 renderProcs();
