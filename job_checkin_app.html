@@ -13,45 +13,66 @@
   --green:#00e187;--green-dim:rgba(0,225,135,0.12);--green-bd:rgba(0,225,135,0.35);
   --red:#ff5c5c;--red-dim:rgba(255,92,92,0.12);--red-bd:rgba(255,92,92,0.35);
   --blue:#4d9cff;--blue-dim:rgba(77,156,255,0.1);
-  --amber:#ffb830;
+  --amber:#ffb830;--amber-dim:rgba(255,184,48,0.12);--amber-bd:rgba(255,184,48,0.4);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:16px;font-family:'IBM Plex Sans Thai',sans-serif;}
 .device{width:375px;background:var(--bg);border-radius:44px;border:1.5px solid rgba(255,255,255,0.1);overflow:hidden;box-shadow:0 0 0 8px rgba(255,255,255,0.03),0 32px 80px rgba(0,0,0,0.6);}
 .statusbar{padding:12px 24px 8px;display:flex;justify-content:space-between;align-items:center;}
-.statusbar .t{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);letter-spacing:0.05em;}
-.statusbar .ic{font-size:11px;color:var(--text2);}
+.t{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);letter-spacing:0.05em;}
+.ic{font-size:11px;color:var(--text2);}
 .lang-bar{display:flex;gap:5px;padding:8px 14px 10px;border-bottom:1px solid var(--border);overflow-x:auto;}
 .lang-bar::-webkit-scrollbar{display:none;}
 .lang-btn{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);cursor:pointer;background:transparent;color:var(--text2);font-family:'IBM Plex Sans Thai',sans-serif;transition:all 0.15s;font-weight:500;white-space:nowrap;flex-shrink:0;}
 .lang-btn.active{background:rgba(255,255,255,0.08);color:var(--text);border-color:var(--border2);}
-.screen{padding-bottom:8px;}
+
+/* JOB BANNER */
 .job-banner{margin:12px 14px 10px;background:var(--blue-dim);border:1px solid rgba(77,156,255,0.2);border-radius:16px;padding:14px 16px;}
 .job-tag{font-size:9px;letter-spacing:0.1em;font-weight:600;color:var(--blue);text-transform:uppercase;margin-bottom:4px;}
 .job-name{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.01em;line-height:1.2;margin-bottom:6px;}
 .job-meta{font-size:12px;color:var(--text2);}
 .job-meta b{color:var(--blue);font-weight:500;}
-.qr-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(0,225,135,0.1);border:1px solid rgba(0,225,135,0.25);border-radius:8px;padding:3px 8px;margin-top:8px;font-size:10px;color:var(--green);font-weight:600;letter-spacing:0.04em;}
+.qr-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(0,225,135,0.1);border:1px solid rgba(0,225,135,0.25);border-radius:8px;padding:3px 8px;margin-top:8px;font-size:10px;color:var(--green);font-weight:600;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:3px;animation:pulse 1.8s ease-in-out infinite;vertical-align:middle;}
+
+/* EMP */
 .emp-row{margin:0 14px 12px;display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:11px 14px;}
 .emp-av{width:40px;height:40px;border-radius:50%;background:#2a3550;border:1.5px solid rgba(77,156,255,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--blue);flex-shrink:0;}
 .emp-name{font-size:14px;font-weight:600;color:var(--text);}
 .emp-dept{font-size:11px;color:var(--text2);margin-top:2px;}
 .emp-vf{margin-left:auto;font-size:10px;color:var(--green);background:rgba(0,225,135,0.08);border:1px solid rgba(0,225,135,0.2);border-radius:6px;padding:3px 7px;font-weight:600;white-space:nowrap;}
+
+/* BLOCKED WARNING */
+.blocked-card{margin:0 14px 12px;background:var(--amber-dim);border:1.5px solid var(--amber-bd);border-radius:14px;padding:14px 16px;display:none;}
+.blocked-card.show{display:block;}
+.blocked-icon{font-size:20px;margin-bottom:6px;}
+.blocked-title{font-size:14px;font-weight:700;color:var(--amber);margin-bottom:4px;}
+.blocked-sub{font-size:12px;color:rgba(255,184,48,0.7);line-height:1.5;}
+.blocked-job{margin-top:10px;background:rgba(255,184,48,0.08);border:1px solid rgba(255,184,48,0.2);border-radius:10px;padding:10px 12px;}
+.blocked-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;}
+.blocked-key{color:rgba(255,184,48,0.6);}
+.blocked-val{color:var(--amber);font-weight:600;font-family:'IBM Plex Mono',monospace;}
+.blocked-hint{margin-top:10px;font-size:11px;color:rgba(255,184,48,0.6);text-align:center;}
+
+/* SLABEL */
 .slabel{font-size:9px;letter-spacing:0.1em;font-weight:600;color:var(--text3);text-transform:uppercase;padding:0 16px 8px;}
+
+/* ACTION BUTTONS */
 .action-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px;margin-bottom:14px;}
 .btn-in{background:var(--green-dim);border:1.5px solid var(--green-bd);border-radius:18px;padding:20px 10px 16px;cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;}
 .btn-out{background:var(--red-dim);border:1.5px solid var(--red-bd);border-radius:18px;padding:20px 10px 16px;cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;}
 .btn-in:active,.btn-out:active{transform:scale(0.96);}
 .btn-in.sel{background:rgba(0,225,135,0.22);border-color:var(--green);box-shadow:0 0 20px rgba(0,225,135,0.15);}
 .btn-out.sel{background:rgba(255,92,92,0.22);border-color:var(--red);box-shadow:0 0 20px rgba(255,92,92,0.15);}
-.btn-in.dim,.btn-out.dim{opacity:0.3;}
+.btn-in.dim,.btn-out.dim{opacity:0.25;pointer-events:none;}
 .ai{font-size:28px;line-height:1;}
 .al{font-size:15px;font-weight:700;}
 .btn-in .al{color:var(--green);}
 .btn-out .al{color:var(--red);}
 .at{font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace;}
+
+/* PROCESS */
 .proc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px;margin-bottom:12px;}
 .proc-item{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 12px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Sans Thai',sans-serif;transition:all 0.15s;}
 .proc-item:active{transform:scale(0.97);}
@@ -59,57 +80,66 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
 .proc-item.sel{background:var(--blue-dim);border-color:rgba(77,156,255,0.5);}
 .proc-item.sel .pn{color:var(--blue);font-weight:600;}
 .proc-item.sel .pc{background:rgba(77,156,255,0.15);border-color:rgba(77,156,255,0.4);}
-.pc{width:38px;height:38px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;transition:all 0.15s;}
+.proc-item.disabled{opacity:0.25;pointer-events:none;}
+.pc{width:38px;height:38px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
 .pn{font-size:13px;color:var(--text2);font-weight:500;line-height:1.3;}
 .psub{font-size:10px;color:var(--text3);margin-top:2px;}
+
+/* PHOTO */
 .photo-box{margin:0 14px 12px;border:1px dashed rgba(255,255,255,0.12);border-radius:14px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .photo-lbl strong{display:block;font-size:12px;color:var(--text2);margin-bottom:2px;font-weight:500;}
 .photo-lbl span{font-size:10px;color:var(--text3);}
 .photo-btns{display:flex;gap:6px;flex-shrink:0;}
-.btn-cam{font-size:11px;padding:7px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;transition:background 0.15s;white-space:nowrap;}
-.btn-cam:hover{background:var(--bg3);}
+.btn-cam{font-size:11px;padding:7px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;white-space:nowrap;}
 .btn-skip-sm{font-size:11px;padding:7px 10px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;}
 .submit-wrap{padding:4px 14px 20px;}
 .btn-submit{width:100%;background:var(--text);color:var(--bg);border:none;border-radius:16px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;transition:opacity 0.2s,transform 0.1s;}
 .btn-submit:hover{opacity:0.88;}
 .btn-submit:active{transform:scale(0.98);}
-.btn-submit:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-submit:disabled{opacity:0.35;cursor:not-allowed;}
 
-/* LOADING OVERLAY */
-.loading-overlay{display:none;position:fixed;inset:0;background:rgba(10,12,17,0.85);z-index:99;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+/* LOADING */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(10,12,17,0.88);z-index:99;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
 .loading-overlay.show{display:flex;}
 .spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--green);border-radius:50%;animation:spin 0.8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-txt{font-size:13px;color:var(--text2);}
 
 /* SUCCESS */
-.success-screen{display:none;padding:32px 20px 28px;text-align:center;}
-.suc-circle{width:72px;height:72px;border-radius:50%;background:rgba(0,225,135,0.12);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:32px;color:var(--green);font-weight:700;}
+.success-screen{display:none;padding:28px 20px 28px;text-align:center;}
+.suc-circle{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:32px;font-weight:700;}
+.suc-circle.in{background:rgba(0,225,135,0.12);border:2px solid var(--green);color:var(--green);}
+.suc-circle.out{background:rgba(255,92,92,0.12);border:2px solid var(--red);color:var(--red);}
 .suc-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;}
-.suc-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px;}
-.suc-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;text-align:left;margin-bottom:20px;}
+.suc-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;}
+
+/* SUMMARY CARD */
+.suc-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;text-align:left;margin-bottom:16px;}
 .suc-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
 .suc-row:last-child{border-bottom:none;}
 .sk{color:var(--text3);}
 .sv{color:var(--text);font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+
+/* HOURS HIGHLIGHT */
+.hours-big{background:rgba(0,225,135,0.1);border:1px solid rgba(0,225,135,0.3);border-radius:12px;padding:14px;margin-bottom:16px;text-align:center;}
+.hours-num{font-size:36px;font-weight:700;color:var(--green);font-family:'IBM Plex Mono',monospace;line-height:1;}
+.hours-label{font-size:11px;color:var(--text3);margin-top:4px;}
+
 .btn-reset{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:13px 28px;font-size:13px;color:var(--text2);cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;font-weight:500;transition:all 0.15s;}
 .btn-reset:hover{background:var(--bg3);color:var(--text);}
 
-/* ERROR TOAST */
+/* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#ff5c5c;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:200;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
 </style>
 </head>
 <body>
 
-<!-- LOADING OVERLAY -->
 <div class="loading-overlay" id="loading">
   <div class="spinner"></div>
   <div class="loading-txt" id="loading-txt">กำลังบันทึก...</div>
 </div>
-
-<!-- ERROR TOAST -->
-<div class="toast" id="toast">เกิดข้อผิดพลาด กรุณาลองใหม่</div>
+<div class="toast" id="toast"></div>
 
 <div class="device">
   <div class="statusbar">
@@ -117,6 +147,7 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
     <span class="ic">WiFi ▲▲▲ 🔋</span>
   </div>
 
+  <!-- MAIN SCREEN -->
   <div id="main">
     <div class="lang-bar">
       <button class="lang-btn active" onclick="setLang('th')">🇹🇭 ไทย</button>
@@ -126,21 +157,30 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
       <button class="lang-btn" onclick="setLang('en')">🇬🇧 ENG</button>
     </div>
 
-    <div class="screen">
+    <div style="padding-bottom:8px;">
       <div class="job-banner">
         <div class="job-tag" id="lbl-job">งาน / JOB</div>
-        <div class="job-name" id="job-name">T-0042 · แท็งค์น้ำมัน #4</div>
+        <div class="job-name" id="job-display-name">T-0042 · แท็งค์น้ำมัน #4</div>
         <div class="job-meta">ลาน B &nbsp;·&nbsp; <b>Zone 3</b></div>
         <div class="qr-badge"><span class="dot"></span><span id="lbl-qr">QR สแกนแล้ว</span></div>
       </div>
 
       <div class="emp-row">
-        <div class="emp-av" id="emp-av">สช</div>
+        <div class="emp-av">สช</div>
         <div>
-          <div class="emp-name" id="emp-name">สมชาย รักงาน</div>
+          <div class="emp-name">สมชาย รักงาน</div>
           <div class="emp-dept" id="lbl-dept">ฝ่ายผลิต · ช่างเชื่อม</div>
         </div>
         <div class="emp-vf" id="lbl-vf">LINE ✓</div>
+      </div>
+
+      <!-- BLOCKED WARNING (ซ่อนไว้ แสดงเมื่อมี Job ค้าง) -->
+      <div class="blocked-card" id="blocked-card">
+        <div class="blocked-icon">⚠️</div>
+        <div class="blocked-title" id="blocked-title">ยังไม่ได้ Check Out!</div>
+        <div class="blocked-sub" id="blocked-sub">คุณมีงานค้างอยู่ — ต้องไปสแกน QR ของงานนั้นแล้ว Check Out ก่อน</div>
+        <div class="blocked-job" id="blocked-job"></div>
+        <div class="blocked-hint" id="blocked-hint">ไปที่แท็งค์เดิม → สแกน QR → กด ออกงาน</div>
       </div>
 
       <div class="slabel" id="lbl-action">เลือกสถานะ</div>
@@ -166,8 +206,8 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
           <span id="lbl-ps">ไม่บังคับ · ช่วย QC ตรวจสอบได้</span>
         </div>
         <div class="photo-btns">
-          <button class="btn-cam" onclick="handlePhoto()" id="lbl-cam">ถ่ายรูป</button>
-          <button class="btn-skip-sm" onclick="doSubmit()" id="lbl-skip">ข้าม</button>
+          <button class="btn-cam" id="lbl-cam" onclick="handlePhoto()">ถ่ายรูป</button>
+          <button class="btn-skip-sm" id="lbl-skip" onclick="doSubmit()">ข้าม</button>
         </div>
       </div>
 
@@ -177,10 +217,15 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
     </div>
   </div>
 
+  <!-- SUCCESS SCREEN -->
   <div class="success-screen" id="success">
-    <div class="suc-circle">✓</div>
+    <div class="suc-circle" id="suc-circle">✓</div>
     <div class="suc-title" id="suc-title">บันทึกสำเร็จ!</div>
-    <div class="suc-sub" id="suc-sub">ข้อมูลถูกส่งเข้า Google Sheets แล้ว ✅</div>
+    <div class="suc-sub" id="suc-sub">ข้อมูลบันทึกลง Google Sheets แล้ว</div>
+    <div class="hours-big" id="hours-big" style="display:none;">
+      <div class="hours-num" id="hours-num">0.00</div>
+      <div class="hours-label" id="hours-label">ชั่วโมงรวม</div>
+    </div>
     <div class="suc-card" id="suc-card"></div>
     <button class="btn-reset" onclick="resetApp()" id="btn-reset">← กลับหน้าหลัก</button>
   </div>
@@ -188,21 +233,17 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
 
 <script>
 // ============================================================
-// ⚙️  CONFIG — เบียร์ใส่ URL ของ Apps Script ตรงนี้
+// CONFIG
 // ============================================================
-const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwIDG2EWPNNtoszF7qce2mByGkWZwUMXHvtzLxkzYkgvraC7aU3QdCaODSe7nJtvfaJZQ/exec';
 
-// JOB INFO — ในระบบจริงดึงจาก QR parameter
 const JOB_ID   = 'T-0042';
 const JOB_NAME = 'แท็งค์น้ำมัน #4';
 const JOB_ZONE = 'ลาน B · Zone 3';
-
-// EMPLOYEE — ในระบบจริงดึงจาก LINE Login
 const EMP_ID   = 'EMP001';
 const EMP_NAME = 'สมชาย รักงาน';
 const EMP_DEPT = 'ฝ่ายผลิต';
 const EMP_ROLE = 'ช่างเชื่อม';
-const EMP_INIT = 'สช';
 
 // ============================================================
 // PROCESS LIST
@@ -219,127 +260,219 @@ const PROCS = [
 ];
 
 // ============================================================
-// LANGUAGE STRINGS
+// LANG
 // ============================================================
 const L = {
-  th:{job:'งาน / JOB',qr:'QR สแกนแล้ว',dept:`${EMP_DEPT} · ${EMP_ROLE}`,vf:'LINE ✓',action:'เลือกสถานะ',in:'เข้างาน',out:'ออกงาน',proc:'เลือก Process ที่ทำ',pt:'📸 ถ่ายรูปงาน',ps:'ไม่บังคับ · ช่วย QC ตรวจสอบได้',cam:'ถ่ายรูป',skip:'ข้าม',sub:'บันทึก',loading:'กำลังบันทึก...',st:'บันทึกสำเร็จ!',ss:'ข้อมูลถูกส่งเข้า Google Sheets แล้ว ✅',rst:'← กลับหน้าหลัก',rj:'Job',re:'พนักงาน',rs:'สถานะ',rp:'Process',rt:'เวลา',rd:'วันที่',vi:'เข้างาน ▶',vo:'ออกงาน ■',err:'เกิดข้อผิดพลาด กรุณาลองใหม่',sk:'th'},
-  la:{job:'ວຽກ / JOB',qr:'QR ສະແກນແລ້ວ',dept:'ຝ່າຍຜະລິດ · ຊ່າງ',vf:'LINE ✓',action:'ເລືອກສະຖານະ',in:'ເຂົ້າວຽກ',out:'ອອກວຽກ',proc:'ເລືອກ Process',pt:'📸 ຖ່າຍຮູບ',ps:'ບໍ່ບັງຄັບ',cam:'ຖ່າຍຮູບ',skip:'ຂ້າມ',sub:'ບັນທຶກ',loading:'ກຳລັງບັນທຶກ...',st:'ບັນທຶກສຳເລັດ!',ss:'ສົ່ງຂໍ້ມູນ Google Sheets ແລ້ວ ✅',rst:'← ກັບຄືນ',rj:'Job',re:'ພະນັກງານ',rs:'ສະຖານະ',rp:'Process',rt:'ເວລາ',rd:'ວັນທີ',vi:'ເຂົ້າວຽກ ▶',vo:'ອອກວຽກ ■',err:'ເກີດຂໍ້ຜິດພາດ ລອງໃໝ່',sk:'la'},
-  mm:{job:'အလုပ် / JOB',qr:'QR စကင်ပြီး',dept:'ထုတ်လုပ်ရေး · ကျွမ်းကျင်',vf:'LINE ✓',action:'အခြေအနေရွေးပါ',in:'ဝင်ရောက်',out:'ထွက်',proc:'လုပ်ငန်းစဉ်ရွေးပါ',pt:'📸 ဓာတ်ပုံ',ps:'မဖြစ်မနေမဟုတ်',cam:'ရိုက်',skip:'ကျော်',sub:'မှတ်တမ်းတင်',loading:'မှတ်တမ်းတင်နေသည်...',st:'အောင်မြင်သည်!',ss:'Google Sheets သိုလှောင်ပြီး ✅',rst:'← ပင်မ',rj:'Job',re:'ဝန်ထမ်း',rs:'အခြေအနေ',rp:'လုပ်ငန်းစဉ်',rt:'အချိန်',rd:'နေ့စွဲ',vi:'ဝင်ရောက် ▶',vo:'ထွက် ■',err:'အမှားဖြစ်သည် ထပ်စမ်းပါ',sk:'mm'},
-  kh:{job:'ការងារ / JOB',qr:'QR បានស្កែន',dept:'ផ្នែកផលិត · ជាង',vf:'LINE ✓',action:'ជ្រើសស្ថានភាព',in:'ចូល',out:'ចេញ',proc:'ជ្រើសដំណើរការ',pt:'📸 ថតរូប',ps:'មិនចាំបាច់',cam:'ថត',skip:'រំលង',sub:'រក្សាទុក',loading:'កំពុងរក្សាទុក...',st:'ជោគជ័យ!',ss:'ទិន្នន័យបានផ្ញើ Google Sheets ✅',rst:'← ទំព័រដើម',rj:'Job',re:'បុគ្គលិក',rs:'ស្ថានភាព',rp:'ដំណើរការ',rt:'ម៉ោង',rd:'កាលបរិច្ឆេទ',vi:'ចូល ▶',vo:'ចេញ ■',err:'មានបញ្ហា សូមព្យាយាមម្តងទៀត',sk:'kh'},
-  en:{job:'JOB',qr:'QR Scanned',dept:'Production · Specialist',vf:'LINE ✓',action:'Select Status',in:'Check In',out:'Check Out',proc:'Select Process',pt:'📸 Photo Update',ps:'Optional · Helps QC verify',cam:'Camera',skip:'Skip',sub:'Submit',loading:'Submitting...',st:'Saved!',ss:'Data sent to Google Sheets ✅',rst:'← Back',rj:'Job',re:'Employee',rs:'Status',rp:'Process',rt:'Time',rd:'Date',vi:'Check In ▶',vo:'Check Out ■',err:'Error occurred. Please retry.',sk:'en'},
+  th:{job:'งาน / JOB',qr:'QR สแกนแล้ว',dept:`${EMP_DEPT} · ${EMP_ROLE}`,vf:'LINE ✓',action:'เลือกสถานะ',in:'เข้างาน',out:'ออกงาน',proc:'เลือก Process ที่ทำ',pt:'📸 ถ่ายรูปงาน',ps:'ไม่บังคับ · ช่วย QC',cam:'ถ่ายรูป',skip:'ข้าม',sub:'บันทึก',loading:'กำลังบันทึก...',
+    stIn:'เข้างานสำเร็จ!',stOut:'ออกงานสำเร็จ!',ssIn:'บันทึก Check In แล้ว',ssOut:'บันทึก Check Out + คำนวณชั่วโมงแล้ว',rst:'← กลับหน้าหลัก',
+    rj:'Job',re:'พนักงาน',rs:'สถานะ',rp:'Process',rIn:'เวลาเข้า',rOut:'เวลาออก',rH:'ชม.รวม',rd:'วันที่',
+    vi:'เข้างาน ▶',vo:'ออกงาน ■',hrs:'ชั่วโมงรวม',
+    blkTitle:'ยังไม่ได้ Check Out!',blkSub:'มีงานค้างอยู่ — ต้องไปสแกน QR ของงานนั้นแล้ว Check Out ก่อน',blkHint:'ไปที่แท็งค์เดิม → สแกน QR → กด ออกงาน',
+    blkJob:'งาน',blkProc:'Process',blkIn:'เข้างานตอน',err:'เกิดข้อผิดพลาด กรุณาลองใหม่',sk:'th'},
+  la:{job:'ວຽກ / JOB',qr:'QR ສະແກນແລ້ວ',dept:'ຝ່າຍຜະລິດ · ຊ່າງ',vf:'LINE ✓',action:'ເລືອກສະຖານະ',in:'ເຂົ້າວຽກ',out:'ອອກວຽກ',proc:'ເລືອກ Process',pt:'📸 ຖ່າຍຮູບ',ps:'ບໍ່ບັງຄັບ',cam:'ຖ່າຍ',skip:'ຂ້າມ',sub:'ບັນທຶກ',loading:'ກຳລັງບັນທຶກ...',
+    stIn:'ເຂົ້າວຽກສຳເລັດ!',stOut:'ອອກວຽກສຳເລັດ!',ssIn:'ບັນທຶກ Check In ແລ້ວ',ssOut:'ບັນທຶກ Check Out ແລ້ວ',rst:'← ກັບ',
+    rj:'Job',re:'ພະນັກງານ',rs:'ສະຖານະ',rp:'Process',rIn:'ເວລາເຂົ້າ',rOut:'ເວລາອອກ',rH:'ຊມ.ລວມ',rd:'ວັນທີ',
+    vi:'ເຂົ້າວຽກ ▶',vo:'ອອກວຽກ ■',hrs:'ຊົ່ວໂມງລວມ',
+    blkTitle:'ຍັງບໍ່ໄດ້ Check Out!',blkSub:'ມີວຽກຄ້າງ — ຕ້ອງ Check Out ກ່ອນ',blkHint:'ໄປສະແກນ QR ວຽກເກົ່າ → ອອກວຽກ',
+    blkJob:'ວຽກ',blkProc:'Process',blkIn:'ເຂົ້າວຽກຕອນ',err:'ເກີດຂໍ້ຜິດພາດ',sk:'la'},
+  mm:{job:'အလုပ် / JOB',qr:'QR စကင်ပြီး',dept:'ထုတ်လုပ်ရေး · ကျွမ်းကျင်',vf:'LINE ✓',action:'အခြေအနေရွေးပါ',in:'ဝင်ရောက်',out:'ထွက်',proc:'လုပ်ငန်းစဉ်ရွေးပါ',pt:'📸 ဓာတ်ပုံ',ps:'မဖြစ်မနေမဟုတ်',cam:'ရိုက်',skip:'ကျော်',sub:'မှတ်တမ်းတင်',loading:'မှတ်တမ်းတင်နေသည်...',
+    stIn:'ဝင်ရောက်ပြီး!',stOut:'ထွက်ပြီး!',ssIn:'Check In မှတ်တမ်းတင်ပြီး',ssOut:'Check Out + နာရီတွက်ပြီး',rst:'← ပင်မ',
+    rj:'Job',re:'ဝန်ထမ်း',rs:'အခြေအနေ',rp:'လုပ်ငန်းစဉ်',rIn:'ဝင်ချိန်',rOut:'ထွက်ချိန်',rH:'နာရီစုစုပေါင်း',rd:'နေ့စွဲ',
+    vi:'ဝင်ရောက် ▶',vo:'ထွက် ■',hrs:'နာရီစုစုပေါင်း',
+    blkTitle:'မထွက်ရသေး!',blkSub:'အလုပ်ကျန်နေသည် — ဦးစွာ Check Out လုပ်ပါ',blkHint:'ဟောင်း QR ကိုစကင်ဖတ် → ထွက်',
+    blkJob:'အလုပ်',blkProc:'လုပ်ငန်းစဉ်',blkIn:'ဝင်ချိန်',err:'အမှားဖြစ်သည်',sk:'mm'},
+  kh:{job:'ការងារ / JOB',qr:'QR បានស្កែន',dept:'ផ្នែកផលិត · ជាង',vf:'LINE ✓',action:'ជ្រើសស្ថានភាព',in:'ចូល',out:'ចេញ',proc:'ជ្រើសដំណើរការ',pt:'📸 ថតរូប',ps:'មិនចាំបាច់',cam:'ថត',skip:'រំលង',sub:'រក្សាទុក',loading:'កំពុងរក្សាទុក...',
+    stIn:'ចូលបានជោគជ័យ!',stOut:'ចេញបានជោគជ័យ!',ssIn:'Check In ត្រូវបានរក្សាទុក',ssOut:'Check Out + គណនាម៉ោងរួច',rst:'← ទំព័រដើម',
+    rj:'Job',re:'បុគ្គលិក',rs:'ស្ថានភាព',rp:'ដំណើរការ',rIn:'ម៉ោងចូល',rOut:'ម៉ោងចេញ',rH:'ម៉ោងសរុប',rd:'កាលបរិច្ឆេទ',
+    vi:'ចូល ▶',vo:'ចេញ ■',hrs:'ម៉ោងសរុប',
+    blkTitle:'មិនទាន់ Check Out!',blkSub:'មានការងារជាប់ — Check Out ជាមុន',blkHint:'ស្កែន QR ចាស់ → ចេញ',
+    blkJob:'ការងារ',blkProc:'ដំណើរការ',blkIn:'ម៉ោងចូល',err:'មានបញ្ហា',sk:'kh'},
+  en:{job:'JOB',qr:'QR Scanned',dept:'Production · Specialist',vf:'LINE ✓',action:'Select Status',in:'Check In',out:'Check Out',proc:'Select Process',pt:'📸 Photo',ps:'Optional',cam:'Camera',skip:'Skip',sub:'Submit',loading:'Submitting...',
+    stIn:'Checked In!',stOut:'Checked Out!',ssIn:'Check In recorded',ssOut:'Check Out + hours calculated',rst:'← Back',
+    rj:'Job',re:'Employee',rs:'Status',rp:'Process',rIn:'Time In',rOut:'Time Out',rH:'Total Hrs',rd:'Date',
+    vi:'Check In ▶',vo:'Check Out ■',hrs:'Total Hours',
+    blkTitle:'Not Checked Out Yet!',blkSub:'You have an open job — please Check Out first',blkHint:'Go to previous tank → scan QR → Check Out',
+    blkJob:'Job',blkProc:'Process',blkIn:'Clocked in at',err:'Error occurred. Please retry.',sk:'en'},
 };
 
-let lg='th', sp=null, sa=null, submitting=false;
+let lg='th', sp=null, sa=null, submitting=false, isBlocked=false;
 
-function sv2(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+function sv(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 
 function setLang(l){
   lg=l;
   document.querySelectorAll('.lang-btn').forEach((b,i)=>b.classList.toggle('active',['th','la','mm','kh','en'][i]===l));
   const d=L[l];
-  sv2('lbl-job',d.job);sv2('lbl-qr',d.qr);sv2('lbl-dept',d.dept);sv2('lbl-vf',d.vf);
-  sv2('lbl-action',d.action);sv2('lbl-in',d.in);sv2('lbl-out',d.out);sv2('lbl-proc',d.proc);
-  sv2('lbl-pt',d.pt);sv2('lbl-ps',d.ps);sv2('lbl-cam',d.cam);sv2('lbl-skip',d.skip);
-  sv2('lbl-sub',d.sub);sv2('btn-reset',d.rst);
+  sv('lbl-job',d.job);sv('lbl-qr',d.qr);sv('lbl-dept',d.dept);sv('lbl-vf',d.vf);
+  sv('lbl-action',d.action);sv('lbl-in',d.in);sv('lbl-out',d.out);sv('lbl-proc',d.proc);
+  sv('lbl-pt',d.pt);sv('lbl-ps',d.ps);sv('lbl-cam',d.cam);sv('lbl-skip',d.skip);
+  sv('lbl-sub',d.sub);sv('btn-reset',d.rst);
+  if(document.getElementById('blocked-card').classList.contains('show')){
+    sv('blocked-title',d.blkTitle);sv('blocked-sub',d.blkSub);sv('blocked-hint',d.blkHint);
+  }
   renderProcs();
 }
 
 function renderProcs(){
   const g=document.getElementById('proc-grid');g.innerHTML='';
   const key=L[lg].sk;
+  const disableAll = sa==='out'; // Check Out ไม่ต้องเลือก Process
   PROCS.forEach((p,i)=>{
     const sub=key==='en'?'':p[key]||p.th;
     const b=document.createElement('button');
-    b.className='proc-item'+(sp===i?' sel':'');
+    b.className='proc-item'+(sp===i?' sel':'')+(disableAll?' disabled':'');
     b.innerHTML=`<div class="pc">${p.e}</div><div><div class="pn">${p.n}</div>${sub?`<div class="psub">${sub}</div>`:''}</div>`;
-    b.onclick=()=>{sp=i;renderProcs();};
+    b.onclick=()=>{if(!disableAll){sp=i;renderProcs();}};
     g.appendChild(b);
   });
 }
 
 function selAction(type){
+  if(type==='in' && isBlocked) return; // บล็อก Check In ถ้ายังค้างอยู่
   sa=type;
   document.getElementById('btn-in').className='btn-in'+(type==='in'?' sel':' dim');
   document.getElementById('btn-out').className='btn-out'+(type==='out'?' sel':' dim');
+  if(type==='out'){ sp=null; } // reset process เมื่อเลือก Check Out
+  renderProcs();
 }
 
-function handlePhoto(){
-  alert('📷 ในระบบจริง: กล้องจะเปิดขึ้น และรูปจะ Upload ไป Google Drive อัตโนมัติ');
+// เช็คสถานะ Job ค้างเมื่อโหลดหน้า
+async function checkStatus(){
+  if(APPS_SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE') return; // Demo mode
+  try{
+    const res=await apiPost({action:'CHECK_STATUS',emp_id:EMP_ID});
+    if(res.hasOpen){
+      showBlocked(res.openJob);
+    }
+  }catch(e){}
+}
+
+function showBlocked(openJob){
+  isBlocked=true;
+  const d=L[lg];
+  document.getElementById('blocked-card').classList.add('show');
+  sv('blocked-title',d.blkTitle);
+  sv('blocked-sub',d.blkSub);
+  sv('blocked-hint',d.blkHint);
+  document.getElementById('blocked-job').innerHTML=`
+    <div class="blocked-row"><span class="blocked-key">${d.blkJob}</span><span class="blocked-val">${openJob.job_id} · ${openJob.job_name}</span></div>
+    <div class="blocked-row"><span class="blocked-key">${d.blkProc}</span><span class="blocked-val">${openJob.process}</span></div>
+    <div class="blocked-row"><span class="blocked-key">${d.blkIn}</span><span class="blocked-val">${openJob.time_in}</span></div>`;
+  // บล็อกปุ่ม Check In
+  document.getElementById('btn-in').className='btn-in dim';
 }
 
 function showToast(msg){
   const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
+  t.textContent=msg;t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+async function apiPost(payload){
+  return new Promise((resolve, reject) => {
+    // ใช้ JSONP — ทำงานได้บนมือถือทุกเครือข่าย ไม่ติด CORS
+    const cbName = 'cb_' + Date.now();
+    const params = encodeURIComponent(JSON.stringify(payload));
+    const url = APPS_SCRIPT_URL + '?data=' + params + '&callback=' + cbName;
+
+    window[cbName] = function(result) {
+      delete window[cbName];
+      document.head.removeChild(script);
+      resolve(result);
+    };
+
+    const script = document.createElement('script');
+    script.src = url;
+    script.onerror = function() {
+      delete window[cbName];
+      document.head.removeChild(script);
+      reject(new Error('Network error'));
+    };
+    document.head.appendChild(script);
+
+    // Timeout 15 วินาที
+    setTimeout(() => {
+      if(window[cbName]) {
+        delete window[cbName];
+        try { document.head.removeChild(script); } catch(e) {}
+        reject(new Error('Timeout'));
+      }
+    }, 15000);
+  });
 }
 
 async function doSubmit(){
   if(submitting) return;
   const d=L[lg];
   const now=document.getElementById('clock').textContent;
-  const nowFull=new Date().toLocaleString('th-TH');
   const today=new Date().toLocaleDateString('th-TH');
-  const ptxt=sp!==null?PROCS[sp].n:'—';
-  const stxt=sa==='out'?'Check Out':(sa==='in'?'Check In':'—');
 
-  // Build summary for display
-  const displayStatus=sa==='out'?d.vo:(sa==='in'?d.vi:'—');
-  const displayProc=sp!==null?PROCS[sp].e+' '+PROCS[sp].n:'—';
+  if(sa==='in' && sp===null){showToast('กรุณาเลือก Process ก่อน');return;}
+  if(!sa){showToast('กรุณาเลือก เข้างาน หรือ ออกงาน');return;}
+  if(sa==='in' && isBlocked){showToast('มีงานค้าง กรุณา Check Out ก่อน');return;}
 
-  // ── ส่งข้อมูลไป Google Sheets ──
   submitting=true;
   document.getElementById('lbl-sub').disabled=true;
-  document.getElementById('loading-txt').textContent=d.loading;
+  sv('loading-txt',d.loading);
   document.getElementById('loading').classList.add('show');
 
+  const procName = sp!==null ? PROCS[sp].n : '';
+
   const payload={
-    timestamp: nowFull,
-    date:      today,
-    time:      now,
-    job_id:    JOB_ID,
-    job_name:  JOB_NAME,
-    job_zone:  JOB_ZONE,
-    emp_id:    EMP_ID,
-    emp_name:  EMP_NAME,
-    emp_dept:  EMP_DEPT,
-    status:    stxt,
-    process:   ptxt,
-    lang:      lg,
+    action:   sa==='in'?'CHECK_IN':'CHECK_OUT',
+    emp_id:   EMP_ID, emp_name:EMP_NAME, emp_dept:EMP_DEPT,
+    job_id:   JOB_ID, job_name:JOB_NAME, job_zone:JOB_ZONE,
+    process:  procName, lang:lg,
   };
 
-  try {
-    if(APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE'){
-      // DEMO MODE — ไม่มี URL จริง จำลองดีเลย์
-      await new Promise(r=>setTimeout(r,1200));
-    } else {
-      await fetch(APPS_SCRIPT_URL, {
-        method:'POST',
-        mode:'no-cors',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload)
-      });
-    }
-
-    // ── แสดงหน้า Success ──
+  try{
+    const result=await apiPost(payload);
     document.getElementById('loading').classList.remove('show');
-    sv2('suc-title',d.st); sv2('suc-sub',d.ss); sv2('btn-reset',d.rst);
-    document.getElementById('suc-card').innerHTML=`
-      <div class="suc-row"><span class="sk">${d.rd}</span><span class="sv">${today}</span></div>
-      <div class="suc-row"><span class="sk">${d.rt}</span><span class="sv">${now}</span></div>
-      <div class="suc-row"><span class="sk">${d.rj}</span><span class="sv">${JOB_ID} · ${JOB_NAME}</span></div>
-      <div class="suc-row"><span class="sk">${d.re}</span><span class="sv">${EMP_NAME}</span></div>
-      <div class="suc-row"><span class="sk">${d.rs}</span><span class="sv">${displayStatus}</span></div>
-      <div class="suc-row"><span class="sk">${d.rp}</span><span class="sv">${displayProc}</span></div>`;
-    document.getElementById('main').style.display='none';
-    document.getElementById('success').style.display='block';
-
-  } catch(err){
+    showSuccess(result, today, now, procName, d);
+  }catch(err){
     document.getElementById('loading').classList.remove('show');
     showToast(d.err);
-  } finally {
+  }finally{
     submitting=false;
     document.getElementById('lbl-sub').disabled=false;
   }
+}
+
+function showSuccess(result, today, now, procName, d){
+  const isIn = sa==='in';
+  const circ=document.getElementById('suc-circle');
+  circ.className='suc-circle '+(isIn?'in':'out');
+  circ.textContent=isIn?'▶':'■';
+  sv('suc-title', isIn?d.stIn:d.stOut);
+  sv('suc-sub', isIn?d.ssIn:d.ssOut);
+  sv('btn-reset',d.rst);
+
+  // แสดง Hours Box เฉพาะ Check Out
+  const hoursBox=document.getElementById('hours-big');
+  if(!isIn && result.hours!==undefined){
+    hoursBox.style.display='block';
+    sv('hours-num', result.hours.toFixed(2));
+    sv('hours-label', d.hrs);
+  } else {
+    hoursBox.style.display='none';
+  }
+
+  const timeIn  = isIn ? (result.time_in||now) : (result.time_in||'—');
+  const timeOut = isIn ? '—' : (result.time_out||now);
+  const hours   = isIn ? '—' : (result.hours!==undefined?result.hours.toFixed(2)+' ชม.':'—');
+
+  document.getElementById('suc-card').innerHTML=`
+    <div class="suc-row"><span class="sk">${d.rd}</span><span class="sv">${today}</span></div>
+    <div class="suc-row"><span class="sk">${d.rj}</span><span class="sv">${JOB_ID} · ${JOB_NAME}</span></div>
+    <div class="suc-row"><span class="sk">${d.re}</span><span class="sv">${EMP_NAME}</span></div>
+    <div class="suc-row"><span class="sk">${d.rs}</span><span class="sv">${isIn?d.vi:d.vo}</span></div>
+    ${procName?`<div class="suc-row"><span class="sk">${d.rp}</span><span class="sv">${procName}</span></div>`:''}
+    <div class="suc-row"><span class="sk">${d.rIn}</span><span class="sv">${timeIn}</span></div>
+    <div class="suc-row"><span class="sk">${d.rOut}</span><span class="sv">${timeOut}</span></div>
+    ${!isIn?`<div class="suc-row"><span class="sk">${d.rH}</span><span class="sv" style="color:var(--green)">${hours}</span></div>`:''}`;
+
+  document.getElementById('main').style.display='none';
+  document.getElementById('success').style.display='block';
 }
 
 function resetApp(){
@@ -351,13 +484,16 @@ function resetApp(){
   renderProcs();
 }
 
+function handlePhoto(){alert('📷 Production: Camera API → Upload Google Drive อัตโนมัติ');}
+
 function tick(){
   const n=new Date();
   const t=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
-  sv2('clock',t);sv2('cur-time',t);
+  sv('clock',t);sv('cur-time',t);
 }
 tick();setInterval(tick,20000);
 renderProcs();
+checkStatus(); // เช็ค Job ค้างทันทีที่โหลด
 </script>
 </body>
 </html>
