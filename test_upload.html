@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ImgBB Test</title>
+<style>
+body{font-family:sans-serif;padding:20px;background:#111;color:#fff;}
+button{padding:12px 24px;background:#00e187;color:#000;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;width:100%;margin:8px 0;}
+#result{margin-top:16px;padding:12px;background:#1e2330;border-radius:8px;font-size:12px;word-break:break-all;line-height:1.6;}
+img{max-width:100%;margin-top:12px;border-radius:8px;}
+</style>
+</head>
+<body>
+<h2>🧪 ทดสอบ ImgBB Upload</h2>
+
+<button onclick="testUpload()">📷 ทดสอบ Upload รูปทดสอบ</button>
+<button onclick="document.getElementById('cam').click()">📸 ถ่ายรูปแล้ว Upload</button>
+<input type="file" id="cam" accept="image/*" capture="environment" style="display:none" onchange="uploadReal(event)">
+
+<div id="result">กด ปุ่มด้านบนเพื่อทดสอบ...</div>
+
+<script>
+const API_KEY = '8e405c97165321f3c68eafb9d3d9bd8e';
+
+async function testUpload() {
+  document.getElementById('result').textContent = '⏳ กำลัง Upload รูปทดสอบ...';
+  try {
+    // รูปทดสอบ 1x1 pixel
+    var base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    var fd = new FormData();
+    fd.append('key', API_KEY);
+    fd.append('image', base64);
+    fd.append('name', 'test_' + Date.now());
+
+    var res  = await fetch('https://api.imgbb.com/1/upload', { method:'POST', body:fd });
+    var json = await res.json();
+    document.getElementById('result').innerHTML = '✅ ผล:<br>' + JSON.stringify(json, null, 2);
+    if(json.success) {
+      document.getElementById('result').innerHTML += '<br><img src="'+json.data.url+'">';
+    }
+  } catch(e) {
+    document.getElementById('result').textContent = '❌ Error: ' + e.message;
+  }
+}
+
+async function uploadReal(event) {
+  var file = event.target.files[0];
+  if(!file) return;
+  document.getElementById('result').textContent = '⏳ กำลัง Upload รูปจริง...';
+  try {
+    var reader = new FileReader();
+    reader.onload = async function(e) {
+      var base64 = e.target.result.split(',')[1];
+      var fd = new FormData();
+      fd.append('key', API_KEY);
+      fd.append('image', base64);
+      fd.append('name', 'real_' + Date.now());
+
+      var res  = await fetch('https://api.imgbb.com/1/upload', { method:'POST', body:fd });
+      var json = await res.json();
+      document.getElementById('result').innerHTML = '✅ ผล:<br>' + JSON.stringify(json.data?.url || json, null, 2);
+      if(json.success) {
+        document.getElementById('result').innerHTML += '<br><img src="'+json.data.url+'">';
+      }
+    };
+    reader.readAsDataURL(file);
+  } catch(e) {
+    document.getElementById('result').textContent = '❌ Error: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>
