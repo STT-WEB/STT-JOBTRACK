@@ -400,7 +400,7 @@ const L = {
     blkJob:'Job',blkProc:'Process',blkIn:'Clocked in at',err:'Error occurred. Please retry.',sk:'en'},
 };
 
-let lg='th', sp=null, sa=null, submitting=false, isBlocked=false;
+let lg='th', sp=null, sa=null, submitting=false, isBlocked=false, canEditProcess=false, lastCheckInRow=null;
 let capturedPhotos = []; // เก็บ base64 รูปที่ถ่าย (สูงสุด 3)
 
 function sv(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
@@ -521,10 +521,20 @@ async function doSubmit(){
   const now=document.getElementById('clock').textContent;
   const today=new Date().toLocaleDateString('th-TH');
 
+  // Mode แก้ Process
+  if(sa==='edit'){
+    if(sp===null){showToast('กรุณาเลือก Process ใหม่ก่อน');return;}
+    await submitUpdateProcess(sp);
+    return;
+  }
+
   if(sa==='in' && sp===null){showToast('กรุณาเลือก Process ก่อน');return;}
   if(sa==='out' && capturedPhotos.length===0){showToast('กรุณาถ่ายรูปงานก่อน Check Out');return;}
   if(!sa){showToast('กรุณาเลือก เข้างาน หรือ ออกงาน');return;}
   if(sa==='in' && isBlocked){showToast('มีงานค้าง กรุณา Check Out ก่อน');return;}
+
+  // ถ้าเป็นการแก้ Process (canEditProcess ถูกปิดแล้ว แต่ sa==='in')
+  // ระบบจะส่ง action UPDATE_PROCESS แทน CHECK_IN
 
   submitting=true;
   document.getElementById('lbl-sub').disabled=true;
@@ -533,8 +543,12 @@ async function doSubmit(){
 
   const procName = sp!==null ? PROCS[sp].n : '';
 
+  // ตรวจสอบว่าเป็นการแก้ Process หรือ Check In ปกติ
+  var action = 'CHECK_IN';
+  if(sa==='out') action = 'CHECK_OUT';
+
   const payload={
-    action:   sa==='in'?'CHECK_IN':'CHECK_OUT',
+    action:   action,
     emp_id:   EMP_ID, emp_name:EMP_NAME, emp_dept:EMP_DEPT,
     job_id:   JOB_ID, job_name:JOB_NAME, job_zone:JOB_ZONE,
     process:  procName, lang:lg,
@@ -545,6 +559,10 @@ async function doSubmit(){
   try{
     const result=await apiPost(payload);
     document.getElementById('loading').classList.remove('show');
+    // ถ้ามาจากการ "แก้ Process" → เรียก UPDATE_PROCESS แทน
+    if(action === 'CHECK_IN' && !canEditProcess && isBlocked === false){
+      // Check in ใหม่ปกติ → canEditProcess = true จะถูก set ใน showSuccess
+    }
     showSuccess(result, today, now, procName, d);
   }catch(err){
     document.getElementById('loading').classList.remove('show');
@@ -557,6 +575,9 @@ async function doSubmit(){
 
 function showSuccess(result, today, now, procName, d){
   const isIn = sa==='in';
+  // หลัง Check In สำเร็จ → เปิดให้แก้ Process ได้ 1 ครั้ง
+  if(isIn) { canEditProcess = true; }
+  else { canEditProcess = false; }
   const circ=document.getElementById('suc-circle');
   circ.className='suc-circle '+(isIn?'in':'out');
   circ.textContent=isIn?'▶':'■';
@@ -706,12 +727,92 @@ function compressForUpload(base64, maxSize, quality){
 }
 
 function resetApp(){
-  sp=null;sa=null;
+  // ถ้าเพิ่ง Check In มา → ถามว่าจะแก้ Process ไหม
+  if(canEditProcess){
+    showEditProcessDialog();
+    return;
+  }
+  goMainScreen();
+}
+
+function showEditProcessDialog(){
+  // สร้าง Dialog ถามว่าแก้ Process ไหม
+  var overlay = document.createElement('div');
+  overlay.id = 'edit-proc-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  var card = document.createElement('div');
+  card.style.cssText = 'background:#0f1117;border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px;width:100%;max-width:320px;text-align:center;';
+  card.innerHTML = `
+    <div style="font-size:36px;margin-bottom:12px;">⚙️</div>
+    <div style="font-size:16px;font-weight:700;color:#f0f2f5;margin-bottom:8px;">แก้ไข Process?</div>
+    <div style="font-size:13px;color:#8b92a5;margin-bottom:20px;line-height:1.6;">ต้องการเปลี่ยน Process ที่เลือกไว้ใช่หรือไม่?<br><span style="color:#d97706;font-size:11px;">⚠️ แก้ได้แค่ 1 ครั้งเท่านั้น</span></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="confirmEditProcess(false)" style="flex:1;background:#1e2330;color:#8b92a5;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">ไม่ แค่กลับหน้าหลัก</button>
+      <button onclick="confirmEditProcess(true)" style="flex:1;background:#1565c0;color:#fff;border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">ใช่ แก้ Process</button>
+    </div>`;
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+}
+
+async function confirmEditProcess(wantEdit){
+  var overlay = document.getElementById('edit-proc-overlay');
+  if(overlay) overlay.remove();
+
+  if(wantEdit){
+    canEditProcess = false;
+    // แสดง Process Selector ใหม่
+    document.getElementById('success').style.display='none';
+    document.getElementById('main').style.display='block';
+    sp = null;
+    sa = 'edit'; // mode พิเศษสำหรับแก้ Process
+    document.getElementById('btn-in').className='btn-in sel';
+    document.getElementById('btn-out').className='btn-out dim';
+    renderProcs();
+    showToast('เลือก Process ใหม่แล้วกด บันทึก');
+  } else {
+    canEditProcess = false;
+    goMainScreen();
+  }
+}
+
+// ส่ง UPDATE_PROCESS ไป Apps Script
+async function submitUpdateProcess(newProcess){
+  try{
+    showToast('กำลังอัปเดต Process...');
+    var res = await apiPost({
+      action:  'UPDATE_PROCESS',
+      emp_id:  EMP_ID,
+      process: newProcess,
+    });
+    if(res && res.ok){
+      showToast('✅ เปลี่ยน Process เป็น ' + newProcess + ' แล้ว');
+      setTimeout(function(){ goMainScreen(); }, 1500);
+    } else {
+      showToast('❌ อัปเดตไม่สำเร็จ: ' + (res.message||''));
+      goMainScreen();
+    }
+  }catch(e){
+    showToast('❌ เกิดข้อผิดพลาด');
+    goMainScreen();
+  }
+}
+
+function goMainScreen(){
+  sp=null; sa=null;
+  capturedPhotos=[];
+  isBlocked=false;
+  canEditProcess=false;
+
   document.getElementById('btn-in').className='btn-in';
   document.getElementById('btn-out').className='btn-out';
+  document.getElementById('blocked-card').classList.remove('show');
   document.getElementById('main').style.display='block';
   document.getElementById('success').style.display='none';
   renderProcs();
+
+  // เช็ค Status ใหม่ทันที
+  checkStatus();
 }
 
 function triggerCamera(){
