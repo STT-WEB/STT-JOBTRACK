@@ -566,7 +566,17 @@ function showSuccess(result, today, now, procName, d){
     hoursBox.style.display='none';
   }
 
-  const timeIn  = isIn ? (result.time_in||now) : (result.time_in||'—');
+  // แก้เวลาเข้า — ถ้าเป็น Date Object หรือ ISO String ให้แปลงเป็น HH:MM
+  function formatTimeIn(t) {
+    if(!t || t==='—') return '—';
+    // ถ้าเป็น ISO String เช่น 1899-12-30T05:34:56.000Z
+    if(String(t).indexOf('T') > -1) {
+      var d = new Date(t);
+      return d.getUTCHours().toString().padStart(2,'0') + ':' + d.getUTCMinutes().toString().padStart(2,'0');
+    }
+    return String(t).substring(0,5); // เอาแค่ HH:MM
+  }
+  const timeIn  = isIn ? (result.time_in||now) : formatTimeIn(result.time_in||'—');
   const timeOut = isIn ? '—' : (result.time_out||now);
   const hours   = isIn ? '—' : (result.hours!==undefined?result.hours.toFixed(2)+' ชม.':'—');
 
@@ -590,14 +600,23 @@ function showSuccess(result, today, now, procName, d){
   }
 }
 
-// Upload รูปใน Background — ไม่บล็อก UI
+// Upload รูปใน Background — Compress ก่อนส่ง
 async function uploadPhotosBackground(procName, today, now){
   var success = 0;
   var fail    = 0;
 
   for(var pi=0; pi<capturedPhotos.length; pi++){
+    var statusEl = document.getElementById('photo-status');
+    if(statusEl){
+      statusEl.textContent = '⏳ กำลัง Upload รูป '+(pi+1)+'/'+capturedPhotos.length+'...';
+      statusEl.style.color = 'var(--amber)';
+    }
+
     try{
       var photoData = typeof capturedPhotos[pi]==='object' ? capturedPhotos[pi].b64 : capturedPhotos[pi];
+
+      // Compress รูปให้เล็กลงก่อนส่ง
+      photoData = await compressForUpload(photoData, 400, 0.5);
 
       var res = await apiPost({
         action:       'UPLOAD_PHOTO',
@@ -616,16 +635,6 @@ async function uploadPhotosBackground(procName, today, now){
       fail++;
       console.warn('Upload error:', e);
     }
-
-    // อัปเดต Status ระหว่าง Upload
-    var statusEl = document.getElementById('photo-status');
-    if(statusEl){
-      var remaining = capturedPhotos.length - pi - 1;
-      if(remaining > 0){
-        statusEl.textContent = '⏳ Upload แล้ว '+(pi+1)+'/'+capturedPhotos.length+'...';
-        statusEl.style.color = 'var(--amber)';
-      }
-    }
   }
 
   // แสดงผลสุดท้าย
@@ -638,10 +647,28 @@ async function uploadPhotosBackground(procName, today, now){
       statusEl.textContent = '⚠️ Upload ได้ '+success+'/'+capturedPhotos.length+' รูป';
       statusEl.style.color = 'var(--amber)';
     } else {
-      statusEl.textContent = '❌ Upload ไม่สำเร็จ — รูปยังอยู่ในมือถือ';
+      statusEl.textContent = '❌ Upload ไม่สำเร็จ — ลองใหม่ภายหลัง';
       statusEl.style.color = 'var(--red)';
     }
   }
+}
+
+// Compress รูปให้เล็กลงก่อน Upload
+function compressForUpload(base64, maxSize, quality){
+  return new Promise(function(resolve){
+    var img = new Image();
+    img.onload = function(){
+      var canvas = document.createElement('canvas');
+      var w = img.width, h = img.height;
+      if(w > maxSize){ h = Math.round(h*maxSize/w); w = maxSize; }
+      if(h > maxSize){ w = Math.round(w*maxSize/h); h = maxSize; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = function(){ resolve(base64); };
+    img.src = base64;
+  });
 }
 
 function resetApp(){
