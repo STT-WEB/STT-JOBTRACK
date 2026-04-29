@@ -314,7 +314,11 @@ async function submitRegister(){
       };
       localStorage.setItem('jobtrack_user', JSON.stringify(fullUser));
       sessionStorage.removeItem('reg_user');
-      showSuccess(fullUser);
+
+      // ถ้ามาจาก Check In App → กลับไปหลังลงทะเบียนสำเร็จ
+      var regReturn = sessionStorage.getItem('reg_return');
+      sessionStorage.removeItem('reg_return');
+      showSuccess(fullUser, regReturn);
     } else {
       document.getElementById('emp-code').classList.add('error');
       document.getElementById('err-msg').textContent = result.message || 'ไม่พบรหัสพนักงาน กรุณาตรวจสอบใหม่';
@@ -331,7 +335,7 @@ async function submitRegister(){
   }
 }
 
-function showSuccess(user){
+function showSuccess(user, returnUrl){
   document.getElementById('screen-register').classList.remove('active');
   document.getElementById('screen-success').classList.add('active');
   document.getElementById('suc-card').innerHTML =
@@ -339,6 +343,15 @@ function showSuccess(user){
     '<div class="suc-row"><span class="suc-k">ชื่อ-นามสกุล</span><span class="suc-v">'+user.empName+'</span></div>'+
     '<div class="suc-row"><span class="suc-k">แผนก</span><span class="suc-v">'+user.empDept+'</span></div>'+
     '<div class="suc-row"><span class="suc-k">ตำแหน่ง</span><span class="suc-v">'+user.empRole+'</span></div>';
+
+  // ถ้ามาจาก Check In → กลับไปอัตโนมัติหลัง 2 วินาที
+  if(returnUrl){
+    setTimeout(function(){
+      window.location.href = returnUrl;
+    }, 2500);
+    document.getElementById('screen-success').innerHTML +=
+      '<div style="text-align:center;font-size:12px;color:var(--text3);margin-top:8px;">กำลังกลับไปหน้างาน...</div>';
+  }
 }
 
 // ── JSONP API ──

@@ -60,22 +60,36 @@ async function handleCallback() {
         displayName: result.profile.displayName,
         pictureUrl:  result.profile.pictureUrl,
         empId:       result.empId   || '',
-        empName:     result.empName || result.profile.displayName,
+        empName:     result.empName || '',
         empDept:     result.empDept || '',
         empRole:     result.empRole || '',
       }));
-
-      // กลับไปหน้าที่มาจาก หรือ หน้าหลัก
-      const returnUrl = sessionStorage.getItem('jobtrack_return') || 
-                        'https://stt-web.github.io/STT-JOBTRACK/job_checkin_app.html';
-      sessionStorage.removeItem('jobtrack_return');
 
       document.getElementById('icon').textContent  = '✅';
       document.getElementById('title').textContent = 'เข้าสู่ระบบสำเร็จ!';
       document.getElementById('spinner').style.display = 'none';
       document.getElementById('sub').textContent   = 'ยินดีต้อนรับ ' + result.profile.displayName;
 
-      setTimeout(() => { window.location.href = returnUrl; }, 1500);
+      // ถ้ายังไม่ได้ผูกรหัสพนักงาน → ไปหน้า Register ก่อน
+      var returnUrl = sessionStorage.getItem('jobtrack_return') || 
+                      'https://stt-web.github.io/STT-JOBTRACK/job_checkin_app.html';
+      sessionStorage.removeItem('jobtrack_return');
+
+      if (result.needRegister || !result.empId) {
+        // ส่งไปหน้า Register พร้อม return URL
+        sessionStorage.setItem('reg_user', JSON.stringify({
+          lineId:      result.profile.userId,
+          displayName: result.profile.displayName,
+          pictureUrl:  result.profile.pictureUrl,
+        }));
+        sessionStorage.setItem('reg_return', returnUrl);
+        document.getElementById('sub').textContent = 'กรุณาลงทะเบียนรหัสพนักงานก่อน...';
+        setTimeout(function() {
+          window.location.href = 'https://stt-web.github.io/STT-JOBTRACK/register.html?from=checkin';
+        }, 1500);
+      } else {
+        setTimeout(function() { window.location.href = returnUrl; }, 1500);
+      }
     } else {
       showError(result.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
     }
