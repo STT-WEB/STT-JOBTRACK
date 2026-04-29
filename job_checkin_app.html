@@ -616,9 +616,9 @@ async function uploadPhotosBackground(procName, today, now){
       var photoData = typeof capturedPhotos[pi]==='object' ? capturedPhotos[pi].b64 : capturedPhotos[pi];
 
       // Compress รูปให้เล็กลงก่อนส่ง
-      photoData = await compressForUpload(photoData, 300, 0.4); // ลดขนาดให้เล็กพอ JSONP
+      photoData = await compressForUpload(photoData, 600, 0.6); // POST รับได้ใหญ่กว่า
 
-      var res = await apiPost({
+      var res = await apiPostLarge({
         action:       'UPLOAD_PHOTO',
         job_id:       JOB_ID,
         emp_id:       EMP_ID,
