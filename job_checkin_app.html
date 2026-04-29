@@ -856,6 +856,17 @@ function fallbackCopy(url){
   document.body.removeChild(ta);
 }
 
+// ── Reset localStorage ถ้ามี ?reset=1 ใน URL ──
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  if(params.get('reset') === '1'){
+    localStorage.removeItem('jobtrack_user');
+    // ลบ reset param แล้ว reload
+    window.location.href = window.location.pathname + 
+      window.location.search.replace(/[?&]reset=1/,'');
+  }
+})();
+
 // ── Init Job Info จาก QR URL ──
 function initJobInfo(){
   document.getElementById('job-display-name').textContent = JOB_ID + (JOB_NAME?' · '+JOB_NAME:'');
