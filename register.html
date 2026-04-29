@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JOBTRACK · ลงทะเบียนพนักงาน</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1117;--bg2:#181c25;--bg3:#1e2330;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text:#f0f2f5;--text2:#8b92a5;--text3:#555d70;
+  --green:#00e187;--green-dim:rgba(0,225,135,0.12);--green-bd:rgba(0,225,135,0.35);
+  --red:#ff5c5c;--red-dim:rgba(255,92,92,0.12);--red-bd:rgba(255,92,92,0.35);
+  --blue:#4d9cff;--blue-dim:rgba(77,156,255,0.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:#0a0c11;min-height:100vh;font-family:'IBM Plex Sans Thai',sans-serif;display:flex;justify-content:center;align-items:flex-start;padding:16px;}
+.device{width:375px;background:var(--bg);border-radius:44px;border:1.5px solid rgba(255,255,255,0.1);overflow:hidden;box-shadow:0 0 0 8px rgba(255,255,255,0.03),0 32px 80px rgba(0,0,0,0.6);}
+.statusbar{padding:12px 24px 8px;display:flex;justify-content:space-between;align-items:center;}
+.t{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);}
+.ic{font-size:11px;color:var(--text2);}
+
+/* SCREENS */
+.screen{display:none;padding:24px 20px 32px;}
+.screen.active{display:block;}
+
+/* LINE LOGIN */
+.logo-wrap{text-align:center;padding:32px 0 24px;}
+.logo-icon{font-size:64px;margin-bottom:12px;}
+.logo-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.logo-sub{font-size:13px;color:var(--text2);line-height:1.6;}
+.logo-badge{display:inline-block;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:11px;color:var(--text3);margin-top:8px;}
+
+.btn-line{width:100%;background:#00B900;color:#fff;border:none;border-radius:16px;padding:18px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:24px;transition:opacity 0.2s;}
+.btn-line:hover{opacity:0.88;}
+.btn-line:active{transform:scale(0.98);}
+
+/* PROFILE CARD */
+.profile-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.profile-pic{width:52px;height:52px;border-radius:50%;background:#2a3550;border:2px solid var(--green);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.profile-name{font-size:15px;font-weight:600;color:var(--text);}
+.profile-verified{font-size:11px;color:var(--green);margin-top:3px;font-weight:500;}
+
+/* INPUT */
+.input-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;display:block;}
+.input-sub{font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.5;}
+.emp-input{width:100%;background:var(--bg2);border:1.5px solid var(--border2);border-radius:14px;padding:16px;font-size:22px;font-weight:700;color:var(--text);font-family:'IBM Plex Mono',monospace;text-align:center;outline:none;letter-spacing:0.12em;transition:border-color 0.2s;}
+.emp-input:focus{border-color:var(--blue);}
+.emp-input.error{border-color:var(--red);}
+.emp-input.success{border-color:var(--green);}
+
+/* NUMPAD */
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0;}
+.num-btn{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;font-size:20px;font-weight:600;color:var(--text);cursor:pointer;text-align:center;font-family:'IBM Plex Mono',monospace;transition:all 0.15s;user-select:none;}
+.num-btn:active{background:var(--bg3);transform:scale(0.95);}
+.num-btn.del{font-size:16px;color:var(--text2);}
+.num-btn.clear{font-size:13px;color:var(--red);font-family:'IBM Plex Sans Thai',sans-serif;}
+
+/* BUTTONS */
+.btn-primary{width:100%;background:var(--text);color:var(--bg);border:none;border-radius:16px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.2s,transform 0.1s;margin-top:8px;}
+.btn-primary:hover{opacity:0.88;}
+.btn-primary:active{transform:scale(0.98);}
+.btn-primary:disabled{opacity:0.35;cursor:not-allowed;}
+
+/* ERROR / HINT */
+.error-msg{background:var(--red-dim);border:1px solid var(--red-bd);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--red);margin-top:10px;display:none;line-height:1.5;}
+.hint-box{background:var(--blue-dim);border:1px solid rgba(77,156,255,0.2);border-radius:10px;padding:10px 14px;font-size:11px;color:var(--blue);margin-top:10px;line-height:1.6;}
+
+/* SUCCESS */
+.success-wrap{text-align:center;padding:20px 0;}
+.suc-circle{width:80px;height:80px;border-radius:50%;background:var(--green-dim);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:36px;color:var(--green);}
+.suc-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:8px;}
+.suc-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px;}
+.suc-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;text-align:left;margin-bottom:20px;}
+.suc-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.suc-row:last-child{border-bottom:none;}
+.suc-k{color:var(--text3);}
+.suc-v{color:var(--text);font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+.btn-done{background:var(--green);color:#0a0c11;border:none;border-radius:14px;padding:14px 28px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* LOADING */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(10,12,17,0.88);z-index:99;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+.loading-overlay.show{display:flex;}
+.spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--green);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-size:13px;color:var(--text2);}
+
+/* IAB Warning */
+.iab-overlay{display:none;position:fixed;inset:0;background:#0a0c11;z-index:999;align-items:center;justify-content:center;flex-direction:column;padding:28px;text-align:center;}
+.iab-overlay.show{display:flex;}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-txt" id="loading-txt">กำลังตรวจสอบ...</div>
+</div>
+
+<!-- LINE IAB Warning -->
+<div class="iab-overlay" id="iab-overlay">
+  <div style="font-size:52px;margin-bottom:16px;">🌐</div>
+  <div style="font-size:20px;font-weight:700;color:#f0f2f5;margin-bottom:8px;">กรุณาเปิดใน Browser</div>
+  <div style="font-size:13px;color:#8b92a5;line-height:1.7;margin-bottom:24px;">LINE Browser ไม่รองรับการลงทะเบียน<br>กรุณาสแกน QR ด้วยกล้องมือถือโดยตรง</div>
+  <div style="background:#181c25;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px;width:100%;max-width:300px;text-align:left;margin-bottom:20px;">
+    <div style="font-size:11px;color:#8b92a5;margin-bottom:12px;font-weight:600;">วิธีเปิดที่ถูกต้อง</div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
+      <div style="background:#00e187;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">1</div>
+      <div style="font-size:12px;color:#f0f2f5;">ปิดหน้านี้</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
+      <div style="background:#00e187;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">2</div>
+      <div style="font-size:12px;color:#f0f2f5;">เปิดกล้องมือถือ</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start;">
+      <div style="background:#00e187;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">3</div>
+      <div style="font-size:12px;color:#f0f2f5;">สแกน QR → กด "เปิดใน Chrome"</div>
+    </div>
+  </div>
+  <button onclick="copyRegLink()" id="copy-reg-btn"
+    style="background:#00e187;color:#0a0c11;border:none;border-radius:14px;padding:14px 28px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;max-width:300px;">
+    📋 Copy Link ลงทะเบียน
+  </button>
+</div>
+
+<div class="device">
+  <div class="statusbar">
+    <span class="t" id="clock">09:00</span>
+    <span class="ic">WiFi ▲▲▲ 🔋</span>
+  </div>
+
+  <!-- SCREEN 1: LINE LOGIN -->
+  <div class="screen active" id="screen-login">
+    <div class="logo-wrap">
+      <div class="logo-icon">👷</div>
+      <div class="logo-title">JOBTRACK</div>
+      <div class="logo-sub">ลงทะเบียนพนักงานใหม่<br>ทำครั้งแรกครั้งเดียว</div>
+      <div class="logo-badge">สำหรับ HR และพนักงานใหม่</div>
+    </div>
+
+    <div class="hint-box">
+      📌 HR แจก QR นี้ให้พนักงานใหม่สแกน<br>
+      พนักงาน Login LINE → กรอกรหัส → เสร็จ!
+    </div>
+
+    <button class="btn-line" onclick="loginWithLine()">
+      <span style="font-size:22px;">💬</span>
+      เข้าสู่ระบบด้วย LINE
+    </button>
+  </div>
+
+  <!-- SCREEN 2: กรอกรหัสพนักงาน -->
+  <div class="screen" id="screen-register">
+    <div class="profile-card" id="profile-card">
+      <div class="profile-pic" id="reg-pic">👤</div>
+      <div>
+        <div class="profile-name" id="reg-name">-</div>
+        <div class="profile-verified">✓ LINE ยืนยันตัวตนแล้ว</div>
+      </div>
+    </div>
+
+    <label class="input-label">รหัสพนักงานของคุณ</label>
+    <div class="input-sub">กรอกรหัสพนักงานที่ได้รับจาก HR<br>ดูได้จากสลิปเงินเดือน หรือบัตรพนักงาน</div>
+
+    <input type="text" id="emp-code" class="emp-input" readonly placeholder="_ _ _ _ _ _ _">
+
+    <div class="numpad">
+      <button class="num-btn" onclick="numPress('1')">1</button>
+      <button class="num-btn" onclick="numPress('2')">2</button>
+      <button class="num-btn" onclick="numPress('3')">3</button>
+      <button class="num-btn" onclick="numPress('4')">4</button>
+      <button class="num-btn" onclick="numPress('5')">5</button>
+      <button class="num-btn" onclick="numPress('6')">6</button>
+      <button class="num-btn" onclick="numPress('7')">7</button>
+      <button class="num-btn" onclick="numPress('8')">8</button>
+      <button class="num-btn" onclick="numPress('9')">9</button>
+      <button class="num-btn clear" onclick="numClear()">ล้าง</button>
+      <button class="num-btn" onclick="numPress('0')">0</button>
+      <button class="num-btn del" onclick="numDel()">⌫</button>
+    </div>
+
+    <div class="error-msg" id="err-msg">ไม่พบรหัสพนักงานนี้ กรุณาตรวจสอบใหม่</div>
+
+    <button class="btn-primary" onclick="submitRegister()" id="btn-submit">ยืนยันรหัสพนักงาน →</button>
+  </div>
+
+  <!-- SCREEN 3: สำเร็จ -->
+  <div class="screen" id="screen-success">
+    <div class="success-wrap">
+      <div class="suc-circle">✓</div>
+      <div class="suc-title">ลงทะเบียนสำเร็จ!</div>
+      <div class="suc-sub">ระบบจำข้อมูลของคุณแล้ว<br>สแกน QR ที่หน้างานเพื่อ Check In ได้เลย</div>
+      <div class="suc-card" id="suc-card"></div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6;">
+        📌 ครั้งต่อไปสแกน QR ที่แท็งค์/หน้างาน<br>ระบบจะรู้ทันทีว่าคุณเป็นใคร
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTkeQyQm9yFMcZMS-2MaMaO_3C_mnjWOtjZ2Ql5vFI1ZMKsKEDcbOYSDjic1dG0fDYJw/exec';
+const LINE_CHANNEL_ID = '2009924671';
+const LINE_REDIRECT   = 'https://stt-web.github.io/STT-JOBTRACK/callback_register.html';
+
+// ── LINE IAB Detection ──
+(function(){
+  var ua = navigator.userAgent || '';
+  if(/Line\//i.test(ua)){
+    document.getElementById('iab-overlay').classList.add('show');
+  }
+})();
+
+function copyRegLink(){
+  var url = window.location.href;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(function(){
+      document.getElementById('copy-reg-btn').textContent = '✅ Copy แล้ว!';
+    });
+  }
+}
+
+// ── Clock ──
+function tick(){
+  var n=new Date();
+  var t=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
+  document.getElementById('clock').textContent=t;
+}
+tick(); setInterval(tick,20000);
+
+// ── LINE Login ──
+function loginWithLine(){
+  var state = Math.random().toString(36).substring(2);
+  sessionStorage.setItem('reg_state', state);
+  var params = new URLSearchParams({
+    response_type: 'code',
+    client_id:     LINE_CHANNEL_ID,
+    redirect_uri:  LINE_REDIRECT,
+    state:         state,
+    scope:         'profile openid',
+  });
+  window.location.href = 'https://access.line.me/oauth2/v2.1/authorize?' + params.toString();
+}
+
+// ── เช็คว่า Login กลับมาแล้วไหม ──
+var regUser = JSON.parse(sessionStorage.getItem('reg_user') || 'null');
+if(regUser && regUser.lineId){
+  showRegisterScreen(regUser);
+}
+
+function showRegisterScreen(user){
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-register').classList.add('active');
+  document.getElementById('reg-name').textContent = user.displayName || '-';
+  var pic = document.getElementById('reg-pic');
+  if(user.pictureUrl){
+    pic.innerHTML = '<img src="'+user.pictureUrl+'" style="width:100%;height:100%;object-fit:cover;">';
+  }
+}
+
+// ── Numpad ──
+function numPress(n){
+  var inp = document.getElementById('emp-code');
+  if(inp.value.length >= 10) return;
+  inp.value += n;
+  inp.classList.remove('error');
+  document.getElementById('err-msg').style.display='none';
+}
+function numDel(){
+  var inp = document.getElementById('emp-code');
+  inp.value = inp.value.slice(0,-1);
+}
+function numClear(){
+  document.getElementById('emp-code').value = '';
+  document.getElementById('err-msg').style.display='none';
+}
+
+// ── Submit ──
+async function submitRegister(){
+  var empId = document.getElementById('emp-code').value.trim();
+  if(!empId){ return; }
+
+  var btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.textContent = 'กำลังตรวจสอบ...';
+  document.getElementById('loading-txt').textContent = 'กำลังตรวจสอบรหัสพนักงาน...';
+  document.getElementById('loading').classList.add('show');
+
+  try{
+    var user = JSON.parse(sessionStorage.getItem('reg_user') || 'null');
+    if(!user){ window.location.reload(); return; }
+
+    var result = await apiPost({
+      action: 'REGISTER_EMPLOYEE',
+      lineId: user.lineId,
+      empId:  empId,
+    });
+
+    document.getElementById('loading').classList.remove('show');
+
+    if(result.ok && result.empName){
+      // บันทึกลง localStorage สำหรับ Check In App
+      var fullUser = {
+        lineId:      user.lineId,
+        displayName: user.displayName,
+        pictureUrl:  user.pictureUrl,
+        empId:       result.empId,
+        empName:     result.empName,
+        empDept:     result.empDept,
+        empRole:     result.empRole,
+      };
+      localStorage.setItem('jobtrack_user', JSON.stringify(fullUser));
+      sessionStorage.removeItem('reg_user');
+      showSuccess(fullUser);
+    } else {
+      document.getElementById('emp-code').classList.add('error');
+      document.getElementById('err-msg').textContent = result.message || 'ไม่พบรหัสพนักงาน กรุณาตรวจสอบใหม่';
+      document.getElementById('err-msg').style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'ยืนยันรหัสพนักงาน →';
+    }
+  } catch(e){
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('err-msg').textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+    document.getElementById('err-msg').style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'ยืนยันรหัสพนักงาน →';
+  }
+}
+
+function showSuccess(user){
+  document.getElementById('screen-register').classList.remove('active');
+  document.getElementById('screen-success').classList.add('active');
+  document.getElementById('suc-card').innerHTML =
+    '<div class="suc-row"><span class="suc-k">รหัสพนักงาน</span><span class="suc-v">'+user.empId+'</span></div>'+
+    '<div class="suc-row"><span class="suc-k">ชื่อ-นามสกุล</span><span class="suc-v">'+user.empName+'</span></div>'+
+    '<div class="suc-row"><span class="suc-k">แผนก</span><span class="suc-v">'+user.empDept+'</span></div>'+
+    '<div class="suc-row"><span class="suc-k">ตำแหน่ง</span><span class="suc-v">'+user.empRole+'</span></div>';
+}
+
+// ── JSONP API ──
+function apiPost(payload){
+  return new Promise(function(resolve, reject){
+    var cbName = 'cb_' + Date.now();
+    var params = encodeURIComponent(JSON.stringify(payload));
+    var url    = APPS_SCRIPT_URL + '?data=' + params + '&callback=' + cbName;
+    window[cbName] = function(r){ delete window[cbName]; document.head.removeChild(s); resolve(r); };
+    var s = document.createElement('script');
+    s.src = url;
+    s.onerror = function(){ delete window[cbName]; reject(new Error('Network error')); };
+    document.head.appendChild(s);
+    setTimeout(function(){ if(window[cbName]){ delete window[cbName]; reject(new Error('Timeout')); }}, 15000);
+  });
+}
+</script>
+</body>
+</html>
