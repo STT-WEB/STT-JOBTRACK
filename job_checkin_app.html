@@ -618,7 +618,7 @@ async function uploadPhotosBackground(procName, today, now){
       var photoData = typeof capturedPhotos[pi]==='object' ? capturedPhotos[pi].b64 : capturedPhotos[pi];
 
       // Compress ก่อน Upload
-      photoData = await compressForUpload(photoData, 800, 0.7);
+      // รูปถูก compress แล้วตั้งแต่ตอนถ่าย ไม่ต้อง compress ซ้ำ
 
       // Upload ไป ImgBB โดยตรง — ไม่ติด CORS
       var base64Only = photoData.split(',')[1];
@@ -721,56 +721,56 @@ function handlePhotoCapture(event){
   if(!file) return;
   event.target.value='';
 
-  // ตรวจสอบว่าไฟล์ถูกสร้างใหม่ (ถ่ายสด) — ไม่เกิน 60 วินาทีที่ผ่านมา
+  // ตรวจสอบว่าถ่ายสด ไม่เกิน 60 วินาที
   const fileAge = (Date.now() - file.lastModified) / 1000;
   if(fileAge > 60){
     showToast('กรุณาถ่ายรูปสดจากกล้องเท่านั้น ห้ามใช้รูปเก่า');
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = function(e){
-    const img = new Image();
-    img.onload = function(){
-      const canvas = document.createElement('canvas');
-      const MAX = 900;
-      let w=img.width, h=img.height;
-      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
-      if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
-      canvas.width=w; canvas.height=h;
-      const ctx = canvas.getContext('2d');
+  // ใช้ createObjectURL — เร็วกว่า FileReader มาก
+  const objectUrl = URL.createObjectURL(file);
+  const img = new Image();
 
-      // วาดรูป
-      ctx.drawImage(img,0,0,w,h);
+  img.onload = function(){
+    URL.revokeObjectURL(objectUrl);
 
-      // ── Watermark Timestamp ──
-      const now = new Date();
-      const stamp = now.toLocaleDateString('th-TH') + ' ' +
-                    now.getHours().toString().padStart(2,'0') + ':' +
-                    now.getMinutes().toString().padStart(2,'0') + ':' +
-                    now.getSeconds().toString().padStart(2,'0');
-      const empStamp = 'EMP: ' + EMP_NAME + ' | ' + JOB_ID;
+    const canvas = document.createElement('canvas');
+    const MAX = 800;
+    let w=img.width, h=img.height;
+    if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+    if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+    canvas.width=w; canvas.height=h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img,0,0,w,h);
 
-      const fontSize = Math.max(14, Math.round(w * 0.025));
-      ctx.font = 'bold ' + fontSize + 'px monospace';
+    // Watermark
+    const now = new Date();
+    const stamp = now.toLocaleDateString('th-TH') + ' ' +
+                  now.getHours().toString().padStart(2,'0') + ':' +
+                  now.getMinutes().toString().padStart(2,'0') + ':' +
+                  now.getSeconds().toString().padStart(2,'0');
+    const empStamp = EMP_NAME + ' | ' + JOB_ID;
+    const fontSize = Math.max(13, Math.round(w * 0.024));
+    ctx.font = 'bold ' + fontSize + 'px monospace';
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, h - fontSize*3.4, w, fontSize*3.4);
+    ctx.fillStyle = '#00e187';
+    ctx.fillText('📍 ' + stamp, 8, h - fontSize*2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(empStamp, 8, h - fontSize*0.6);
 
-      // กรอบสีดำด้านล่าง
-      ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      ctx.fillRect(0, h - fontSize*3.2, w, fontSize*3.2);
-
-      // ข้อความ
-      ctx.fillStyle = '#00e187';
-      ctx.fillText('📍 ' + stamp, 10, h - fontSize*2);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(empStamp, 10, h - fontSize*0.6);
-
-      const b64 = canvas.toDataURL('image/jpeg', 0.78);
-      capturedPhotos.push({ b64, timestamp: stamp, emp: EMP_NAME });
-      renderPhotoPreview();
-    };
-    img.src = e.target.result;
+    const b64 = canvas.toDataURL('image/jpeg', 0.75);
+    capturedPhotos.push({ b64, timestamp: stamp, emp: EMP_NAME });
+    renderPhotoPreview();
   };
-  reader.readAsDataURL(file);
+
+  img.onerror = function(){
+    URL.revokeObjectURL(objectUrl);
+    showToast('โหลดรูปไม่ได้ กรุณาลองใหม่');
+  };
+
+  img.src = objectUrl;
 }
 
 function renderPhotoPreview(){
