@@ -141,16 +141,37 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
 </head>
 <body>
 
-<!-- LINE IAB DETECTOR — แสดงเมื่อเปิดจาก LINE -->
-<div id="line-iab-overlay" style="display:none;position:fixed;inset:0;background:#0a0c11;z-index:999;align-items:center;justify-content:center;flex-direction:column;padding:32px;text-align:center;">
-  <div style="font-size:48px;margin-bottom:16px;">🌐</div>
+<!-- LINE IAB DETECTOR -->
+<div id="line-iab-overlay" style="display:none;position:fixed;inset:0;background:#0a0c11;z-index:999;align-items:center;justify-content:center;flex-direction:column;padding:28px;text-align:center;">
+  <div style="font-size:52px;margin-bottom:16px;">🌐</div>
   <div style="font-size:20px;font-weight:700;color:#f0f2f5;margin-bottom:8px;">กรุณาเปิดใน Browser</div>
-  <div style="font-size:14px;color:#8b92a5;line-height:1.6;margin-bottom:28px;">LINE Browser ไม่รองรับระบบนี้<br>กดปุ่มด้านล่างเพื่อเปิดใน Chrome / Safari</div>
-  <button onclick="openInBrowser()" style="background:#00e187;color:#0a0c11;border:none;border-radius:16px;padding:16px 32px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;max-width:280px;">
-    เปิดใน Browser →
+  <div style="font-size:13px;color:#8b92a5;line-height:1.7;margin-bottom:24px;">LINE Browser ไม่รองรับระบบนี้<br>ทำตามขั้นตอนด้านล่างนี้</div>
+
+  <!-- Step by step -->
+  <div style="background:#181c25;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px;width:100%;max-width:300px;text-align:left;margin-bottom:20px;">
+    <div style="font-size:12px;color:#8b92a5;margin-bottom:12px;font-weight:600;">วิธีเปิดใน Chrome / Safari</div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
+      <div style="background:#00e187;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">1</div>
+      <div style="font-size:12px;color:#f0f2f5;">กด Copy Link ด้านล่าง</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
+      <div style="background:#00e187;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">2</div>
+      <div style="font-size:12px;color:#f0f2f5;">เปิด Chrome หรือ Safari</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start;">
+      <div style="background:#00e187;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">3</div>
+      <div style="font-size:12px;color:#f0f2f5;">วาง Link แล้วเปิด</div>
+    </div>
+  </div>
+
+  <!-- Copy Button -->
+  <button onclick="copyLink()" id="copy-btn"
+    style="background:#00e187;color:#0a0c11;border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;max-width:300px;margin-bottom:10px;">
+    📋 Copy Link
   </button>
-  <div style="margin-top:16px;font-size:12px;color:#555d70;">หรือ Copy URL แล้วเปิดใน Chrome ด้วยตัวเอง</div>
-  <div style="margin-top:8px;background:#181c25;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;font-size:11px;font-family:monospace;color:#4d9cff;word-break:break-all;max-width:300px;" id="url-display"></div>
+
+  <!-- URL Display -->
+  <div id="url-display" style="background:#181c25;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 12px;font-size:10px;font-family:monospace;color:#4d9cff;word-break:break-all;max-width:300px;"></div>
 </div>
 
 <div class="loading-overlay" id="loading">
@@ -511,6 +532,26 @@ async function doSubmit(){
     process:  procName, lang:lg,
   };
 
+  // ถ้า Check Out และมีรูป → Upload ไป Drive ก่อน
+  if(sa==='out' && capturedPhotos.length > 0){
+    sv('loading-txt', '📸 กำลัง Upload รูป...');
+    for(var pi=0; pi<capturedPhotos.length; pi++){
+      try{
+        await apiPost({
+          action:       'UPLOAD_PHOTO',
+          job_id:       JOB_ID,
+          emp_id:       EMP_ID,
+          emp_name:     EMP_NAME,
+          process:      procName,
+          date:         new Date().toLocaleDateString('th-TH'),
+          time:         document.getElementById('clock').textContent,
+          photo_base64: typeof capturedPhotos[pi]==='object'?capturedPhotos[pi].b64:capturedPhotos[pi],
+        });
+      }catch(e){ console.warn('Upload photo error:', e); }
+    }
+    sv('loading-txt', d.loading);
+  }
+
   try{
     const result=await apiPost(payload);
     document.getElementById('loading').classList.remove('show');
@@ -678,15 +719,38 @@ function tick(){
   }
 })();
 
-function openInBrowser(){
+function copyLink(){
   var url = window.location.href;
-  // Android — intent scheme
-  if(/Android/i.test(navigator.userAgent)){
-    window.location = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
+  // ลอง Copy
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(function(){
+      var btn = document.getElementById('copy-btn');
+      btn.textContent = '✅ Copy แล้ว! เปิด Chrome แล้ววาง';
+      btn.style.background = '#181c25';
+      btn.style.color = '#00e187';
+      btn.style.border = '1px solid #00e187';
+    }).catch(function(){ fallbackCopy(url); });
   } else {
-    // iOS — แค่เปิด URL ใหม่
-    window.open(url, '_blank');
+    fallbackCopy(url);
   }
+}
+
+function fallbackCopy(url){
+  var ta = document.createElement('textarea');
+  ta.value = url;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try {
+    document.execCommand('copy');
+    var btn = document.getElementById('copy-btn');
+    btn.textContent = '✅ Copy แล้ว! เปิด Chrome แล้ววาง';
+    btn.style.background = '#181c25';
+    btn.style.color = '#00e187';
+    btn.style.border = '1px solid #00e187';
+  } catch(e) {}
+  document.body.removeChild(ta);
 }
 
 // ── Init Job Info จาก QR URL ──
