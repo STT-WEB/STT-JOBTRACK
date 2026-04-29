@@ -616,7 +616,7 @@ async function uploadPhotosBackground(procName, today, now){
       var photoData = typeof capturedPhotos[pi]==='object' ? capturedPhotos[pi].b64 : capturedPhotos[pi];
 
       // Compress รูปให้เล็กลงก่อนส่ง
-      photoData = await compressForUpload(photoData, 400, 0.5);
+      photoData = await compressForUpload(photoData, 300, 0.4); // ลดขนาดให้เล็กพอ JSONP
 
       var res = await apiPost({
         action:       'UPLOAD_PHOTO',
@@ -664,7 +664,13 @@ function compressForUpload(base64, maxSize, quality){
       if(h > maxSize){ w = Math.round(w*maxSize/h); h = maxSize; }
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img,0,0,w,h);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      var result = canvas.toDataURL('image/jpeg', quality);
+      // ถ้ายังใหญ่เกิน 100KB → Compress อีกรอบ
+      if(result.length > 130000) {
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        result = canvas.toDataURL('image/jpeg', 0.3);
+      }
+      resolve(result);
     };
     img.onerror = function(){ resolve(base64); };
     img.src = base64;
