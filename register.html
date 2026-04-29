@@ -293,9 +293,10 @@ async function submitRegister(){
     if(!user){ window.location.reload(); return; }
 
     var result = await apiPost({
-      action: 'REGISTER_EMPLOYEE',
-      lineId: user.lineId,
-      empId:  empId,
+      action:   'REGISTER_EMPLOYEE',
+      lineId:   user.lineId,
+      empId:    empId,
+      lineName: user.displayName || '',
     });
 
     document.getElementById('loading').classList.remove('show');
