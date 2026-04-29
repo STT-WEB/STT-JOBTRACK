@@ -532,25 +532,7 @@ async function doSubmit(){
     process:  procName, lang:lg,
   };
 
-  // ถ้า Check Out และมีรูป → Upload ไป Drive ก่อน
-  if(sa==='out' && capturedPhotos.length > 0){
-    sv('loading-txt', '📸 กำลัง Upload รูป...');
-    for(var pi=0; pi<capturedPhotos.length; pi++){
-      try{
-        await apiPost({
-          action:       'UPLOAD_PHOTO',
-          job_id:       JOB_ID,
-          emp_id:       EMP_ID,
-          emp_name:     EMP_NAME,
-          process:      procName,
-          date:         new Date().toLocaleDateString('th-TH'),
-          time:         document.getElementById('clock').textContent,
-          photo_base64: typeof capturedPhotos[pi]==='object'?capturedPhotos[pi].b64:capturedPhotos[pi],
-        });
-      }catch(e){ console.warn('Upload photo error:', e); }
-    }
-    sv('loading-txt', d.loading);
-  }
+  // รูปจะ Upload ใน Background หลัง Check Out สำเร็จ ไม่บล็อก UX
 
   try{
     const result=await apiPost(payload);
@@ -574,7 +556,6 @@ function showSuccess(result, today, now, procName, d){
   sv('suc-sub', isIn?d.ssIn:d.ssOut);
   sv('btn-reset',d.rst);
 
-  // แสดง Hours Box เฉพาะ Check Out
   const hoursBox=document.getElementById('hours-big');
   if(!isIn && result.hours!==undefined){
     hoursBox.style.display='block';
@@ -596,10 +577,70 @@ function showSuccess(result, today, now, procName, d){
     ${procName?`<div class="suc-row"><span class="sk">${d.rp}</span><span class="sv">${procName}</span></div>`:''}
     <div class="suc-row"><span class="sk">${d.rIn}</span><span class="sv">${timeIn}</span></div>
     <div class="suc-row"><span class="sk">${d.rOut}</span><span class="sv">${timeOut}</span></div>
-    ${!isIn?`<div class="suc-row"><span class="sk">${d.rH}</span><span class="sv" style="color:var(--green)">${hours}</span></div>`:''}`;
+    ${!isIn?`<div class="suc-row"><span class="sk">${d.rH}</span><span class="sv" style="color:var(--green)">${hours}</span></div>`:''}
+    ${!isIn && capturedPhotos.length>0 ? `<div class="suc-row"><span class="sk">📸 รูปภาพ</span><span class="sv" id="photo-status" style="color:var(--amber)">⏳ กำลัง Upload ${capturedPhotos.length} รูป...</span></div>` : ''}`;
 
   document.getElementById('main').style.display='none';
   document.getElementById('success').style.display='block';
+
+  // Upload รูปใน Background หลัง UI แสดงแล้ว
+  if(!isIn && capturedPhotos.length > 0){
+    uploadPhotosBackground(procName, today, now);
+  }
+}
+
+// Upload รูปใน Background — ไม่บล็อก UI
+async function uploadPhotosBackground(procName, today, now){
+  var success = 0;
+  var fail    = 0;
+
+  for(var pi=0; pi<capturedPhotos.length; pi++){
+    try{
+      var photoData = typeof capturedPhotos[pi]==='object' ? capturedPhotos[pi].b64 : capturedPhotos[pi];
+
+      var res = await apiPost({
+        action:       'UPLOAD_PHOTO',
+        job_id:       JOB_ID,
+        emp_id:       EMP_ID,
+        emp_name:     EMP_NAME,
+        process:      procName,
+        date:         today,
+        time:         now,
+        photo_base64: photoData,
+      });
+
+      if(res && res.ok) success++;
+      else fail++;
+    }catch(e){
+      fail++;
+      console.warn('Upload error:', e);
+    }
+
+    // อัปเดต Status ระหว่าง Upload
+    var statusEl = document.getElementById('photo-status');
+    if(statusEl){
+      var remaining = capturedPhotos.length - pi - 1;
+      if(remaining > 0){
+        statusEl.textContent = '⏳ Upload แล้ว '+(pi+1)+'/'+capturedPhotos.length+'...';
+        statusEl.style.color = 'var(--amber)';
+      }
+    }
+  }
+
+  // แสดงผลสุดท้าย
+  var statusEl = document.getElementById('photo-status');
+  if(statusEl){
+    if(fail === 0){
+      statusEl.textContent = '✅ Upload สำเร็จ '+success+' รูป';
+      statusEl.style.color = 'var(--green)';
+    } else if(success > 0){
+      statusEl.textContent = '⚠️ Upload ได้ '+success+'/'+capturedPhotos.length+' รูป';
+      statusEl.style.color = 'var(--amber)';
+    } else {
+      statusEl.textContent = '❌ Upload ไม่สำเร็จ — รูปยังอยู่ในมือถือ';
+      statusEl.style.color = 'var(--red)';
+    }
+  }
 }
 
 function resetApp(){
