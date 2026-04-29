@@ -323,6 +323,7 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
 // CONFIG
 // ============================================================
 const APPS_SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycbyTkeQyQm9yFMcZMS-2MaMaO_3C_mnjWOtjZ2Ql5vFI1ZMKsKEDcbOYSDjic1dG0fDYJw/exec';
+const IMGBB_API_KEY    = '8e405c97165321f3c68eafb9d3d9bd8e';
 const LINE_CHANNEL_ID  = '2009924671';
 const LINE_REDIRECT    = 'https://stt-web.github.io/STT-JOBTRACK/callback.html';
 const LINE_AUTH_URL    = 'https://access.line.me/oauth2/v2.1/authorize';
@@ -604,6 +605,7 @@ function showSuccess(result, today, now, procName, d){
 async function uploadPhotosBackground(procName, today, now){
   var success = 0;
   var fail    = 0;
+  var urls    = [];
 
   for(var pi=0; pi<capturedPhotos.length; pi++){
     var statusEl = document.getElementById('photo-status');
@@ -615,26 +617,46 @@ async function uploadPhotosBackground(procName, today, now){
     try{
       var photoData = typeof capturedPhotos[pi]==='object' ? capturedPhotos[pi].b64 : capturedPhotos[pi];
 
-      // Compress รูปให้เล็กลงก่อนส่ง
-      photoData = await compressForUpload(photoData, 600, 0.6); // POST รับได้ใหญ่กว่า
+      // Compress ก่อน Upload
+      photoData = await compressForUpload(photoData, 800, 0.7);
 
-      var res = await apiPostLarge({
-        action:       'UPLOAD_PHOTO',
-        job_id:       JOB_ID,
-        emp_id:       EMP_ID,
-        emp_name:     EMP_NAME,
-        process:      procName,
-        date:         today,
-        time:         now,
-        photo_base64: photoData,
+      // Upload ไป ImgBB โดยตรง — ไม่ติด CORS
+      var base64Only = photoData.split(',')[1];
+      var formData   = new FormData();
+      formData.append('key', IMGBB_API_KEY);
+      formData.append('image', base64Only);
+      formData.append('name', JOB_ID+'_'+EMP_ID+'_'+now.replace(':','-')+'_'+(pi+1));
+
+      var res  = await fetch('https://api.imgbb.com/1/upload', {
+        method: 'POST',
+        body:   formData,
       });
+      var json = await res.json();
 
-      if(res && res.ok) success++;
-      else fail++;
+      if(json.success){
+        success++;
+        urls.push(json.data.url);
+      } else {
+        fail++;
+      }
     }catch(e){
       fail++;
-      console.warn('Upload error:', e);
+      console.warn('ImgBB Upload error:', e);
     }
+  }
+
+  // บันทึก URL รูปลง Apps Script
+  if(urls.length > 0){
+    try{
+      await apiPost({
+        action:     'SAVE_PHOTO_URLS',
+        emp_id:     EMP_ID,
+        job_id:     JOB_ID,
+        process:    procName,
+        date:       today,
+        photo_urls: urls.join('|'),
+      });
+    }catch(e){ console.warn('Save URL error:', e); }
   }
 
   // แสดงผลสุดท้าย
