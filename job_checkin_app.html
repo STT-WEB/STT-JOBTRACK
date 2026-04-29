@@ -338,8 +338,8 @@ const JOB_ZONE = _params.get('zone') || '';
 
 // Employee — ดึงจาก LINE Login
 const _user    = JSON.parse(localStorage.getItem('jobtrack_user') || 'null');
-const EMP_ID   = _user ? _user.lineId      : '';
-const EMP_NAME = _user ? _user.empName     : '';
+const EMP_ID   = _user ? (_user.empId   || _user.lineId) : ''; // ใช้รหัสพนักงานจริง ถ้าไม่มีค่อยใช้ LINE ID
+const EMP_NAME = _user ? (_user.empName || _user.displayName || '') : '';
 const EMP_DEPT = _user ? _user.empDept     : '';
 const EMP_ROLE = _user ? _user.empRole     : '';
 const LINE_PIC = _user ? _user.pictureUrl  : '';
