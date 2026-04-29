@@ -16,7 +16,7 @@ img{max-width:100%;margin-top:12px;border-radius:8px;}
 
 <button onclick="testUpload()">📷 ทดสอบ Upload รูปทดสอบ</button>
 <button onclick="document.getElementById('cam').click()">📸 ถ่ายรูปแล้ว Upload</button>
-<input type="file" id="cam" accept="image/*" capture="environment" style="display:none" onchange="uploadReal(event)">
+<input type="file" id="cam" capture="environment" style="display:none" onchange="uploadReal(event)">
 
 <div id="result">กด ปุ่มด้านบนเพื่อทดสอบ...</div>
 
@@ -47,41 +47,56 @@ async function testUpload() {
 async function uploadReal(event) {
   var file = event.target.files[0];
   if(!file) return;
-  document.getElementById('result').textContent = '⏳ กำลัง Strip EXIF + Upload...';
+  event.target.value = ''; // reset input
+
+  document.getElementById('result').textContent = '⏳ กำลัง Compress รูป...';
+
   try {
-    var reader = new FileReader();
-    reader.onload = async function(e) {
-      // Strip EXIF — วาดรูปใหม่ผ่าน Canvas เพื่อลบ metadata
-      var img = new Image();
-      img.onload = async function(){
-        var canvas = document.createElement('canvas');
-        var MAX = 800;
-        var w = img.width, h = img.height;
-        if(w > MAX){ h = Math.round(h*MAX/w); w = MAX; }
-        if(h > MAX){ w = Math.round(w*MAX/h); h = MAX; }
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        // Export เป็น JPEG ใหม่ — EXIF หายหมด
-        var cleanBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+    // ใช้ createObjectURL แทน FileReader — เร็วกว่ามาก
+    var objectUrl = URL.createObjectURL(file);
+    var img = new Image();
 
-        var fd = new FormData();
-        fd.append('key', API_KEY);
-        fd.append('image', cleanBase64);
-        fd.append('name', 'photo_' + Date.now());
+    img.onload = async function(){
+      URL.revokeObjectURL(objectUrl);
 
-        var res  = await fetch('https://api.imgbb.com/1/upload', { method:'POST', body:fd });
-        var json = await res.json();
-        if(json.success){
-          document.getElementById('result').innerHTML =
-            '✅ Upload สำเร็จ!<br>URL: ' + json.data.url +
-            '<br><img src="'+json.data.url+'">';
-        } else {
-          document.getElementById('result').textContent = '❌ ' + JSON.stringify(json);
-        }
-      };
-      img.src = e.target.result;
+      // Resize เล็กลงก่อน — MAX 600px
+      var canvas = document.createElement('canvas');
+      var MAX = 600;
+      var w = img.width, h = img.height;
+      if(w > MAX){ h = Math.round(h*MAX/w); w = MAX; }
+      if(h > MAX){ w = Math.round(w*MAX/h); h = MAX; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+      document.getElementById('result').textContent = '⏳ กำลัง Upload (' + w + 'x' + h + ')...';
+
+      // Export JPEG ใหม่ — EXIF หายหมด
+      var cleanBase64 = canvas.toDataURL('image/jpeg', 0.75).split(',')[1];
+
+      var fd = new FormData();
+      fd.append('key', API_KEY);
+      fd.append('image', cleanBase64);
+      fd.append('name', 'photo_' + Date.now());
+
+      var res  = await fetch('https://api.imgbb.com/1/upload', { method:'POST', body:fd });
+      var json = await res.json();
+
+      if(json.success){
+        document.getElementById('result').innerHTML =
+          '✅ Upload สำเร็จ! (' + w + 'x' + h + ')<br>' +
+          '<a href="'+json.data.url+'" target="_blank" style="color:#00e187">เปิดรูป</a>' +
+          '<br><img src="'+json.data.url+'" style="max-width:100%;margin-top:8px;border-radius:8px;">';
+      } else {
+        document.getElementById('result').textContent = '❌ ' + JSON.stringify(json);
+      }
     };
-    reader.readAsDataURL(file);
+
+    img.onerror = function(){
+      document.getElementById('result').textContent = '❌ โหลดรูปไม่ได้';
+    };
+
+    img.src = objectUrl;
+
   } catch(e) {
     document.getElementById('result').textContent = '❌ Error: ' + e.message;
   }
