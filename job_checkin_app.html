@@ -524,14 +524,14 @@ async function apiPost(payload){
     };
     document.head.appendChild(script);
 
-    // Timeout 15 วินาที
+    // Timeout 8 วินาที
     setTimeout(() => {
       if(window[cbName]) {
         delete window[cbName];
         try { document.head.removeChild(script); } catch(e) {}
         reject(new Error('Timeout'));
       }
-    }, 15000);
+    }, 8000);
   });
 }
 
@@ -1181,8 +1181,17 @@ initJobInfo();
 
 tick();setInterval(tick,20000);
 renderProcs();
-// เช็ค Job ค้างหลังโหลด 500ms
-setTimeout(function(){ checkStatus(true); }, 500);
+// Warm up Apps Script ก่อน (ลด Cold Start)
+// แล้วค่อยเช็ค Status
+setTimeout(function(){
+  // Ping Apps Script เพื่อ Warm up
+  var warmup = document.createElement('script');
+  warmup.src = APPS_SCRIPT_URL + '?data=%7B%22action%22%3A%22PING%22%7D&callback=_warmup_cb';
+  window['_warmup_cb'] = function(){ delete window['_warmup_cb']; };
+  document.head.appendChild(warmup);
+  // เช็ค Status หลัง Warm up 1 วิ
+  setTimeout(function(){ checkStatus(true); }, 1000);
+}, 300);
 </script>
 </body>
 </html>
