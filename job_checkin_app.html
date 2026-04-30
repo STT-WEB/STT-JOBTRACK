@@ -314,7 +314,7 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
       <div class="hours-label" id="hours-label">ชั่วโมงรวม</div>
     </div>
     <div class="suc-card" id="suc-card"></div>
-    <button class="btn-reset" onclick="resetApp()" id="btn-reset">← กลับหน้าหลัก</button>
+    <div id="success-actions" style="display:flex;flex-direction:column;gap:10px;margin-top:8px;"></div>
   </div>
 </div>
 
@@ -627,6 +627,42 @@ function showSuccess(result, today, now, procName, d){
   document.getElementById('main').style.display='none';
   document.getElementById('success').style.display='block';
 
+  // แสดงปุ่มตามสถานะ
+  var actionsEl = document.getElementById('success-actions');
+  actionsEl.innerHTML = '';
+
+  if(isIn){
+    // Check In → ถามแก้ Process ได้ 1 ครั้ง + ปุ่มเสร็จสิ้น
+    canEditProcess = true;
+    var btnEdit = document.createElement('button');
+    btnEdit.className = 'btn-reset';
+    btnEdit.style.cssText = 'background:#1565c0;color:#fff;border-color:#1565c0;';
+    btnEdit.textContent = '⚙️ ขอแก้ไข Process';
+    btnEdit.onclick = function(){ showEditProcessDialog(); };
+    actionsEl.appendChild(btnEdit);
+
+    var btnDone = document.createElement('button');
+    btnDone.className = 'btn-reset';
+    btnDone.textContent = '✅ เสร็จสิ้น — ปิดหน้านี้';
+    btnDone.onclick = function(){
+      canEditProcess = false;
+      // ไม่กลับหน้าหลัก แค่แสดงข้อความปิดได้
+      actionsEl.innerHTML = '<div style="text-align:center;font-size:13px;color:var(--text3);padding:8px;">สแกน QR ใหม่เมื่อพร้อม Check Out</div>';
+      document.getElementById('btn-in') && (document.getElementById('btn-in').style.display='none');
+    };
+    actionsEl.appendChild(btnDone);
+  } else {
+    // Check Out → แค่ปุ่มปิด ไม่กลับหน้าหลัก
+    canEditProcess = false;
+    var btnClose = document.createElement('button');
+    btnClose.className = 'btn-reset';
+    btnClose.textContent = '✅ เสร็จสิ้น — ปิดหน้านี้';
+    btnClose.onclick = function(){
+      actionsEl.innerHTML = '<div style="text-align:center;font-size:13px;color:var(--text3);padding:8px;">สแกน QR ใหม่เมื่อพร้อมทำงานครั้งถัดไป</div>';
+    };
+    actionsEl.appendChild(btnClose);
+  }
+
   // Upload รูปใน Background หลัง UI แสดงแล้ว
   if(!isIn && capturedPhotos.length > 0){
     uploadPhotosBackground(procName, today, now);
@@ -792,7 +828,16 @@ async function submitUpdateProcess(newProcess){
     });
     if(res && res.ok){
       showToast('✅ เปลี่ยน Process เป็น ' + newProcess + ' แล้ว');
-      setTimeout(function(){ goMainScreen(); }, 1500);
+      // หลังแก้ Process เสร็จ → แสดงหน้าสำเร็จและไม่ให้กลับหน้าหลักอีก
+      setTimeout(function(){
+        canEditProcess = false;
+        document.getElementById('main').style.display='none';
+        document.getElementById('success').style.display='block';
+        document.getElementById('suc-title').textContent = '✅ อัปเดต Process แล้ว';
+        document.getElementById('suc-sub').textContent = 'Process: ' + newProcess;
+        var actEl = document.getElementById('success-actions');
+        if(actEl) actEl.innerHTML = '<div style="text-align:center;font-size:13px;color:var(--text3);padding:8px;">สแกน QR ใหม่เมื่อพร้อม Check Out</div>';
+      }, 1500);
     } else {
       showToast('❌ อัปเดตไม่สำเร็จ: ' + (res.message||''));
       goMainScreen();
