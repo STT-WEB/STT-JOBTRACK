@@ -454,12 +454,29 @@ function selAction(type){
 }
 
 // เช็คสถานะ Job ค้างเมื่อโหลดหน้า
-async function checkStatus(){
-  if(APPS_SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE') return; // Demo mode
+var _lastCheckTime = 0;
+var _lastCheckResult = null;
+
+async function checkStatus(force){
+  if(APPS_SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE') return;
+  if(!EMP_ID) return;
+
+  // ถ้าเพิ่งเช็คไปไม่เกิน 10 วินาที และไม่ force → ใช้ Cache
+  var now = Date.now();
+  if(!force && _lastCheckResult !== null && (now - _lastCheckTime) < 10000){
+    if(_lastCheckResult.hasOpen) showBlocked(_lastCheckResult.openJob);
+    return;
+  }
+
   try{
-    const res=await apiPost({action:'CHECK_STATUS',emp_id:EMP_ID});
+    const res = await apiPost({action:'CHECK_STATUS', emp_id:EMP_ID});
+    _lastCheckTime = Date.now();
+    _lastCheckResult = res;
     if(res.hasOpen){
       showBlocked(res.openJob);
+    } else {
+      isBlocked = false;
+      document.getElementById('blocked-card').classList.remove('show');
     }
   }catch(e){}
 }
@@ -544,7 +561,21 @@ async function doSubmit(){
   sv('loading-txt',d.loading);
   document.getElementById('loading').classList.add('show');
 
-  const procName = sp!==null ? PROCS[sp].n : '';
+  // procName: ถ้า sp เป็น number → ดึงชื่อจาก PROCS
+  //           ถ้า sp เป็น string → ใช้ตรงๆ
+  //           ถ้า null → ดึงจาก openJob ที่ค้างอยู่
+  var procName = '';
+  if(sp !== null){
+    if(typeof sp === 'number' && PROCS[sp]){
+      procName = PROCS[sp].n;
+    } else if(typeof sp === 'string'){
+      procName = sp;
+    }
+  }
+  // Check Out — ดึง Process จาก openJob ที่ค้างอยู่ถ้ายังไม่มี
+  if(sa === 'out' && !procName && _lastCheckResult && _lastCheckResult.openJob){
+    procName = _lastCheckResult.openJob.process || '';
+  }
 
   // ตรวจสอบว่าเป็นการแก้ Process หรือ Check In ปกติ
   var action = 'CHECK_IN';
@@ -864,8 +895,8 @@ function goMainScreen(){
   document.getElementById('success').style.display='none';
   renderProcs();
 
-  // เช็ค Status ใหม่ทันที
-  checkStatus();
+  // เช็ค Status ใหม่ทันที (force = true เพื่อไม่ใช้ Cache)
+  checkStatus(true);
 }
 
 function triggerCamera(){
@@ -1150,7 +1181,8 @@ initJobInfo();
 
 tick();setInterval(tick,20000);
 renderProcs();
-checkStatus(); // เช็ค Job ค้างทันทีที่โหลด
+// เช็ค Job ค้างหลังโหลด 500ms
+setTimeout(function(){ checkStatus(true); }, 500);
 </script>
 </body>
 </html>
