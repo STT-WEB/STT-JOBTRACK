@@ -7,44 +7,60 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0f1117;--bg2:#181c25;--bg3:#1e2330;
-  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
-  --text:#f0f2f5;--text2:#8b92a5;--text3:#555d70;
-  --green:#00e187;--green-dim:rgba(0,225,135,0.12);--green-bd:rgba(0,225,135,0.35);
-  --red:#ff5c5c;--red-dim:rgba(255,92,92,0.12);--red-bd:rgba(255,92,92,0.35);
-  --blue:#4d9cff;--blue-dim:rgba(77,156,255,0.1);
-  --amber:#ffb830;--amber-dim:rgba(255,184,48,0.12);--amber-bd:rgba(255,184,48,0.4);
+  /* STT Corporate Theme — แดง ขาว ดำ */
+  --bg:#FFFFFF;          /* พื้นหลังขาว อ่านง่าย */
+  --bg2:#F5F5F5;         /* Card สีเทาอ่อน */
+  --bg3:#EEEEEE;         /* Card เข้มขึ้นนิด */
+  --border:rgba(0,0,0,0.08);
+  --border2:rgba(0,0,0,0.16);
+  --text:#1A1A1A;        /* ตัวอักษรดำ อ่านง่าย */
+  --text2:#555555;       /* ตัวอักษรรอง */
+  --text3:#888888;
+  --primary:#CC0000;     /* แดง STT */
+  --primary-dim:rgba(204,0,0,0.08);
+  --primary-bd:rgba(204,0,0,0.3);
+  --green:#00872A;       /* เขียวเข้ม ชัดบนขาว */
+  --green-dim:rgba(0,135,42,0.10);
+  --green-bd:rgba(0,135,42,0.35);
+  --red:#CC0000;
+  --red-dim:rgba(204,0,0,0.08);
+  --red-bd:rgba(204,0,0,0.3);
+  --blue:#0055CC;
+  --blue-dim:rgba(0,85,204,0.08);
+  --amber:#B85C00;
+  --amber-dim:rgba(184,92,0,0.10);
+  --amber-bd:rgba(184,92,0,0.35);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:16px;font-family:'IBM Plex Sans Thai',sans-serif;}
-.device{width:375px;background:var(--bg);border-radius:44px;border:1.5px solid rgba(0,0,0,0.15);overflow:hidden;box-shadow:0 0 0 8px rgba(255,255,255,0.03),0 32px 80px rgba(0,0,0,0.6);}
-.statusbar{padding:12px 24px 8px;display:flex;justify-content:space-between;align-items:center;background:#1A1A1A;}
-.t{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);letter-spacing:0.05em;}
-.ic{font-size:11px;color:rgba(255,255,255,0.7);}
+body{background:#E8E8E8;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:16px;font-family:'IBM Plex Sans Thai',sans-serif;}
+.device{width:375px;background:var(--bg);border-radius:44px;border:2px solid rgba(0,0,0,0.15);overflow:hidden;box-shadow:0 0 0 8px rgba(0,0,0,0.06),0 24px 60px rgba(0,0,0,0.25);}
+.statusbar{padding:12px 24px 8px;display:flex;justify-content:space-between;align-items:center;background:#CC0000;}
+.t{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#FFFFFF;letter-spacing:0.05em;}
+.ic{font-size:11px;color:rgba(255,255,255,0.9);}
 .lang-bar{display:flex;gap:5px;padding:8px 14px 10px;border-bottom:1px solid var(--border);overflow-x:auto;}
 .lang-bar::-webkit-scrollbar{display:none;}
-.lang-btn{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);cursor:pointer;background:transparent;color:var(--text2);font-family:'IBM Plex Sans Thai',sans-serif;transition:all 0.15s;font-weight:500;white-space:nowrap;flex-shrink:0;}
-.lang-btn.active{background:rgba(255,255,255,0.08);color:var(--text);border-color:var(--border2);}
+.lang-btn{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);cursor:pointer;background:#FFFFFF;color:var(--text2);font-family:'IBM Plex Sans Thai',sans-serif;transition:all 0.15s;font-weight:500;white-space:nowrap;flex-shrink:0;}
+.lang-btn.active{background:#CC0000;color:#FFFFFF;border-color:#CC0000;font-weight:700;}
 
 /* JOB BANNER */
-.job-banner{margin:12px 14px 10px;background:var(--blue-dim);border:1px solid rgba(77,156,255,0.2);border-radius:16px;padding:14px 16px;}
-.job-tag{font-size:9px;letter-spacing:0.1em;font-weight:600;color:var(--blue);text-transform:uppercase;margin-bottom:4px;}
-.job-name{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.01em;line-height:1.2;margin-bottom:6px;}
-.job-meta{font-size:12px;color:var(--text2);}
+.job-banner{margin:12px 14px 10px;background:#1A1A1A;border:none;border-radius:16px;padding:14px 16px;}
+.job-tag{font-size:9px;letter-spacing:0.1em;font-weight:600;color:#FF6B6B;text-transform:uppercase;margin-bottom:4px;}
+.job-name{font-size:20px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;line-height:1.2;margin-bottom:6px;}
+.job-meta{font-size:12px;color:rgba(255,255,255,0.6);}
 .job-meta b{color:var(--blue);font-weight:500;}
-.qr-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(0,225,135,0.1);border:1px solid rgba(0,225,135,0.25);border-radius:8px;padding:3px 8px;margin-top:8px;font-size:10px;color:var(--green);font-weight:600;}
+.qr-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:3px 8px;margin-top:8px;font-size:10px;color:#FFFFFF;font-weight:600;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:3px;animation:pulse 1.8s ease-in-out infinite;vertical-align:middle;}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#FFFFFF;margin-right:3px;animation:pulse 1.8s ease-in-out infinite;vertical-align:middle;}
 
 /* EMP */
-.emp-row{margin:0 14px 12px;display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:11px 14px;}
+.emp-row{margin:0 14px 12px;display:flex;align-items:center;gap:10px;background:#FFFFFF;border:2px solid #EEEEEE;border-radius:14px;padding:11px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
 .emp-av{width:40px;height:40px;border-radius:50%;background:#2a3550;border:1.5px solid rgba(77,156,255,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--blue);flex-shrink:0;}
 .emp-name{font-size:14px;font-weight:600;color:var(--text);}
 .emp-dept{font-size:11px;color:var(--text2);margin-top:2px;}
-.emp-vf{margin-left:auto;font-size:10px;color:var(--green);background:rgba(0,225,135,0.08);border:1px solid rgba(0,225,135,0.2);border-radius:6px;padding:3px 7px;font-weight:600;white-space:nowrap;}
+.emp-vf{margin-left:auto;font-size:10px;color:#00872A;background:rgba(0,135,42,0.1);border:1px solid rgba(0,135,42,0.3);border-radius:6px;padding:3px 7px;font-weight:700;white-space:nowrap;}
 
 /* BLOCKED WARNING */
-.blocked-card{margin:0 14px 12px;background:var(--amber-dim);border:1.5px solid var(--amber-bd);border-radius:14px;padding:14px 16px;display:none;}
+.blocked-card{margin:0 14px 12px;background:#FFF5E6;border:2px solid #B85C00;border-radius:14px;padding:14px 16px;display:none;}
 .blocked-card.show{display:block;}
 .blocked-icon{font-size:20px;margin-bottom:6px;}
 .blocked-title{font-size:14px;font-weight:700;color:var(--amber);margin-bottom:4px;}
@@ -103,7 +119,7 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
 .loading-overlay.show{display:flex;}
 .spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--green);border-radius:50%;animation:spin 0.8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-txt{font-size:13px;color:var(--text2);}
+.loading-txt{font-size:14px;color:#CC0000;font-weight:600;}
 
 /* SUCCESS */
 .success-screen{display:none;padding:28px 20px 28px;text-align:center;background:#FFFFFF;}
@@ -125,7 +141,7 @@ body{background:#0a0c11;display:flex;justify-content:center;align-items:flex-sta
 .hours-num{font-size:36px;font-weight:700;color:var(--green);font-family:'IBM Plex Mono',monospace;line-height:1;}
 .hours-label{font-size:11px;color:var(--text3);margin-top:4px;}
 
-.btn-reset{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:13px 28px;font-size:13px;color:var(--text2);cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;font-weight:500;transition:all 0.15s;}
+.btn-reset{background:#F5F5F5;border:2px solid #E0E0E0;border-radius:14px;padding:14px 28px;font-size:14px;color:#1A1A1A;cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;font-weight:600;transition:all 0.15s;}
 .btn-reset:hover{background:var(--bg3);color:var(--text);}
 
 /* TOAST */
