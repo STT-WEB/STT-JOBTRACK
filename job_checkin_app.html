@@ -594,15 +594,20 @@ function showSuccess(result, today, now, procName, d){
     hoursBox.style.display='none';
   }
 
-  // แก้เวลาเข้า — ถ้าเป็น Date Object หรือ ISO String ให้แปลงเป็น HH:MM
+  // แก้เวลาเข้า — รองรับทุกรูปแบบ
   function formatTimeIn(t) {
-    if(!t || t==='—') return '—';
-    // ถ้าเป็น ISO String เช่น 1899-12-30T05:34:56.000Z
-    if(String(t).indexOf('T') > -1) {
-      var d = new Date(t);
-      return d.getUTCHours().toString().padStart(2,'0') + ':' + d.getUTCMinutes().toString().padStart(2,'0');
+    if(!t || t==='' || t==='—') return '—';
+    var s = String(t).trim();
+    // ISO String เช่น 1899-12-30T15:09:56.000Z → ดึง HH:MM จาก UTC
+    if(s.indexOf('T') > -1 && s.indexOf('Z') > -1) {
+      var parts = s.split('T')[1].split(':');
+      return parts[0] + ':' + parts[1];
     }
-    return String(t).substring(0,5); // เอาแค่ HH:MM
+    // HH:MM:SS → เอาแค่ HH:MM
+    if(s.length >= 5 && s.indexOf(':') > -1) {
+      return s.substring(0,5);
+    }
+    return s;
   }
   const timeIn  = isIn ? (result.time_in||now) : formatTimeIn(result.time_in||'—');
   const timeOut = isIn ? '—' : (result.time_out||now);
