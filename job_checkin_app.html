@@ -353,10 +353,45 @@ const LINE_AUTH_URL    = 'https://access.line.me/oauth2/v2.1/authorize';
 // ── ดึง Job Info จาก QR URL parameter ──
 const _params  = new URLSearchParams(window.location.search);
 const JOB_ID   = _params.get('job')  || 'DEMO-001';
-const JOB_NAME = _params.get('name') || 'Demo Job';
-const JOB_TYPE = _params.get('type') || 'JM';
-const JOB_CUST = _params.get('cust') || '';
 const JOB_ZONE = _params.get('zone') || '';
+
+// ถ้า QR เก่าไม่มี name/type → ดึงจาก Sheet อัตโนมัติ
+var JOB_NAME = _params.get('name') || '';
+var JOB_TYPE = _params.get('type') || '';
+var JOB_CUST = _params.get('cust') || '';
+
+// ถ้าไม่มี name → โหลดจาก Sheet ผ่าน API
+if(!JOB_NAME && JOB_ID && JOB_ID !== 'DEMO-001'){
+  (function(){
+    var cbName = 'cb_jobinfo_' + Date.now();
+    var url = APPS_SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify({
+      action: 'GET_JOB_INFO', job_id: JOB_ID
+    })) + '&callback=' + cbName;
+    window[cbName] = function(res){
+      delete window[cbName];
+      if(res && res.ok && res.job){
+        JOB_NAME = res.job.name || JOB_ID;
+        JOB_TYPE = res.job.type || 'JM';
+        JOB_CUST = res.job.cust || '';
+        // อัปเดต UI
+        if(document.getElementById('job-display-name')){
+          document.getElementById('job-display-name').textContent = JOB_ID + ' · ' + JOB_NAME;
+          document.getElementById('job-type-badge').textContent = JOB_TYPE;
+          if(document.getElementById('job-cust-display')) document.getElementById('job-cust-display').textContent = JOB_CUST;
+          // อัปเดตสี badge
+          var colors = {JM:'#4d9cff',JT:'#00e187',JMS:'#ffb830',JP:'#ff5c5c','Other':'#8b92a5'};
+          document.getElementById('job-type-badge').style.color = colors[JOB_TYPE] || '#8b92a5';
+        }
+      }
+    };
+    var s = document.createElement('script');
+    s.src = url;
+    document.head.appendChild(s);
+  })();
+} else if(!JOB_NAME){
+  JOB_NAME = JOB_ID;
+  JOB_TYPE = JOB_TYPE || 'JM';
+}
 
 // Employee — ดึงจาก LINE Login
 const _user    = JSON.parse(localStorage.getItem('jobtrack_user') || 'null');
