@@ -1166,9 +1166,10 @@ function fallbackCopy(url){
   var params = new URLSearchParams(window.location.search);
   if(params.get('reset') === '1'){
     localStorage.removeItem('jobtrack_user');
-    // ลบ reset param แล้ว reload
-    window.location.href = window.location.pathname + 
-      window.location.search.replace(/[?&]reset=1/,'');
+    // ลบ reset=1 ออกจาก URL แล้ว reload โดยคง parameter อื่นไว้
+    params.delete('reset');
+    var newSearch = params.toString() ? '?' + params.toString() : '';
+    window.location.href = window.location.pathname + newSearch;
   }
 })();
 
