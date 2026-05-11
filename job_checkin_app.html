@@ -416,7 +416,14 @@ if(!JOB_NAME && JOB_ID && JOB_ID !== 'DEMO-001'){
 }
 
 // Employee — ดึงจาก LINE Login
-const _user    = JSON.parse(localStorage.getItem('jobtrack_user') || 'null');
+// ดึง User Data — รองรับ Safari iOS ที่อาจ Block localStorage
+var _user = null;
+try {
+  var _raw = localStorage.getItem('jobtrack_user') || sessionStorage.getItem('jobtrack_user');
+  if(_raw) _user = JSON.parse(_raw);
+} catch(e) {
+  try { _user = JSON.parse(sessionStorage.getItem('jobtrack_user') || 'null'); } catch(e2) {}
+}
 const EMP_ID   = _user ? (_user.empId   || _user.lineId) : ''; // ใช้รหัสพนักงานจริง ถ้าไม่มีค่อยใช้ LINE ID
 const EMP_NAME = _user ? (_user.empName || _user.displayName || '') : '';
 const EMP_DEPT      = _user ? (_user.empDept     || '') : '';

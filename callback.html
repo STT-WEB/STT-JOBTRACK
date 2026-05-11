@@ -44,6 +44,12 @@ async function handleCallback() {
     return;
   }
 
+  // Warmup Apps Script ก่อนส่ง Code จริง
+  // เพื่อลด Cold Start ที่ทำให้ Code หมดอายุก่อนถึง LINE API
+  document.getElementById('sub').textContent = 'กำลังเชื่อมต่อเซิร์ฟเวอร์...';
+  await warmupAppsScript();
+  document.getElementById('sub').textContent = 'กำลังยืนยันตัวตน...';
+
   try {
     // ส่ง code ไปให้ Apps Script แลก Token + ดึงข้อมูล Profile
     const result = await apiPost({
@@ -55,7 +61,8 @@ async function handleCallback() {
 
     if (result.ok && result.profile) {
       // บันทึก Profile ลง localStorage
-      localStorage.setItem('jobtrack_user', JSON.stringify({
+      // Save ลงทั้ง localStorage และ sessionStorage (รองรับ Safari iOS)
+      var userData = JSON.stringify({
         lineId:       result.profile.userId,
         displayName:  result.profile.displayName,
         pictureUrl:   result.profile.pictureUrl,
@@ -64,7 +71,9 @@ async function handleCallback() {
         empDept:      result.empDept     || '',
         empRole:      result.empRole     || '',
         empDeptMain:  result.empDeptMain || '',
-      }));
+      });
+      try { localStorage.setItem('jobtrack_user', userData); } catch(e) {}
+      try { sessionStorage.setItem('jobtrack_user', userData); } catch(e) {}
 
       document.getElementById('icon').textContent  = '✅';
       document.getElementById('title').textContent = 'เข้าสู่ระบบสำเร็จ!';
@@ -120,6 +129,21 @@ function showError(msg) {
   document.getElementById('sub').innerHTML = msg + '<br><br><a href="javascript:history.back()" style="color:#4d9cff">← ลองใหม่</a>';
 }
 
+// Warmup Apps Script เพื่อลด Cold Start
+function warmupAppsScript() {
+  return new Promise(function(resolve) {
+    var cbName = 'cb_warmup_' + Date.now();
+    var url = APPS_SCRIPT_URL + '?data=' + encodeURIComponent('{"action":"PING"}') + '&callback=' + cbName;
+    window[cbName] = function() { delete window[cbName]; resolve(); };
+    var s = document.createElement('script');
+    s.src = url;
+    s.onerror = function() { delete window[cbName]; resolve(); }; // ไม่ error ถ้า warmup ไม่ได้
+    document.head.appendChild(s);
+    // Warmup timeout 3 วิ แล้วไปต่อเลย
+    setTimeout(function() { if(window[cbName]) { delete window[cbName]; resolve(); } }, 3000);
+  });
+}
+
 function apiPost(payload) {
   return new Promise((resolve, reject) => {
     const cbName = 'cb_' + Date.now();
@@ -130,7 +154,7 @@ function apiPost(payload) {
     s.src = url;
     s.onerror = () => { delete window[cbName]; reject(new Error('Network error')); };
     document.head.appendChild(s);
-    setTimeout(() => { if(window[cbName]) { delete window[cbName]; reject(new Error('Timeout')); } }, 10000);
+    setTimeout(() => { if(window[cbName]) { delete window[cbName]; reject(new Error('Timeout')); } }, 20000);
   });
 }
 
