@@ -387,37 +387,29 @@ if(!JOB_NAME && JOB_ID && JOB_ID !== 'DEMO-001'){
   function fetchJobInfo(attempt){
     if(attempt > 3) return;
 
-    // ใช้ fetch() แทน JSONP — รองรับ Safari iOS ดีกว่า
-    var fetchUrl = APPS_SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify({
-      action: 'GET_JOB_INFO', job_id: JOB_ID
-    }));
-
-    // ลอง fetch() ก่อน (Safari iOS รองรับ)
-    if(typeof fetch !== 'undefined'){
-      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      var timer = controller ? setTimeout(function(){ controller.abort(); }, 8000) : null;
-      fetch(fetchUrl, controller ? { signal: controller.signal } : {})
-        .then(function(r){ return r.json(); })
-        .then(function(res){
-          if(timer) clearTimeout(timer);
-          if(res && res.ok && res.job){
-            updateJobUI(res.job.name, res.job.type, res.job.cust);
-          } else {
-            // Fallback ใช้ JSONP
-            fetchJobInfoJSONP(attempt + 1);
-          }
-        })
-        .catch(function(){
-          if(timer) clearTimeout(timer);
-          // Fallback ใช้ JSONP
-          fetchJobInfoJSONP(attempt + 1);
-        });
-    } else {
-      fetchJobInfoJSONP(attempt);
-    }
+    // iPhone Safari: ใช้ XHR แทน fetch/JSONP
+  // XHR ทำงานได้กับ Apps Script redirect
+  var xhr = new XMLHttpRequest();
+  var xhrUrl = APPS_SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify({
+    action: 'GET_JOB_INFO', job_id: JOB_ID
+  }));
+  xhr.open('GET', xhrUrl, true);
+  xhr.timeout = 10000;
+  xhr.onload = function(){
+    try {
+      var res = JSON.parse(xhr.responseText);
+      if(res && res.ok && res.job){
+        updateJobUI(res.job.name, res.job.type, res.job.cust);
+        return;
+      }
+    } catch(e){}
+    // XHR ไม่ได้ → JSONP
+    fetchJobInfoJSONP(1);
+  };
+  xhr.onerror = xhr.ontimeout = function(){ fetchJobInfoJSONP(1); };
+  xhr.send();
   }
 
-  // JSONP fallback สำหรับ browser เก่า
   function fetchJobInfoJSONP(attempt){
     if(attempt > 3) return;
     var cbName = 'cb_jobinfo_' + Date.now();
