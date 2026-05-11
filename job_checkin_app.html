@@ -596,7 +596,9 @@ async function checkStatus(force){
       isBlocked = false;
       document.getElementById('blocked-card').classList.remove('show');
     }
-  }catch(e){}
+  }catch(e){
+    throw e; // rethrow เพื่อให้ retry logic ทำงานได้
+  }
 }
 
 function showBlocked(openJob){
@@ -642,14 +644,14 @@ async function apiPost(payload){
     };
     document.head.appendChild(script);
 
-    // Timeout 8 วินาที
+    // Timeout 12 วินาที (รองรับ iPhone Cold Start)
     setTimeout(() => {
       if(window[cbName]) {
         delete window[cbName];
         try { document.head.removeChild(script); } catch(e) {}
         reject(new Error('Timeout'));
       }
-    }, 8000);
+    }, 12000);
   });
 }
 
@@ -1299,15 +1301,29 @@ initJobInfo();
 
 tick();setInterval(tick,20000);
 renderProcs();
-// Warm up Apps Script ทันทีที่โหลด (ลด Cold Start ให้ได้มากที่สุด)
+
+// ── Init: เช็ค Status ครั้งเดียว (ไม่ยิง PING ซ้อน) ──
+// iPhone/Safari ช้า → รอ 1.2 วิ แล้วค่อยเช็ค
+// ถ้า timeout → retry อัตโนมัติสูงสุด 2 ครั้ง
 (function(){
-  var warmup = document.createElement('script');
-  warmup.src = APPS_SCRIPT_URL + '?data=%7B%22action%22%3A%22PING%22%7D&callback=_warmup_cb';
-  window['_warmup_cb'] = function(){ delete window['_warmup_cb']; };
-  document.head.appendChild(warmup);
+  var attempt = 0;
+  var maxAttempts = 3;
+  var delays = [1200, 3000, 5000]; // ms ระหว่างแต่ละ attempt
+
+  function tryCheckStatus(){
+    if(attempt >= maxAttempts) return;
+    var delay = delays[attempt] || 5000;
+    attempt++;
+    setTimeout(function(){
+      checkStatus(true).catch(function(){
+        // ถ้า error → retry
+        tryCheckStatus();
+      });
+    }, delay);
+  }
+
+  tryCheckStatus();
 })();
-// เช็ค Status หลังโหลด 800ms
-setTimeout(function(){ checkStatus(true); }, 800);
 </script>
 </body>
 </html>
