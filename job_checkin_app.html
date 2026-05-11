@@ -386,29 +386,63 @@ if(!JOB_NAME && JOB_ID && JOB_ID !== 'DEMO-001'){
   // Retry ได้สูงสุด 3 ครั้ง
   function fetchJobInfo(attempt){
     if(attempt > 3) return;
+
+    // ใช้ fetch() แทน JSONP — รองรับ Safari iOS ดีกว่า
+    var fetchUrl = APPS_SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify({
+      action: 'GET_JOB_INFO', job_id: JOB_ID
+    }));
+
+    // ลอง fetch() ก่อน (Safari iOS รองรับ)
+    if(typeof fetch !== 'undefined'){
+      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var timer = controller ? setTimeout(function(){ controller.abort(); }, 8000) : null;
+      fetch(fetchUrl, controller ? { signal: controller.signal } : {})
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+          if(timer) clearTimeout(timer);
+          if(res && res.ok && res.job){
+            updateJobUI(res.job.name, res.job.type, res.job.cust);
+          } else {
+            // Fallback ใช้ JSONP
+            fetchJobInfoJSONP(attempt + 1);
+          }
+        })
+        .catch(function(){
+          if(timer) clearTimeout(timer);
+          // Fallback ใช้ JSONP
+          fetchJobInfoJSONP(attempt + 1);
+        });
+    } else {
+      fetchJobInfoJSONP(attempt);
+    }
+  }
+
+  // JSONP fallback สำหรับ browser เก่า
+  function fetchJobInfoJSONP(attempt){
+    if(attempt > 3) return;
     var cbName = 'cb_jobinfo_' + Date.now();
     var url = APPS_SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify({
       action: 'GET_JOB_INFO', job_id: JOB_ID
     })) + '&callback=' + cbName;
     var timer = setTimeout(function(){
-      // Timeout 5 วิ → retry
       delete window[cbName];
-      fetchJobInfo(attempt + 1);
-    }, 5000);
+      fetchJobInfoJSONP(attempt + 1);
+    }, 8000);
     window[cbName] = function(res){
       clearTimeout(timer);
       delete window[cbName];
       if(res && res.ok && res.job){
         updateJobUI(res.job.name, res.job.type, res.job.cust);
       } else {
-        fetchJobInfo(attempt + 1);
+        fetchJobInfoJSONP(attempt + 1);
       }
     };
     var s = document.createElement('script');
-    s.onerror = function(){ clearTimeout(timer); fetchJobInfo(attempt + 1); };
+    s.onerror = function(){ clearTimeout(timer); fetchJobInfoJSONP(attempt + 1); };
     s.src = url;
     document.head.appendChild(s);
   }
+
   fetchJobInfo(1);
 } else if(!JOB_NAME){
   JOB_NAME = JOB_ID;
