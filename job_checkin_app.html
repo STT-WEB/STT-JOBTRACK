@@ -268,6 +268,10 @@ body{background:#E8E8E8;display:flex;justify-content:center;align-items:flex-sta
         </div>
         <div class="emp-vf" id="lbl-vf">LINE ✓</div>
       </div>
+      <!-- Department Badge -->
+      <div id="dept-badge-row" style="margin:6px 14px 0;display:none;">
+        <div id="dept-badge" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;"></div>
+      </div>
 
       <!-- BLOCKED WARNING (ซ่อนไว้ แสดงเมื่อมี Job ค้าง) -->
       <div class="blocked-card" id="blocked-card">
@@ -397,29 +401,59 @@ if(!JOB_NAME && JOB_ID && JOB_ID !== 'DEMO-001'){
 const _user    = JSON.parse(localStorage.getItem('jobtrack_user') || 'null');
 const EMP_ID   = _user ? (_user.empId   || _user.lineId) : ''; // ใช้รหัสพนักงานจริง ถ้าไม่มีค่อยใช้ LINE ID
 const EMP_NAME = _user ? (_user.empName || _user.displayName || '') : '';
-const EMP_DEPT = _user ? _user.empDept     : '';
-const EMP_ROLE = _user ? _user.empRole     : '';
+const EMP_DEPT      = _user ? _user.empDept      : '';
+const EMP_ROLE      = _user ? _user.empRole      : '';
+const EMP_DEPT_MAIN = _user ? (_user.empDeptMain || EMP_DEPT) : '';
 const LINE_PIC = _user ? _user.pictureUrl  : '';
 
 // ============================================================
 // PROCESS LIST
 // ============================================================
-const PROCS = [
-  {e:'🔨',n:'Fabrication',                      th:'ผลิต/ประกอบ',        la:'ຜະລິດ/ປະກອບ',      mm:'ထုတ်လုပ်/ဖွဲ့ဆင်',  kh:'ផលិត/ផ្គុំ'},
-  {e:'🔧',n:'Piping Installation',               th:'ติดตั้งท่อ',          la:'ຕິດຕັ້ງທໍ່',         mm:'ပိုက်တပ်ဆင်',       kh:'ដំឡើងបំពង់'},
-  {e:'⚡',n:'Electrical System Installation',    th:'ติดตั้งระบบไฟฟ้า',   la:'ຕິດຕັ້ງລະບົບໄຟຟ້າ', mm:'လျှပ်စစ်တပ်ဆင်',    kh:'ដំឡើងប្រព័ន្ធអគ្គិសនី'},
-  {e:'💨',n:'Pneumatic System Installation',     th:'ติดตั้งระบบลม',      la:'ຕິດຕັ້ງລະບົບລົມ',   mm:'လေပိုက်တပ်ဆင်',     kh:'ដំឡើងប្រព័ន្ធខ្យល់'},
-  {e:'🛢️',n:'Hydraulic System Installation',    th:'ติดตั้งระบบไฮดรอลิก', la:'ຕິດຕັ້ງລະບົບໄຮໂດຼລິກ',mm:'ဟိုက်ဒရောလစ်တပ်',  kh:'ដំឡើងប្រព័ន្ធទឹកដែក'},
-  {e:'🎨',n:'Painting',                          th:'พ่นสี/พื้นผิว',      la:'ພ່ນສີ/ຜິວ',          mm:'ဆေးသုတ်',           kh:'បោះពណ៌'},
-  {e:'🏷️',n:'Sticker / Labeling',               th:'ติดสติกเกอร์/ป้าย',  la:'ຕິດສະຕິກເກີ/ປ້າຍ',  mm:'စတစ်ကာ/တံဆိပ်',     kh:'បិទស្ទីគ័រ/ស្លាក'},
-  {e:'✅',n:'QC / Quality Control',              th:'ตรวจสอบคุณภาพ',      la:'ກວດສອບຄຸນນະພາບ',    mm:'အရည်အသွေးစစ်',      kh:'ត្រួតពិនិត្យគុណភាព'},
-  {e:'🔄',n:'Reinstallation',                    th:'ถอดติดตั้งใหม่',      la:'ຖອດຕິດຕັ້ງໃໝ່',      mm:'ဖြုတ်/ပြန်တပ်',     kh:'ដំឡើងឡើងវិញ'},
-  {e:'🚗',n:'Suspension Installation',           th:'ติดตั้งระบบกันสะเทือน',la:'ຕິດຕັ້ງລະບົບໂຊ້ກ', mm:'ဆပ်ပင်ရှင်းတပ်',    kh:'ដំឡើងប្រព័ន្ធនឹង'},
-  {e:'🧹',n:'Cleaning',                          th:'ทำความสะอาด',        la:'ທຳຄວາມສະອາດ',        mm:'သန့်ရှင်းရေး',       kh:'សំអាត'},
-  {e:'🔩',n:'Part Tank',                         th:'ติดตั้งชิ้นส่วนแท็งค์',la:'ຕິດຕັ້ງຊິ້ນສ່ວນຖັງ',mm:'တင်ကီအပိုင်းတပ်',   kh:'ដំឡើងផ្នែកធុង'},
-  {e:'🛠️',n:'Part Reinstallation',              th:'ติดตั้งชิ้นส่วนรถ',  la:'ຕິດຕັ້ງຊິ້ນສ່ວນລົດ', mm:'ကားအပိုင်းပြန်တပ်', kh:'ដំឡើងផ្នែករថយន្ត'},
-  {e:'⚙️',n:'Kemrex',                            th:'Kemrex',             la:'Kemrex',              mm:'Kemrex',             kh:'Kemrex'},
+// ============================================================
+// PROCESS LIST แยกตาม Department
+// ============================================================
+const PROCS_PRODUCTION = [
+  {e:'🔨', n:'Fabrication',                    th:'ผลิต/ประกอบ',           la:'ຜະລິດ/ປະກອບ',       mm:'ထုတ်လုပ်/ဖွဲ့ဆင်',   kh:'ផលិត/ផ្គុំ'},
+  {e:'🔧', n:'Piping Installation',            th:'ติดตั้งท่อ',             la:'ຕິດຕັ້ງທໍ່',         mm:'ပိုက်တပ်ဆင်',        kh:'ដំឡើងបំពង់'},
+  {e:'⚡', n:'Electrical System Installation', th:'ติดตั้งระบบไฟฟ้า',      la:'ຕິດຕັ້ງລະບົບໄຟຟ້າ', mm:'လျှပ်စစ်စနစ်တပ်',    kh:'ដំឡើងប្រព័ន្ធអគ្គិសនី'},
+  {e:'💨', n:'Pneumatic System Installation',  th:'ติดตั้งระบบลม',          la:'ຕິດຕັ້ງລະບົບລົມ',    mm:'လေပိုက်စနစ်တပ်',     kh:'ដំឡើងប្រព័ន្ធខ្យល់'},
+  {e:'🛢️',n:'Hydraulic System Installation',  th:'ติดตั้งระบบไฮดรอลิก',   la:'ຕິດຕັ້ງລະບົບໄຮໂດລິກ',mm:'ဟိုက်ဒရောလစ်တပ်',  kh:'ដំឡើងប្រព័ន្ធទឹក'},
+  {e:'🎨', n:'Painting',                       th:'พ่นสี/พื้นผิว',          la:'ທາສີ',               mm:'ဆေးသုတ်',            kh:'បោះពណ៌'},
+  {e:'🏷️', n:'Sticker / Labeling',            th:'ติดสติกเกอร์/ป้าย',     la:'ຕິດສະຕິກເກີ',        mm:'စတစ်ကာကပ်',         kh:'ដាក់ស្ទីគ័រ'},
+  {e:'🔥', n:'Welding',                        th:'เชื่อม',                 la:'ເຊື່ອມ',              mm:'ဂဟေဆော်',            kh:'ជ្រែក'},
+  {e:'🔄', n:'Reinstallation',                 th:'ถอดติดตั้งใหม่',         la:'ຖອດຕິດຕັ້ງໃໝ່',      mm:'ပြန်တပ်ဆင်',         kh:'ដំឡើងឡើងវិញ'},
+  {e:'🚗', n:'Suspension Installation',        th:'ติดตั้งระบบกันสะเทือน',  la:'ຕິດຕັ້ງລະບົບຊັອກ',   mm:'ဆပ်စပင်တပ်',         kh:'ដំឡើងប្រព័ន្ធព្យួរ'},
+  {e:'🔩', n:'Suspension System',              th:'ระบบกันสะเทือน',         la:'ລະບົບຊັອກ',           mm:'ဆပ်စပင်စနစ်',        kh:'ប្រព័ន្ធព្យួរ'},
+  {e:'🧹', n:'Cleaning',                       th:'ทำความสะอาด',            la:'ທຳຄວາມສະອາດ',        mm:'သန့်ရှင်းရေး',        kh:'សំអាត'},
+  {e:'✨', n:'Polished',                        th:'ขัดเงา',                 la:'ຂັດເງົາ',             mm:'ပွတ်တိုက်',           kh:'ត្រចៀក'},
+  {e:'🔩', n:'Part Tank',                      th:'ติดตั้งชิ้นส่วนแท็งค์',  la:'ຕິດຕັ້ງຊິ້ນສ່ວນຖັງ',  mm:'တိုင်ကီအပိုင်းတပ်',  kh:'ដំឡើងគ្រឿងធុង'},
+  {e:'🛠️', n:'Part Reinstallation',           th:'ติดตั้งชิ้นส่วนรถ',      la:'ຕິດຕັ້ງຊິ້ນສ່ວນລົດ',  mm:'ကားပိုင်းတပ်',        kh:'ដំឡើងគ្រឿងរថយន្ត'},
+  {e:'⚙️', n:'Kemrex',                        th:'Kemrex',                  la:'Kemrex',              mm:'Kemrex',              kh:'Kemrex'},
 ];
+
+const PROCS_QC = [
+  {e:'🔍', n:'QC Fabrication',   th:'ตรวจสอบการผลิต',      la:'ກວດສອບການຜະລິດ',   mm:'ထုတ်လုပ်စစ်ဆေး',   kh:'ត្រួតពិនិត្យផលិតកម្ម'},
+  {e:'🔄', n:'QC Reinstallation',th:'ตรวจสอบการติดตั้งใหม่',la:'ກວດສອບການຕິດຕັ້ງໃໝ່',mm:'ပြန်တပ်စစ်ဆေး',   kh:'ត្រួតពិនិត្យដំឡើងឡើងវិញ'},
+  {e:'🚚', n:'QC Delivery',      th:'ตรวจสอบก่อนส่งมอบ',   la:'ກວດສອບກ່ອນສົ່ງ',    mm:'ထွက်မြောက်စစ်',    kh:'ត្រួតពិនិត្យប្រគល់'},
+  {e:'⚙️', n:'QC System',        th:'ตรวจสอบระบบ',          la:'ກວດສອບລະບົບ',        mm:'စနစ်စစ်ဆေး',       kh:'ត្រួតពិនិត្យប្រព័ន្ធ'},
+  {e:'🧪', n:'QC Testing',       th:'ทดสอบระบบ',            la:'ທົດສອບລະບົບ',        mm:'စမ်းသပ်',           kh:'សាកល្បងប្រព័ន្ធ'},
+];
+
+// แผนก QC
+const QC_DEPARTMENTS = ['QC'];
+
+// แผนกที่ใช้ Process ทั้งหมด (กรณีไม่ใช่ Production และ QC)
+const PROCS_ALL = [...PROCS_PRODUCTION, ...PROCS_QC];
+
+// ฟังก์ชันเลือก Process List ตาม Department
+function getProcsByDept(dept) {
+  if (QC_DEPARTMENTS.includes(dept)) return PROCS_QC;
+  if (dept === 'PRODUCTION') return PROCS_PRODUCTION;
+  return PROCS_ALL; // แผนกอื่นเห็นทั้งหมด
+}
+
+// ใช้ PROCS ตาม Department ของพนักงาน
+var PROCS = getProcsByDept(EMP_DEPT_MAIN || EMP_DEPT || '');
 
 // ============================================================
 // LANG
