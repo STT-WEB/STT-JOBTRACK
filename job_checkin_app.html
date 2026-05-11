@@ -424,6 +424,28 @@ try {
 } catch(e) {
   try { _user = JSON.parse(sessionStorage.getItem('jobtrack_user') || 'null'); } catch(e2) {}
 }
+
+// DEBUG MODE — เพิ่ม ?debug=1 ใน URL เพื่อดูข้อมูล
+var _debugMode = new URLSearchParams(window.location.search).get('debug') === '1';
+if(_debugMode) {
+  window.addEventListener('DOMContentLoaded', function() {
+    var dbg = document.createElement('div');
+    dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#000;color:#0f0;font-size:10px;padding:8px;z-index:9999;max-height:200px;overflow:auto;font-family:monospace;';
+    
+    var lsData = '', ssData = '', cookieData = '';
+    try { lsData = localStorage.getItem('jobtrack_user') || 'null'; } catch(e) { lsData = 'BLOCKED: ' + e; }
+    try { ssData = sessionStorage.getItem('jobtrack_user') || 'null'; } catch(e) { ssData = 'BLOCKED: ' + e; }
+    
+    dbg.innerHTML = '<b>DEBUG STT-JOBTRACK</b><br>' +
+      'localStorage: ' + (lsData.length > 50 ? lsData.substring(0,50)+'...' : lsData) + '<br>' +
+      'sessionStorage: ' + (ssData.length > 50 ? ssData.substring(0,50)+'...' : ssData) + '<br>' +
+      '_user: ' + (_user ? JSON.stringify({id:_user.empId,name:_user.empName,dept:_user.empDeptMain}) : 'NULL') + '<br>' +
+      'JOB_ID: ' + (typeof JOB_ID !== 'undefined' ? JOB_ID : '?') + '<br>' +
+      'JOB_NAME: ' + (typeof JOB_NAME !== 'undefined' ? JOB_NAME : '?') + '<br>' +
+      'UA: ' + navigator.userAgent.substring(0,60);
+    document.body.appendChild(dbg);
+  });
+}
 const EMP_ID   = _user ? (_user.empId   || _user.lineId) : ''; // ใช้รหัสพนักงานจริง ถ้าไม่มีค่อยใช้ LINE ID
 const EMP_NAME = _user ? (_user.empName || _user.displayName || '') : '';
 const EMP_DEPT      = _user ? (_user.empDept     || '') : '';
