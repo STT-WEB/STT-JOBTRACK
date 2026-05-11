@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://script.google.com https://script.googleusercontent.com https://apis.google.com; connect-src *; img-src * data: blob:;">
 <title>STT-JOBTRACK · Check In</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -385,56 +386,57 @@ if(!JOB_NAME && JOB_ID && JOB_ID !== 'DEMO-001'){
   }
   // Retry ได้สูงสุด 3 ครั้ง
   function fetchJobInfo(attempt){
-    if(attempt > 3) return;
+    if(attempt > 3){
+      // ถ้าดึงไม่ได้เลย → แสดงแค่ Job ID
+      updateJobUI(JOB_ID, JOB_TYPE || 'JM', '');
+      return;
+    }
 
-    // iPhone Safari: ใช้ XHR แทน fetch/JSONP
-  // XHR ทำงานได้กับ Apps Script redirect
-  var xhr = new XMLHttpRequest();
-  var xhrUrl = APPS_SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify({
-    action: 'GET_JOB_INFO', job_id: JOB_ID
-  }));
-  xhr.open('GET', xhrUrl, true);
-  xhr.timeout = 10000;
-  xhr.onload = function(){
+    // เช็ค Cache ใน sessionStorage ก่อน
+    var cacheKey = 'jobinfo_' + JOB_ID;
     try {
-      var res = JSON.parse(xhr.responseText);
-      if(res && res.ok && res.job){
-        updateJobUI(res.job.name, res.job.type, res.job.cust);
+      var cached = sessionStorage.getItem(cacheKey);
+      if(cached){
+        var cJob = JSON.parse(cached);
+        updateJobUI(cJob.name, cJob.type, cJob.cust);
         return;
       }
     } catch(e){}
-    // XHR ไม่ได้ → JSONP
-    fetchJobInfoJSONP(1);
-  };
-  xhr.onerror = xhr.ontimeout = function(){ fetchJobInfoJSONP(1); };
-  xhr.send();
-  }
 
-  function fetchJobInfoJSONP(attempt){
-    if(attempt > 3) return;
+    // ใช้ JSONP — วิธีเดียวที่ทำงานได้กับ Apps Script
     var cbName = 'cb_jobinfo_' + Date.now();
     var url = APPS_SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify({
       action: 'GET_JOB_INFO', job_id: JOB_ID
     })) + '&callback=' + cbName;
+
     var timer = setTimeout(function(){
       delete window[cbName];
-      fetchJobInfoJSONP(attempt + 1);
+      try { document.head.removeChild(s); } catch(e){}
+      fetchJobInfo(attempt + 1);
     }, 8000);
+
     window[cbName] = function(res){
       clearTimeout(timer);
       delete window[cbName];
+      try { document.head.removeChild(s); } catch(e){}
       if(res && res.ok && res.job){
+        // Cache ไว้ใน sessionStorage
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(res.job)); } catch(e){}
         updateJobUI(res.job.name, res.job.type, res.job.cust);
       } else {
-        fetchJobInfoJSONP(attempt + 1);
+        fetchJobInfo(attempt + 1);
       }
     };
+
     var s = document.createElement('script');
-    s.onerror = function(){ clearTimeout(timer); fetchJobInfoJSONP(attempt + 1); };
+    s.onerror = function(){
+      clearTimeout(timer);
+      delete window[cbName];
+      fetchJobInfo(attempt + 1);
+    };
     s.src = url;
     document.head.appendChild(s);
   }
-
   fetchJobInfo(1);
 } else if(!JOB_NAME){
   JOB_NAME = JOB_ID;
