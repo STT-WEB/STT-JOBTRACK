@@ -401,9 +401,9 @@ if(!JOB_NAME && JOB_ID && JOB_ID !== 'DEMO-001'){
 const _user    = JSON.parse(localStorage.getItem('jobtrack_user') || 'null');
 const EMP_ID   = _user ? (_user.empId   || _user.lineId) : ''; // ใช้รหัสพนักงานจริง ถ้าไม่มีค่อยใช้ LINE ID
 const EMP_NAME = _user ? (_user.empName || _user.displayName || '') : '';
-const EMP_DEPT      = _user ? _user.empDept      : '';
-const EMP_ROLE      = _user ? _user.empRole      : '';
-const EMP_DEPT_MAIN = _user ? (_user.empDeptMain || EMP_DEPT) : '';
+const EMP_DEPT      = _user ? (_user.empDept     || '') : '';
+const EMP_ROLE      = _user ? (_user.empRole     || '') : '';
+const EMP_DEPT_MAIN = _user ? (_user.empDeptMain || '') : '';
 const LINE_PIC = _user ? _user.pictureUrl  : '';
 
 // ============================================================
@@ -446,14 +446,26 @@ const QC_DEPARTMENTS = ['QC'];
 const PROCS_ALL = [...PROCS_PRODUCTION, ...PROCS_QC];
 
 // ฟังก์ชันเลือก Process List ตาม Department
-function getProcsByDept(dept) {
-  if (QC_DEPARTMENTS.includes(dept)) return PROCS_QC;
-  if (dept === 'PRODUCTION') return PROCS_PRODUCTION;
-  return PROCS_ALL; // แผนกอื่นเห็นทั้งหมด
+function getProcsByDept(deptMain, deptSub) {
+  // ตรวจ Department หลักก่อน
+  if (deptMain === 'QC') return PROCS_QC;
+  if (deptMain === 'PRODUCTION') return PROCS_PRODUCTION;
+  // ถ้าไม่มี deptMain → ดู deptSub (Column C)
+  var sub = String(deptSub || '').toUpperCase();
+  if (sub.indexOf('QC') >= 0 || sub.indexOf('HYDROTEST') >= 0) return PROCS_QC;
+  if (sub.indexOf('FABIC') >= 0 || sub.indexOf('F1') >= 0 ||
+      sub.indexOf('F2') >= 0 || sub.indexOf('F3') >= 0 ||
+      sub.indexOf('F4') >= 0 || sub.indexOf('F5') >= 0 ||
+      sub.indexOf('F6') >= 0 || sub.indexOf('F7') >= 0 ||
+      sub.indexOf('F0') >= 0 || sub.indexOf('WELD') >= 0 ||
+      sub.indexOf('PAINT') >= 0 || sub.indexOf('BUFF') >= 0 ||
+      sub.indexOf('SUSPENSION') >= 0 || sub.indexOf('PRODUCTION') >= 0 ||
+      sub.indexOf('KEMREX') >= 0) return PROCS_PRODUCTION;
+  return PROCS_ALL;
 }
 
 // ใช้ PROCS ตาม Department ของพนักงาน
-var PROCS = getProcsByDept(EMP_DEPT_MAIN || EMP_DEPT || '');
+var PROCS = getProcsByDept(EMP_DEPT_MAIN || '', EMP_DEPT || '');
 
 // ============================================================
 // LANG

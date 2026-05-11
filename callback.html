@@ -56,13 +56,14 @@ async function handleCallback() {
     if (result.ok && result.profile) {
       // บันทึก Profile ลง localStorage
       localStorage.setItem('jobtrack_user', JSON.stringify({
-        lineId:      result.profile.userId,
-        displayName: result.profile.displayName,
-        pictureUrl:  result.profile.pictureUrl,
-        empId:       result.empId   || '',
-        empName:     result.empName || '',
-        empDept:     result.empDept || '',
-        empRole:     result.empRole || '',
+        lineId:       result.profile.userId,
+        displayName:  result.profile.displayName,
+        pictureUrl:   result.profile.pictureUrl,
+        empId:        result.empId       || '',
+        empName:      result.empName     || '',
+        empDept:      result.empDept     || '',
+        empRole:      result.empRole     || '',
+        empDeptMain:  result.empDeptMain || '',
       }));
 
       document.getElementById('icon').textContent  = '✅';
@@ -94,7 +95,21 @@ async function handleCallback() {
       showError(result.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
     }
   } catch(e) {
-    showError('ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่');
+    // ถ้า invalid_grant → LINE Code หมดอายุ → Redirect ไป Login ใหม่อัตโนมัติ
+    var msg = String(e.message || e);
+    if(msg.indexOf('invalid_grant') >= 0 || msg.indexOf('invalid authorization') >= 0 || msg.indexOf('400') >= 0) {
+      document.getElementById('icon').textContent  = '🔄';
+      document.getElementById('title').textContent = 'กำลังเชื่อมต่อใหม่...';
+      document.getElementById('sub').textContent   = 'กรุณารอสักครู่';
+      // Clear code แล้ว Redirect ไป Login ใหม่
+      setTimeout(function() {
+        var returnUrl = sessionStorage.getItem('jobtrack_return') ||
+          'https://stt-web.github.io/STT-JOBTRACK/job_checkin_app.html';
+        window.location.href = returnUrl;
+      }, 1500);
+    } else {
+      showError('ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่');
+    }
   }
 }
 
@@ -115,7 +130,7 @@ function apiPost(payload) {
     s.src = url;
     s.onerror = () => { delete window[cbName]; reject(new Error('Network error')); };
     document.head.appendChild(s);
-    setTimeout(() => { if(window[cbName]) { delete window[cbName]; reject(new Error('Timeout')); } }, 15000);
+    setTimeout(() => { if(window[cbName]) { delete window[cbName]; reject(new Error('Timeout')); } }, 10000);
   });
 }
 
