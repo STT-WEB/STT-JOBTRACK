@@ -22,7 +22,6 @@ body{background:#0a0c11;display:flex;align-items:center;justify-content:center;m
   <div class="spinner" id="spinner"></div>
   <div class="sub" id="sub">กรุณารอสักครู่</div>
 </div>
-
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTkeQyQm9yFMcZMS-2MaMaO_3C_mnjWOtjZ2Ql5vFI1ZMKsKEDcbOYSDjic1dG0fDYJw/exec';
 const REGISTER_URL    = 'https://stt-web.github.io/STT-JOBTRACK/register.html';
@@ -37,6 +36,11 @@ async function handleCallback(){
     return;
   }
 
+  // Warmup Apps Script ก่อนส่ง Code
+  document.getElementById('sub').textContent = 'กำลังเชื่อมต่อเซิร์ฟเวอร์...';
+  await warmup();
+  document.getElementById('sub').textContent = 'กำลังยืนยันตัวตน...';
+
   try{
     var result = await apiPost({
       action:   'LINE_CALLBACK',
@@ -45,25 +49,50 @@ async function handleCallback(){
     });
 
     if(result.ok && result.profile){
-      // เก็บ Profile ไว้ใน sessionStorage แล้วกลับไปหน้า Register
-      sessionStorage.setItem('reg_user', JSON.stringify({
+      // เก็บ Profile ใน sessionStorage + localStorage
+      var userData = JSON.stringify({
         lineId:      result.profile.userId,
         displayName: result.profile.displayName,
         pictureUrl:  result.profile.pictureUrl,
-      }));
+      });
+      try { sessionStorage.setItem('reg_user', userData); } catch(e){}
+      try { localStorage.setItem('reg_user', userData); } catch(e){}
 
       document.getElementById('icon').textContent  = '✅';
       document.getElementById('title').textContent = 'Login สำเร็จ!';
       document.getElementById('spinner').style.display = 'none';
       document.getElementById('sub').textContent   = 'ยินดีต้อนรับ ' + result.profile.displayName;
-
       setTimeout(function(){ window.location.href = REGISTER_URL; }, 1200);
+
     } else {
-      showError(result.message || 'เกิดข้อผิดพลาด');
+      showError(result.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
     }
   } catch(e){
-    showError('ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่');
+    var msg = String(e.message || e);
+    if(msg.indexOf('invalid_grant') >= 0 || msg.indexOf('400') >= 0){
+      // Code หมดอายุ → กลับหน้า Register ให้ Login ใหม่
+      document.getElementById('icon').textContent  = '🔄';
+      document.getElementById('title').textContent = 'กำลังเชื่อมต่อใหม่...';
+      document.getElementById('sub').textContent   = 'กรุณารอสักครู่';
+      setTimeout(function(){ window.location.href = REGISTER_URL; }, 1500);
+    } else {
+      showError('ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่');
+    }
   }
+}
+
+// Warmup Apps Script เพื่อลด Cold Start
+function warmup(){
+  return new Promise(function(resolve){
+    var cbName = 'cb_warmup_' + Date.now();
+    var url = APPS_SCRIPT_URL + '?data=' + encodeURIComponent('{"action":"PING"}') + '&callback=' + cbName;
+    window[cbName] = function(){ delete window[cbName]; resolve(); };
+    var s = document.createElement('script');
+    s.src = url;
+    s.onerror = function(){ delete window[cbName]; resolve(); };
+    document.head.appendChild(s);
+    setTimeout(function(){ if(window[cbName]){ delete window[cbName]; resolve(); } }, 3000);
+  });
 }
 
 function showError(msg){
@@ -78,12 +107,18 @@ function apiPost(payload){
     var cbName = 'cb_' + Date.now();
     var params = encodeURIComponent(JSON.stringify(payload));
     var url    = APPS_SCRIPT_URL + '?data=' + params + '&callback=' + cbName;
-    window[cbName] = function(r){ delete window[cbName]; document.head.removeChild(s); resolve(r); };
+    window[cbName] = function(r){
+      delete window[cbName];
+      try { document.head.removeChild(s); } catch(e){}
+      resolve(r);
+    };
     var s = document.createElement('script');
     s.src = url;
     s.onerror = function(){ delete window[cbName]; reject(new Error('Network')); };
     document.head.appendChild(s);
-    setTimeout(function(){ if(window[cbName]){ delete window[cbName]; reject(new Error('Timeout')); }}, 15000);
+    setTimeout(function(){
+      if(window[cbName]){ delete window[cbName]; reject(new Error('Timeout')); }
+    }, 20000);
   });
 }
 
