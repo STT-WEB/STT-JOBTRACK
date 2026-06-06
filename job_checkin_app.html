@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://script.google.com https://script.googleusercontent.com https://apis.google.com; connect-src *; img-src * data: blob:;">
 <title>STT-JOBTRACK · Check In</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -386,54 +385,27 @@ if(!JOB_NAME && JOB_ID && JOB_ID !== 'DEMO-001'){
   }
   // Retry ได้สูงสุด 3 ครั้ง
   function fetchJobInfo(attempt){
-    if(attempt > 3){
-      // ถ้าดึงไม่ได้เลย → แสดงแค่ Job ID
-      updateJobUI(JOB_ID, JOB_TYPE || 'JM', '');
-      return;
-    }
-
-    // เช็ค Cache ใน sessionStorage ก่อน
-    var cacheKey = 'jobinfo_' + JOB_ID;
-    try {
-      var cached = sessionStorage.getItem(cacheKey);
-      if(cached){
-        var cJob = JSON.parse(cached);
-        updateJobUI(cJob.name, cJob.type, cJob.cust);
-        return;
-      }
-    } catch(e){}
-
-    // ใช้ JSONP — วิธีเดียวที่ทำงานได้กับ Apps Script
+    if(attempt > 3) return;
     var cbName = 'cb_jobinfo_' + Date.now();
     var url = APPS_SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify({
       action: 'GET_JOB_INFO', job_id: JOB_ID
     })) + '&callback=' + cbName;
-
     var timer = setTimeout(function(){
+      // Timeout 5 วิ → retry
       delete window[cbName];
-      try { document.head.removeChild(s); } catch(e){}
       fetchJobInfo(attempt + 1);
-    }, 8000);
-
+    }, 5000);
     window[cbName] = function(res){
       clearTimeout(timer);
       delete window[cbName];
-      try { document.head.removeChild(s); } catch(e){}
       if(res && res.ok && res.job){
-        // Cache ไว้ใน sessionStorage
-        try { sessionStorage.setItem(cacheKey, JSON.stringify(res.job)); } catch(e){}
         updateJobUI(res.job.name, res.job.type, res.job.cust);
       } else {
         fetchJobInfo(attempt + 1);
       }
     };
-
     var s = document.createElement('script');
-    s.onerror = function(){
-      clearTimeout(timer);
-      delete window[cbName];
-      fetchJobInfo(attempt + 1);
-    };
+    s.onerror = function(){ clearTimeout(timer); fetchJobInfo(attempt + 1); };
     s.src = url;
     document.head.appendChild(s);
   }
@@ -799,7 +771,18 @@ function showSuccess(result, today, now, procName, d){
   const hoursBox=document.getElementById('hours-big');
   if(!isIn && result.hours!==undefined){
     hoursBox.style.display='block';
-    sv('hours-num', result.hours.toFixed(2));
+    // แปลง hours เป็น HH:MM
+    var hVal = result.hours;
+    var hoursStr = '';
+    if(typeof hVal === 'string' && hVal.indexOf(':') > -1){
+      hoursStr = hVal; // ได้ HH:MM มาแล้ว
+    } else {
+      var hNum = parseFloat(hVal) || 0;
+      var hh = Math.floor(hNum);
+      var mm = Math.round((hNum - hh) * 60);
+      hoursStr = hh + ':' + (mm < 10 ? '0' : '') + mm;
+    }
+    sv('hours-num', hoursStr);
     sv('hours-label', d.hrs);
   } else {
     hoursBox.style.display='none';
@@ -822,7 +805,20 @@ function showSuccess(result, today, now, procName, d){
   }
   const timeIn  = isIn ? (result.time_in||now) : formatTimeIn(result.time_in||'—');
   const timeOut = isIn ? '—' : (result.time_out||now);
-  const hours   = isIn ? '—' : (result.hours!==undefined?result.hours.toFixed(2)+' ชม.':'—');
+  // แปลง hours เป็น HH:MM
+  var hoursDisplay = '—';
+  if(!isIn && result.hours !== undefined){
+    var hVal2 = result.hours;
+    if(typeof hVal2 === 'string' && hVal2.indexOf(':') > -1){
+      hoursDisplay = hVal2 + ' ชม.';
+    } else {
+      var hNum2 = parseFloat(hVal2) || 0;
+      var hh2 = Math.floor(hNum2);
+      var mm2 = Math.round((hNum2 - hh2) * 60);
+      hoursDisplay = hh2 + ':' + (mm2 < 10 ? '0' : '') + mm2 + ' ชม.';
+    }
+  }
+  const hours = hoursDisplay;
 
   document.getElementById('suc-card').innerHTML=`
     <div class="suc-row"><span class="sk">${d.rd}</span><span class="sv">${today}</span></div>
