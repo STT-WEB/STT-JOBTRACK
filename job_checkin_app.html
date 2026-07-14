@@ -72,7 +72,7 @@ body{background:#E8E8E8;display:flex;justify-content:center;align-items:flex-sta
 .blocked-hint{margin-top:10px;font-size:11px;color:rgba(255,184,48,0.6);text-align:center;}
 
 /* SLABEL */
-.slabel{font-size:9px;letter-spacing:0.1em;font-weight:600;color:var(--text3);text-transform:uppercase;padding:0 16px 8px;}
+.slabel{font-size:11px;letter-spacing:0.08em;font-weight:700;color:var(--text3);text-transform:uppercase;padding:0 16px 8px;}
 
 /* ACTION BUTTONS */
 .action-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px;margin-bottom:14px;}
@@ -89,17 +89,24 @@ body{background:#E8E8E8;display:flex;justify-content:center;align-items:flex-sta
 .at{font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace;}
 
 /* PROCESS */
-.proc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px;margin-bottom:12px;}
-.proc-item{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:12px 10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Sans Thai',sans-serif;transition:all 0.15s;}
+.proc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:0 14px;margin-bottom:12px;}
+.proc-item{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 12px;cursor:pointer;display:flex;align-items:center;gap:11px;font-family:'IBM Plex Sans Thai',sans-serif;transition:all 0.15s;min-height:66px;}
 .proc-item:active{transform:scale(0.97);}
 .proc-item:hover{border-color:var(--border2);background:var(--bg3);}
 .proc-item.sel{background:var(--blue-dim);border-color:rgba(77,156,255,0.5);}
-.proc-item.sel .pn{color:var(--blue);font-weight:600;}
+.proc-item.sel .pn{color:var(--blue);font-weight:700;}
 .proc-item.sel .pc{background:rgba(77,156,255,0.15);border-color:rgba(77,156,255,0.4);}
 .proc-item.disabled{opacity:0.25;pointer-events:none;}
-.pc{width:38px;height:38px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-.pn{font-size:11.5px;color:var(--text2);font-weight:600;line-height:1.3;word-break:break-word;}
-.psub{font-size:10px;color:var(--text3);margin-top:2px;}
+.pc{width:46px;height:46px;border-radius:12px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:25px;flex-shrink:0;}
+.ptext{min-width:0;flex:1;}
+.pn{font-size:15px;color:var(--text2);font-weight:700;line-height:1.35;overflow-wrap:break-word;word-break:normal;}
+.psub{font-size:12.5px;color:var(--text3);margin-top:3px;line-height:1.3;}
+/* ปุ่มกลับ — แยกจากการ์ด Process อยู่เหนือ grid */
+#proc-nav:empty{display:none;}
+.proc-back{width:calc(100% - 28px);margin:0 14px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:13px 15px;display:flex;align-items:center;gap:10px;cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;color:var(--text2);font-size:14.5px;font-weight:700;transition:all 0.15s;}
+.proc-back:active{transform:scale(0.98);}
+.proc-back .bk-ar{font-size:19px;color:var(--blue);line-height:1;}
+.proc-back .bk-cat{color:var(--text3);font-size:12px;font-weight:500;margin-left:auto;text-align:right;}
 
 /* PHOTO */
 .photo-box{margin:0 14px 12px;border:1px dashed rgba(255,255,255,0.12);border-radius:14px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
@@ -297,6 +304,7 @@ body{background:#E8E8E8;display:flex;justify-content:center;align-items:flex-sta
       </div>
 
       <div class="slabel" id="lbl-proc">เลือก Process ที่ทำ</div>
+      <div id="proc-nav"></div>
       <div class="proc-grid" id="proc-grid"></div>
 
       <!-- PHOTO SECTION — แสดงเฉพาะ Check Out -->
@@ -527,22 +535,25 @@ function setLang(l){
 
 function renderProcs(){
   const g=document.getElementById('proc-grid');g.innerHTML='';
+  const nav=document.getElementById('proc-nav'); if(nav) nav.innerHTML='';
   const disableAll = sa==='out'; // Check Out ไม่ต้องเลือก Process
   const maxSel = (sa==='edit')?1:2;
   if(procLevel==='sub' && activeMainIdx!==null && MAINS[activeMainIdx]){
     const m=MAINS[activeMainIdx];
-    const back=document.createElement('button');   // ปุ่มกลับ (การ์ดสไตล์เดิม)
-    back.className='proc-item';
-    back.innerHTML=`<div class="pc">◀︎</div><div><div class="pn">กลับ</div><div class="psub">เลือกหมวดอื่น</div></div>`;
-    back.onclick=()=>{procLevel='main';activeMainIdx=null;renderProcs();};
-    g.appendChild(back);
+    if(nav){   // ปุ่มกลับ แยกออกจากการ์ด Process (อยู่เหนือ grid)
+      const bk=document.createElement('button');
+      bk.className='proc-back';
+      bk.innerHTML=`<span class="bk-ar">◀</span><span>เลือกหมวดอื่น</span><span class="bk-cat">${m.code} · ${m.name}</span>`;
+      bk.onclick=()=>{procLevel='main';activeMainIdx=null;renderProcs();};
+      nav.appendChild(bk);
+    }
     m.subs.forEach((sub2,i)=>{
       const kk=m.code+'.'+(i+1);
       const isSel=spSel.some(x=>x.k===kk);
       const line = (lg==='th')? sub2.th : sub2.n;
       const b=document.createElement('button');
       b.className='proc-item'+(isSel?' sel':'')+(disableAll?' disabled':'');
-      b.innerHTML=`<div class="pc">${m.e}</div><div><div class="pn">${kk}</div>${line?`<div class="psub">${line}</div>`:''}</div>`;
+      b.innerHTML=`<div class="pc">${m.e}</div><div class="ptext"><div class="pn">${kk}</div>${line?`<div class="psub">${line}</div>`:''}</div>`;
       b.onclick=()=>{if(!disableAll){toggleSub(kk,m.code,sub2,maxSel);}};
       g.appendChild(b);
     });
@@ -552,7 +563,7 @@ function renderProcs(){
       const b=document.createElement('button');
       b.className='proc-item'+(cnt>0?' sel':'')+(disableAll?' disabled':'');
       const line=cnt>0?('เลือกแล้ว '+cnt+' งาน'):'แตะเลือกงานย่อย';
-      b.innerHTML=`<div class="pc">${m.e}</div><div><div class="pn">${m.code} · ${m.name}</div><div class="psub">${line}</div></div>`;
+      b.innerHTML=`<div class="pc">${m.e}</div><div class="ptext"><div class="pn">${m.code} · ${m.name}</div><div class="psub">${line}</div></div>`;
       b.onclick=()=>{if(!disableAll){procLevel='sub';activeMainIdx=idx;renderProcs();}};
       g.appendChild(b);
     });
