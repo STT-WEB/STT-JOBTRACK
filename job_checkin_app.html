@@ -459,60 +459,15 @@ const LINE_PIC = _user ? _user.pictureUrl  : '';
 // ============================================================
 // PROCESS LIST แยกตาม Department
 // ============================================================
-const PROCS_PRODUCTION = [
-  {e:'🔨', n:'Fabrication',                    th:'ผลิต/ประกอบ',           la:'ຜະລິດ/ປະກອບ',       mm:'ထုတ်လုပ်/ဖွဲ့ဆင်',   kh:'ផលិត/ផ្គុំ'},
-  {e:'🔧', n:'Piping Installation',            th:'ติดตั้งท่อ',             la:'ຕິດຕັ້ງທໍ່',         mm:'ပိုက်တပ်ဆင်',        kh:'ដំឡើងបំពង់'},
-  {e:'⚡', n:'Electrical System Installation', th:'ติดตั้งระบบไฟฟ้า',      la:'ຕິດຕັ້ງລະບົບໄຟຟ້າ', mm:'လျှပ်စစ်စနစ်တပ်',    kh:'ដំឡើងប្រព័ន្ធអគ្គិសនី'},
-  {e:'💨', n:'Pneumatic System Installation',  th:'ติดตั้งระบบลม',          la:'ຕິດຕັ້ງລະບົບລົມ',    mm:'လေပိုက်စနစ်တပ်',     kh:'ដំឡើងប្រព័ន្ធខ្យល់'},
-  {e:'🛢️',n:'Hydraulic System Installation',  th:'ติดตั้งระบบไฮดรอลิก',   la:'ຕິດຕັ້ງລະບົບໄຮໂດລິກ',mm:'ဟိုက်ဒရောလစ်တပ်',  kh:'ដំឡើងប្រព័ន្ធទឹក'},
-  {e:'🎨', n:'Painting',                       th:'พ่นสี/พื้นผิว',          la:'ທາສີ',               mm:'ဆေးသုတ်',            kh:'បោះពណ៌'},
-  {e:'🏷️', n:'Sticker / Labeling',            th:'ติดสติกเกอร์/ป้าย',     la:'ຕິດສະຕິກເກີ',        mm:'စတစ်ကာကပ်',         kh:'ដាក់ស្ទីគ័រ'},
-  {e:'🔥', n:'Welding',                        th:'เชื่อม',                 la:'ເຊື່ອມ',              mm:'ဂဟေဆော်',            kh:'ជ្រែក'},
-  {e:'🔄', n:'Reinstallation',                 th:'ถอดติดตั้งใหม่',         la:'ຖອດຕິດຕັ້ງໃໝ່',      mm:'ပြန်တပ်ဆင်',         kh:'ដំឡើងឡើងវិញ'},
-  {e:'🚗', n:'Suspension Installation',        th:'ติดตั้งระบบกันสะเทือน',  la:'ຕິດຕັ້ງລະບົບຊັອກ',   mm:'ဆပ်စပင်တပ်',         kh:'ដំឡើងប្រព័ន្ធព្យួរ'},
-  {e:'🔩', n:'Suspension System',              th:'ระบบกันสะเทือน',         la:'ລະບົບຊັອກ',           mm:'ဆပ်စပင်စနစ်',        kh:'ប្រព័ន្ធព្យួរ'},
-  {e:'🧹', n:'Cleaning',                       th:'ทำความสะอาด',            la:'ທຳຄວາມສະອາດ',        mm:'သန့်ရှင်းရေး',        kh:'សំអាត'},
-  {e:'✨', n:'Polished',                        th:'ขัดเงา',                 la:'ຂັດເງົາ',             mm:'ပွတ်တိုက်',           kh:'ត្រចៀក'},
-  {e:'🔩', n:'Part Tank',                      th:'ติดตั้งชิ้นส่วนแท็งค์',  la:'ຕິດຕັ້ງຊິ້ນສ່ວນຖັງ',  mm:'တိုင်ကီအပိုင်းတပ်',  kh:'ដំឡើងគ្រឿងធុង'},
-  {e:'🛠️', n:'Part Reinstallation',           th:'ติดตั้งชิ้นส่วนรถ',      la:'ຕິດຕັ້ງຊິ້ນສ່ວນລົດ',  mm:'ကားပိုင်းတပ်',        kh:'ដំឡើងគ្រឿងរថយន្ត'},
-  {e:'⚙️', n:'Kemrex',                        th:'Kemrex',                  la:'Kemrex',              mm:'Kemrex',              kh:'Kemrex'},
-];
+const PROC_TREE=[{"code": "A", "e": "🔨", "name": "FABRICATION & ASSEMBLY", "qc": false, "subs": [{"n": "Shell Assembly", "th": "ประกอบเชลล์"}, {"n": "Head Assembly", "th": "ประกอบฝา"}, {"n": "Baffle Assembly", "th": "ประกอบบัฟเฟิล"}, {"n": "Protection Guard Assembly", "th": "ประกอบโพรเทคชั่นการ์ด"}, {"n": "Ring Assembly", "th": "ประกอบริง"}, {"n": "Chassis Assembly", "th": "ประกอบแชสซี"}, {"n": "Tank Mounting on Trailer Chassis", "th": "ติดตั้งแท็งค์ขึ้นแชสซี (Trailer)"}, {"n": "Landing Gear Assembly", "th": "ประกอบขาช้าง"}, {"n": "Tank Accessories Assembly", "th": "ประกอบอุปกรณ์แท็งค์"}, {"n": "Suspension Assembly", "th": "ประกอบช่วงล่าง"}]}, {"code": "B", "e": "🔥", "name": "WELDING", "qc": false, "subs": [{"n": "Shell Welding", "th": "เชื่อมเชลล์"}, {"n": "Head Welding", "th": "เชื่อมฝา"}, {"n": "Baffle Welding", "th": "เชื่อมบัฟเฟิล"}, {"n": "Manhole Welding", "th": "เชื่อมแมนโฮล"}, {"n": "Protection Guard Welding", "th": "เชื่อมโพรเทคชั่นการ์ด"}, {"n": "Ring Welding", "th": "เชื่อมริง"}, {"n": "Chassis Welding", "th": "เชื่อมแชสซี"}, {"n": "Suspension Welding", "th": "เชื่อมช่วงล่าง"}, {"n": "Piping Welding", "th": "เชื่อมไลน์ท่อ"}, {"n": "Part Welding", "th": "เชื่อมชิ้นส่วน Part"}, {"n": "Tank Accessories Welding", "th": "เชื่อมชิ้นส่วนควบแท็งค์"}]}, {"code": "C", "e": "🔩", "name": "PART", "qc": false, "subs": [{"n": "Tank Parts Fabrication", "th": "ผลิตชิ้นส่วนแท็งค์"}, {"n": "Accessories Parts Fabrication", "th": "ผลิตชิ้นส่วนอุปกรณ์ส่วนควบ"}, {"n": "Stock Parts Fabrication", "th": "ผลิตชิ้นส่วน Stock Part"}, {"n": "Tank Stock Parts Fabrication", "th": "ผลิตชิ้นส่วน Stock Part Tank"}]}, {"code": "D", "e": "⚙️", "name": "KEMREX", "qc": false, "subs": [{"n": "Steel Tube Fabrication", "th": "ผลิตเหล็กกล่อง"}, {"n": "Steel Pile Fabrication", "th": "ผลิตเข็มเหล็ก"}]}, {"code": "E", "e": "🎨", "name": "PAINTING", "qc": false, "subs": [{"n": "Sand Blasting", "th": "พ่นทราย"}, {"n": "Primer Coating", "th": "พ่นสีรองพื้น"}, {"n": "Putty Application", "th": "โป๊วสี"}, {"n": "Primer Touch-up", "th": "พ่นสีรองพื้นกลบรอย"}, {"n": "Top Coat Painting", "th": "พ่นสีทับหน้าจริง"}, {"n": "Chassis Painting", "th": "พ่นสีแชสซี"}]}, {"code": "F", "e": "⚡", "name": "SYSTEM", "qc": false, "subs": [{"n": "Cab Lighting Installation", "th": "ติดตั้งไฟหัวเก๋ง"}, {"n": "Side Marker Light Installation", "th": "ติดตั้งไฟสัญญาณรอบคัน"}, {"n": "Rear Tail Light Installation", "th": "ติดตั้งไฟท้ายกันชนท้าย"}, {"n": "Battery Master Switch Installation", "th": "ติดตั้งไฟตัดกราวด์"}, {"n": "Electrical Control Box Installation", "th": "ติดตั้งระบบคอนโทรลตู้ไฟ"}, {"n": "Pneumatic Control System Installation", "th": "ติดตั้งระบบคอนโทรลลม"}, {"n": "Overfill Prevention System Installation", "th": "ติดตั้งระบบโอเวอร์ฟิลล์"}, {"n": "Handrail Installation", "th": "ติดตั้งระบบแฮนด์เรล"}, {"n": "Electrical & Pneumatic System Inspection", "th": "ตรวจสอบระบบไฟฟ้าและลม"}]}, {"code": "G", "e": "🔧", "name": "PIPING & VALVES", "qc": false, "subs": [{"n": "Emergency Valve Installation", "th": "ติดตั้งอีเมอร์เจนซีวาล์ว"}, {"n": "Pump Installation", "th": "ติดตั้งปั๊ม"}, {"n": "Piping & Valve Assembly", "th": "ประกอบไลน์ท่อพร้อมวาล์ว"}, {"n": "Vapor Piping & Valve Assembly", "th": "ประกอบไลน์ท่อเวเปอร์พร้อมวาล์ว"}, {"n": "Return Piping Assembly", "th": "ประกอบไลน์ท่อกลับหลังเชื่อม"}, {"n": "Piping & Valve Inspection", "th": "ตรวจสอบไลน์ท่อและวาล์ว"}]}, {"code": "H", "e": "🔄", "name": "RE-INSTALLATION", "qc": false, "subs": [{"n": "Equipment Transfer", "th": "โยกย้ายอุปกรณ์"}, {"n": "Bracket Installation", "th": "ติดตั้งแบร็กเก็ต"}, {"n": "Tank Mounting on Chassis", "th": "ติดตั้งแท็งค์ขึ้นแชสซี"}, {"n": "Mudguard Installation", "th": "ติดตั้งบังโคลน"}, {"n": "Motorcycle Guard Installation", "th": "ติดตั้งการ์ดมอเตอร์ไซค์"}, {"n": "Rear Walkway Installation", "th": "ติดตั้งทางเดินหลังแท็งค์"}, {"n": "Rear Bumper Installation", "th": "ติดตั้งกันชนท้าย"}, {"n": "Fire Extinguisher Installation", "th": "ติดตั้งถังดับเพลิง"}, {"n": "Traffic Cone Installation", "th": "ติดตั้งกรวยจราจร"}, {"n": "Wheel Chock Installation", "th": "ติดตั้งยางหนุนล้อ"}, {"n": "Side Pipe Installation", "th": "ติดตั้งท่อข้าง"}, {"n": "UN Plate Installation", "th": "ติดตั้งป้าย UN"}, {"n": "Manhole Cover Installation", "th": "ติดตั้งฝาแมนโฮล"}, {"n": "Ladder Installation", "th": "ติดตั้งบันได"}, {"n": "Cable Control System Installation", "th": "ติดตั้งระบบสลิงคอนโทรล"}, {"n": "Hydraulic System Installation", "th": "ติดตั้งระบบไฮดรอลิก"}, {"n": "Accessories Inspection", "th": "ตรวจสอบอุปกรณ์"}]}, {"code": "I", "e": "🚗", "name": "SUSPENSION", "qc": false, "subs": [{"n": "Axle Installation", "th": "ติดตั้งเพลา"}, {"n": "Wheel & Tire Installation", "th": "ติดตั้งล้อยาง"}, {"n": "Suspension Installation", "th": "ติดตั้งช่วงล่าง"}, {"n": "Suspension System Installation", "th": "ติดตั้งระบบช่วงล่าง"}, {"n": "Wheel Alignment", "th": "ตั้งศูนย์ล้อ"}, {"n": "Brake Adjustment", "th": "ตั้งเบรกล้อ"}, {"n": "Suspension Inspection", "th": "ตรวจสอบช่วงล่าง"}]}, {"code": "J", "e": "🏷️", "name": "STICKER", "qc": false, "subs": [{"n": "Customer Logo Sticker Installation", "th": "ติดตั้งสติกเกอร์โลโก้ลูกค้า"}, {"n": "Safety Sticker Installation", "th": "ติดตั้งสติกเกอร์บ่งชี้รอบคัน"}, {"n": "Regulatory Sticker Installation", "th": "ติดตั้งสติกเกอร์ตามกฎหมายขนส่ง"}]}, {"code": "K", "e": "🔍", "name": "QC", "qc": true, "subs": [{"n": "Run Pump Test Inspection", "th": "Run Pump Test Inspection"}, {"n": "Hydrostatic Test Inspection", "th": "Hydrostatic Test Inspection"}, {"n": "Leak Tightness Test Inspection", "th": "Leak Tightness Test Inspection"}, {"n": "Calibration Inspection", "th": "Calibration Inspection"}, {"n": "Electrical Lighting Inspection & Test", "th": "Electrical Lighting Inspection & Test"}, {"n": "Electrical Control System Inspection & Test", "th": "Electrical Control System Inspection & Test"}, {"n": "Pneumatic Control System Inspection & Test", "th": "Pneumatic Control System Inspection & Test"}, {"n": "Final Delivery Inspection", "th": "Final Delivery Inspection"}]}, {"code": "L", "e": "🧹", "name": "CLEANING", "qc": false, "subs": [{"n": "Internal Cleaning", "th": "ล้างภายใน"}, {"n": "External Cleaning", "th": "ล้างภายนอก"}, {"n": "Accessories Cleaning", "th": "ล้างอุปกรณ์"}, {"n": "Internal Polishing", "th": "ขัดเงาภายใน"}, {"n": "External Polishing", "th": "ขัดเงาภายนอก"}, {"n": "Accessories Polishing", "th": "ขัดเงาอุปกรณ์"}]}];
 
-const PROCS_QC = [
-  {e:'🔍', n:'QC Fabrication',   th:'ตรวจสอบการผลิต',      la:'ກວດສອບການຜະລິດ',   mm:'ထုတ်လုပ်စစ်ဆေး',   kh:'ត្រួតពិនិត្យផលិតកម្ម'},
-  {e:'🔄', n:'QC Reinstallation',th:'ตรวจสอบการติดตั้งใหม่',la:'ກວດສອບການຕິດຕັ້ງໃໝ່',mm:'ပြန်တပ်စစ်ဆေး',   kh:'ត្រួតពិនិត្យដំឡើងឡើងវិញ'},
-  {e:'🚚', n:'QC Delivery',      th:'ตรวจสอบก่อนส่งมอบ',   la:'ກວດສອບກ່ອນສົ່ງ',    mm:'ထွက်မြောက်စစ်',    kh:'ត្រួតពិនិត្យប្រគល់'},
-  {e:'⚙️', n:'QC System',        th:'ตรวจสอบระบบ',          la:'ກວດສອບລະບົບ',        mm:'စနစ်စစ်ဆေး',       kh:'ត្រួតពិនិត្យប្រព័ន្ធ'},
-  {e:'🧪', n:'QC Testing',       th:'ทดสอบระบบ',            la:'ທົດສອບລະບົບ',        mm:'စမ်းသပ်',           kh:'សាកល្បងប្រព័ន្ធ'},
-];
-
-// แผนก QC
-const QC_DEPARTMENTS = ['QC'];
-
-// แผนกที่ใช้ Process ทั้งหมด (กรณีไม่ใช่ Production และ QC)
-const PROCS_ALL = [...PROCS_PRODUCTION, ...PROCS_QC];
-
-// ฟังก์ชันเลือก Process List ตาม Department
-function getProcsByDept(deptMain, deptSub) {
-  // ตรวจ Department หลักก่อน
-  if (deptMain === 'QC') return PROCS_QC;
-  if (deptMain === 'PRODUCTION') return PROCS_PRODUCTION;
-  // ถ้าไม่มี deptMain → ดู deptSub (Column C)
-  var sub = String(deptSub || '').toUpperCase();
-  if (sub.indexOf('QC') >= 0 || sub.indexOf('HYDROTEST') >= 0) return PROCS_QC;
-  if (sub.indexOf('FABIC') >= 0 || sub.indexOf('F1') >= 0 ||
-      sub.indexOf('F2') >= 0 || sub.indexOf('F3') >= 0 ||
-      sub.indexOf('F4') >= 0 || sub.indexOf('F5') >= 0 ||
-      sub.indexOf('F6') >= 0 || sub.indexOf('F7') >= 0 ||
-      sub.indexOf('F0') >= 0 || sub.indexOf('WELD') >= 0 ||
-      sub.indexOf('PAINT') >= 0 || sub.indexOf('BUFF') >= 0 ||
-      sub.indexOf('SUSPENSION') >= 0 || sub.indexOf('PRODUCTION') >= 0 ||
-      sub.indexOf('KEMREX') >= 0) return PROCS_PRODUCTION;
-  return PROCS_ALL;
+// เลือกหมวดหลักตามแผนก: QC → เห็นเฉพาะหมวด QC, ที่เหลือ → เห็นทุกหมวดยกเว้น QC
+function getMainsByDept(deptMain, deptSub){
+  var d=(String(deptMain||'')+' '+String(deptSub||'')).toUpperCase();
+  var isQC = d.indexOf('QC')>=0 || d.indexOf('HYDROTEST')>=0;
+  return PROC_TREE.filter(function(m){ return isQC ? m.qc : !m.qc; });
 }
-
-// ใช้ PROCS ตาม Department ของพนักงาน
-var PROCS = getProcsByDept(EMP_DEPT_MAIN || '', EMP_DEPT || '');
+var MAINS = getMainsByDept(EMP_DEPT_MAIN || '', EMP_DEPT || '');
 
 // ============================================================
 // LANG
@@ -551,6 +506,7 @@ const L = {
 };
 
 let lg='th', sp=null, sa=null, submitting=false, isBlocked=false, canEditProcess=false, lastCheckInRow=null;
+let spSel=[], procLevel='main', activeMainIdx=null;   // เลือกหลายงาน + ระดับ 2 ชั้น
 let capturedPhotos = []; // เก็บ base64 รูปที่ถ่าย (สูงสุด 3)
 
 function sv(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
@@ -571,21 +527,51 @@ function setLang(l){
 
 function renderProcs(){
   const g=document.getElementById('proc-grid');g.innerHTML='';
-  const key=L[lg].sk;
   const disableAll = sa==='out'; // Check Out ไม่ต้องเลือก Process
-  PROCS.forEach((p,i)=>{
-    const sub=key==='en'?'':p[key]||p.th;
-    const b=document.createElement('button');
-    b.className='proc-item'+(sp===PROCS[i].n?' sel':'')+(disableAll?' disabled':'');
-    b.innerHTML=`<div class="pc">${p.e}</div><div><div class="pn">${p.n}</div>${sub?`<div class="psub">${sub}</div>`:''}</div>`;
-    b.onclick=()=>{if(!disableAll){sp=PROCS[i].n;renderProcs();}};
-    g.appendChild(b);
-  });
+  const maxSel = (sa==='edit')?1:2;
+  if(procLevel==='sub' && activeMainIdx!==null && MAINS[activeMainIdx]){
+    const m=MAINS[activeMainIdx];
+    const back=document.createElement('button');   // ปุ่มกลับ (การ์ดสไตล์เดิม)
+    back.className='proc-item';
+    back.innerHTML=`<div class="pc">◀︎</div><div><div class="pn">กลับ</div><div class="psub">เลือกหมวดอื่น</div></div>`;
+    back.onclick=()=>{procLevel='main';activeMainIdx=null;renderProcs();};
+    g.appendChild(back);
+    m.subs.forEach((sub2,i)=>{
+      const kk=m.code+'.'+(i+1);
+      const isSel=spSel.some(x=>x.k===kk);
+      const line = (lg==='th')? sub2.th : sub2.n;
+      const b=document.createElement('button');
+      b.className='proc-item'+(isSel?' sel':'')+(disableAll?' disabled':'');
+      b.innerHTML=`<div class="pc">${m.e}</div><div><div class="pn">${kk}</div>${line?`<div class="psub">${line}</div>`:''}</div>`;
+      b.onclick=()=>{if(!disableAll){toggleSub(kk,m.code,sub2,maxSel);}};
+      g.appendChild(b);
+    });
+  } else {
+    MAINS.forEach((m,idx)=>{
+      const cnt=spSel.filter(x=>x.code===m.code).length;
+      const b=document.createElement('button');
+      b.className='proc-item'+(cnt>0?' sel':'')+(disableAll?' disabled':'');
+      const line=cnt>0?('เลือกแล้ว '+cnt+' งาน'):'แตะเลือกงานย่อย';
+      b.innerHTML=`<div class="pc">${m.e}</div><div><div class="pn">${m.code} · ${m.name}</div><div class="psub">${line}</div></div>`;
+      b.onclick=()=>{if(!disableAll){procLevel='sub';activeMainIdx=idx;renderProcs();}};
+      g.appendChild(b);
+    });
+  }
+}
+function toggleSub(kk,code,sub2,maxSel){
+  const idx=spSel.findIndex(x=>x.k===kk);
+  if(idx>=0){ spSel.splice(idx,1); }
+  else{
+    if(spSel.length>=maxSel){ showToast(maxSel===1?'เลือกได้ 1 งาน':'เลือกได้สูงสุด 2 งานพร้อมกัน'); return; }
+    spSel.push({k:kk, code:code, label:kk+' '+sub2.th, n:sub2.n});
+  }
+  renderProcs();
 }
 
 function selAction(type){
   if(type==='in' && isBlocked) return;
   sa=type;
+  spSel=[]; procLevel='main'; activeMainIdx=null;
   document.getElementById('btn-in').className='btn-in'+(type==='in'?' sel':' dim');
   document.getElementById('btn-out').className='btn-out'+(type==='out'?' sel':' dim');
   if(type==='out'){
@@ -692,12 +678,12 @@ async function doSubmit(){
 
   // Mode แก้ Process
   if(sa==='edit'){
-    if(sp===null){showToast('กรุณาเลือก Process ใหม่ก่อน');return;}
-    await submitUpdateProcess(sp);
+    if(spSel.length===0){showToast('กรุณาเลือก Process ใหม่ก่อน');return;}
+    await submitUpdateProcess(spSel.map(function(x){return x.label;}).join(' || '));
     return;
   }
 
-  if(sa==='in' && sp===null){showToast('กรุณาเลือก Process ก่อน');return;}
+  if(sa==='in' && spSel.length===0){showToast('กรุณาเลือก Process ก่อน');return;}
   if(sa==='out' && capturedPhotos.length===0){showToast('กรุณาถ่ายรูปงานก่อน Check Out');return;}
   if(!sa){showToast('กรุณาเลือก เข้างาน หรือ ออกงาน');return;}
   if(sa==='in' && isBlocked){showToast('มีงานค้าง กรุณา Check Out ก่อน');return;}
@@ -713,14 +699,7 @@ async function doSubmit(){
   // procName: ถ้า sp เป็น number → ดึงชื่อจาก PROCS
   //           ถ้า sp เป็น string → ใช้ตรงๆ
   //           ถ้า null → ดึงจาก openJob ที่ค้างอยู่
-  var procName = '';
-  if(sp !== null){
-    if(typeof sp === 'number' && PROCS[sp]){
-      procName = PROCS[sp].n;
-    } else if(typeof sp === 'string'){
-      procName = sp;
-    }
-  }
+  var procName = spSel.map(function(x){return x.label;}).join(' || ');
   // Check Out — ดึง Process จาก openJob ที่ค้างอยู่ถ้ายังไม่มี
   if(sa === 'out' && !procName && _lastCheckResult && _lastCheckResult.openJob){
     procName = _lastCheckResult.openJob.process || '';
@@ -977,7 +956,7 @@ async function confirmEditProcess(wantEdit){
     // แสดง Process Selector ใหม่
     document.getElementById('success').style.display='none';
     document.getElementById('main').style.display='block';
-    sp = null;
+    sp = null; spSel=[]; procLevel='main'; activeMainIdx=null;
     sa = 'edit'; // mode พิเศษสำหรับแก้ Process
     document.getElementById('btn-in').className='btn-in sel';
     document.getElementById('btn-out').className='btn-out dim';
@@ -1021,7 +1000,7 @@ async function submitUpdateProcess(newProcess){
 }
 
 function goMainScreen(){
-  sp=null; sa=null;
+  sp=null; sa=null; spSel=[]; procLevel='main'; activeMainIdx=null;
   capturedPhotos=[];
   isBlocked=false;
   canEditProcess=false;
