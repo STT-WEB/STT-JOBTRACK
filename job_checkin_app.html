@@ -90,16 +90,16 @@ body{background:#E8E8E8;display:flex;justify-content:center;align-items:flex-sta
 
 /* PROCESS */
 .proc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:0 14px;margin-bottom:12px;}
-.proc-item{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 12px;cursor:pointer;display:flex;align-items:center;gap:11px;font-family:'IBM Plex Sans Thai',sans-serif;transition:all 0.15s;min-height:66px;}
+.proc-item{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:13px 11px;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Sans Thai',sans-serif;transition:all 0.15s;min-height:64px;min-width:0;overflow:hidden;}
 .proc-item:active{transform:scale(0.97);}
 .proc-item:hover{border-color:var(--border2);background:var(--bg3);}
 .proc-item.sel{background:var(--blue-dim);border-color:rgba(77,156,255,0.5);}
 .proc-item.sel .pn{color:var(--blue);font-weight:700;}
 .proc-item.sel .pc{background:rgba(77,156,255,0.15);border-color:rgba(77,156,255,0.4);}
 .proc-item.disabled{opacity:0.25;pointer-events:none;}
-.pc{width:46px;height:46px;border-radius:12px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:25px;flex-shrink:0;}
+.pc{width:36px;height:36px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
 .ptext{min-width:0;flex:1;}
-.pn{font-size:15px;color:var(--text2);font-weight:700;line-height:1.35;overflow-wrap:break-word;word-break:normal;}
+.pn{font-size:15px;color:var(--text2);font-weight:700;line-height:1.35;overflow-wrap:anywhere;}
 .psub{font-size:12.5px;color:var(--text3);margin-top:3px;line-height:1.3;}
 /* ปุ่มกลับ — แยกจากการ์ด Process อยู่เหนือ grid */
 #proc-nav:empty{display:none;}
