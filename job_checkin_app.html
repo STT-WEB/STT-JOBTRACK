@@ -1287,9 +1287,9 @@ function initUser() {
 }
 
 function loginWithLine() {
-  sessionStorage.setItem('jobtrack_return', window.location.href);
+  try { sessionStorage.setItem('jobtrack_return', window.location.href); } catch(e) {}
   const state = Math.random().toString(36).substring(2);
-  sessionStorage.setItem('line_state', state);
+  try { sessionStorage.setItem('line_state', state); } catch(e) {}
   const params = new URLSearchParams({
     response_type: 'code',
     client_id:     LINE_CHANNEL_ID,

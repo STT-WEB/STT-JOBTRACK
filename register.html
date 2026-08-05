@@ -236,7 +236,7 @@ tick(); setInterval(tick,20000);
 // ── LINE Login ──
 function loginWithLine(){
   var state = Math.random().toString(36).substring(2);
-  sessionStorage.setItem('reg_state', state);
+  try { sessionStorage.setItem('reg_state', state); } catch(e) {}
   var params = new URLSearchParams({
     response_type: 'code',
     client_id:     LINE_CHANNEL_ID,
@@ -248,7 +248,7 @@ function loginWithLine(){
 }
 
 // ── เช็คว่า Login กลับมาแล้วไหม ──
-var regUser = JSON.parse(sessionStorage.getItem('reg_user') || 'null');
+var regUser = null; try { regUser = JSON.parse(sessionStorage.getItem('reg_user') || localStorage.getItem('reg_user') || 'null'); } catch(e) {}
 if(regUser && regUser.lineId){
   showRegisterScreen(regUser);
 }
