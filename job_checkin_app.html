@@ -325,8 +325,8 @@ body{background:#E8E8E8;display:flex;justify-content:center;align-items:flex-sta
           </div>
         </div>
         <!-- Hidden file input -->
-        <!-- capture="environment" บังคับกล้องหลัง, ไม่มี accept="image/*" = เปิด Gallery ไม่ได้ -->
-        <input type="file" id="camera-input" capture="environment" style="display:none;" onchange="handlePhotoCapture(event)">
+        <!-- accept="image/*" + capture="environment" = บังคับเปิดกล้องหลังบน Android ให้ชัวร์ -->
+        <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoCapture(event)">
 
         <!-- Photo count indicator -->
         <div id="photo-count-bar" style="padding:0 14px 8px;font-size:11px;color:var(--text3);"></div>
@@ -1040,10 +1040,11 @@ function handlePhotoCapture(event){
   if(!file) return;
   event.target.value='';
 
-  // ตรวจสอบว่าถ่ายสด ไม่เกิน 60 วินาที
-  const fileAge = (Date.now() - file.lastModified) / 1000;
-  if(fileAge > 60){
-    showToast('กรุณาถ่ายรูปสดจากกล้องเท่านั้น ห้ามใช้รูปเก่า');
+  // กันใช้รูปเก่ามากๆ — ผ่อนปรน + กันบางเครื่องรายงานเวลาไฟล์ผิด (lastModified=0)
+  var lm = file.lastModified || 0;
+  var fileAge = lm ? (Date.now() - lm)/1000 : 0;
+  if(lm && fileAge > 900){   // เก่ากว่า 15 นาทีเท่านั้นถึงเตือน
+    showToast('กรุณาถ่ายรูปสดจากกล้อง');
     return;
   }
 
