@@ -1035,7 +1035,7 @@ function triggerCamera(){
   inp.click();
 }
 
-function handlePhotoCapture(event){
+async function handlePhotoCapture(event){
   const file = event.target.files[0];
   if(!file) return;
   event.target.value='';
@@ -1043,54 +1043,61 @@ function handlePhotoCapture(event){
   // กันใช้รูปเก่ามากๆ — ผ่อนปรน + กันบางเครื่องรายงานเวลาไฟล์ผิด (lastModified=0)
   var lm = file.lastModified || 0;
   var fileAge = lm ? (Date.now() - lm)/1000 : 0;
-  if(lm && fileAge > 900){   // เก่ากว่า 15 นาทีเท่านั้นถึงเตือน
-    showToast('กรุณาถ่ายรูปสดจากกล้อง');
-    return;
-  }
+  if(lm && fileAge > 900){ showToast('กรุณาถ่ายรูปสดจากกล้อง'); return; }
 
-  // ใช้ createObjectURL — เร็วกว่า FileReader มาก
+  const MAX = 1080;
+  // วิธีประหยัด RAM: ย่อภาพ "ระหว่างถอดรหัส" กันแครชบนมือถือกล้องละเอียดสูง/RAM น้อย
+  try {
+    if (window.createImageBitmap) {
+      var bmp = null;
+      try { bmp = await createImageBitmap(file, { resizeWidth: MAX, resizeQuality: 'high' }); }
+      catch(e1){ bmp = null; }
+      if (bmp) {
+        try { drawWatermarkAndSave(bmp, MAX); } finally { if (bmp.close) bmp.close(); }
+        return;
+      }
+    }
+  } catch(e){ /* ตกไปใช้วิธีสำรองด้านล่าง */ }
+
+  // สำรอง (เครื่องที่ไม่รองรับ createImageBitmap)
   const objectUrl = URL.createObjectURL(file);
   const img = new Image();
-
   img.onload = function(){
     URL.revokeObjectURL(objectUrl);
-
-    const canvas = document.createElement('canvas');
-    const MAX = 1080;   // v4.1 รูปชัดขึ้น
-    let w=img.width, h=img.height;
-    if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
-    if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
-    canvas.width=w; canvas.height=h;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img,0,0,w,h);
-
-    // Watermark
-    const now = new Date();
-    const stamp = now.toLocaleDateString('th-TH') + ' ' +
-                  now.getHours().toString().padStart(2,'0') + ':' +
-                  now.getMinutes().toString().padStart(2,'0') + ':' +
-                  now.getSeconds().toString().padStart(2,'0');
-    const empStamp = EMP_NAME + ' | ' + JOB_ID;
-    const fontSize = Math.max(13, Math.round(w * 0.024));
-    ctx.font = 'bold ' + fontSize + 'px monospace';
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(0, h - fontSize*3.4, w, fontSize*3.4);
-    ctx.fillStyle = '#00e187';
-    ctx.fillText('📍 ' + stamp, 8, h - fontSize*2);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(empStamp, 8, h - fontSize*0.6);
-
-    const b64 = canvas.toDataURL('image/jpeg', 0.82);   // v4.1 คุณภาพสูงขึ้น
-    capturedPhotos.push({ b64, timestamp: stamp, emp: EMP_NAME });
-    renderPhotoPreview();
+    try { drawWatermarkAndSave(img, MAX); }
+    catch(e){ showToast('ประมวลผลรูปไม่ได้ ลองใหม่'); }
   };
-
-  img.onerror = function(){
-    URL.revokeObjectURL(objectUrl);
-    showToast('โหลดรูปไม่ได้ กรุณาลองใหม่');
-  };
-
+  img.onerror = function(){ URL.revokeObjectURL(objectUrl); showToast('โหลดรูปไม่ได้ กรุณาลองใหม่'); };
   img.src = objectUrl;
+}
+
+// วาด watermark + ย่อ + เก็บลง capturedPhotos (ใช้ร่วมทั้ง 2 วิธี)
+function drawWatermarkAndSave(source, MAX){
+  var w = source.width, h = source.height;
+  if(w>MAX){ h=Math.round(h*MAX/w); w=MAX; }
+  if(h>MAX){ w=Math.round(w*MAX/h); h=MAX; }
+  var canvas = document.createElement('canvas');
+  canvas.width=w; canvas.height=h;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(source,0,0,w,h);
+  var now = new Date();
+  var stamp = now.toLocaleDateString('th-TH') + ' ' +
+              now.getHours().toString().padStart(2,'0') + ':' +
+              now.getMinutes().toString().padStart(2,'0') + ':' +
+              now.getSeconds().toString().padStart(2,'0');
+  var empStamp = EMP_NAME + ' | ' + JOB_ID;
+  var fontSize = Math.max(13, Math.round(w * 0.024));
+  ctx.font = 'bold ' + fontSize + 'px monospace';
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, h - fontSize*3.4, w, fontSize*3.4);
+  ctx.fillStyle = '#00e187';
+  ctx.fillText('📍 ' + stamp, 8, h - fontSize*2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(empStamp, 8, h - fontSize*0.6);
+  var b64 = canvas.toDataURL('image/jpeg', 0.82);
+  capturedPhotos.push({ b64: b64, timestamp: stamp, emp: EMP_NAME });
+  renderPhotoPreview();
+  canvas.width = 0; canvas.height = 0;   // ปล่อย RAM ทันที
 }
 
 function renderPhotoPreview(){
