@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JOBTRACK SOP v2.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sarabun',sans-serif;background:#f0f0f0;color:#1a1c22;font-size:15px;line-height:1.7;}
+.page{max-width:960px;margin:0 auto;background:#fff;box-shadow:0 2px 20px rgba(0,0,0,0.1);}
+
+/* NAV */
+.nav{position:sticky;top:0;background:#0f1117;padding:8px 20px;display:flex;gap:8px;overflow-x:auto;z-index:100;align-items:center;}
+.nav a{color:#8b92a5;text-decoration:none;font-size:11px;white-space:nowrap;padding:4px 10px;border-radius:20px;border:1px solid #2a3550;}
+.nav a:hover{color:#00e187;border-color:#00e187;}
+.print-btn{margin-left:auto;background:#00e187;color:#0f1117;border:none;padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+
+/* COVER */
+.cover{background:#0f1117;padding:60px;text-align:center;}
+.cover-logo{font-size:56px;font-weight:700;color:#00e187;font-family:'IBM Plex Mono',monospace;letter-spacing:4px;}
+.cover-sub{font-size:20px;color:#fff;margin-top:10px;font-weight:300;}
+.cover-th{font-size:16px;color:#8b92a5;margin-top:6px;}
+.cover-table{margin:32px auto;border-collapse:collapse;width:380px;}
+.cover-table td{padding:9px 14px;border:1px solid #2a3550;color:#fff;font-size:13px;}
+.cover-table td:first-child{background:#1565c0;font-weight:600;width:130px;}
+.cover-badges{display:flex;gap:12px;justify-content:center;margin-top:32px;flex-wrap:wrap;}
+.cover-badge{padding:8px 20px;border-radius:24px;font-size:12px;font-weight:600;}
+
+/* CONTENT */
+.content{padding:40px 56px;}
+
+/* PART HEADER */
+.part-header{background:#0f1117;padding:20px 56px;margin:40px -56px 28px;border-left:6px solid #00e187;}
+.part-header h2{font-size:20px;font-weight:700;color:#fff;}
+.part-header p{font-size:12px;color:#8b92a5;margin-top:4px;}
+.role-badge{display:flex;border-radius:10px;overflow:hidden;border:1px solid #e0e0e0;margin-bottom:20px;}
+.rb-label{padding:14px 20px;font-weight:700;color:#fff;font-size:13px;min-width:140px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.4;}
+.rb-desc{padding:14px 18px;background:#f8f9fa;font-size:13px;display:flex;align-items:center;flex:1;}
+
+/* SECTION */
+.sec{font-size:16px;font-weight:700;color:#0f1117;margin:28px 0 14px;padding-bottom:6px;border-bottom:3px solid #1565c0;}
+.sec span{font-size:11px;font-weight:400;color:#9e9e9e;margin-left:8px;font-family:'IBM Plex Mono',monospace;}
+
+/* STEP TABLE */
+.steps{width:100%;border-collapse:collapse;margin-bottom:16px;}
+.steps tr:nth-child(odd) .snum{background:#0f1117;}
+.steps tr:nth-child(even) .snum{background:#1a2035;}
+.snum{width:48px;text-align:center;font-size:20px;font-weight:700;color:#00e187;font-family:'IBM Plex Mono',monospace;vertical-align:top;padding:12px 6px;}
+.scontent{padding:12px 16px;border-bottom:1px solid #f0f0f0;vertical-align:top;}
+.steps tr:nth-child(odd) .scontent{background:#f9fafb;}
+.sth{font-size:14px;font-weight:600;color:#111;}
+.sen{font-size:11px;color:#9e9e9e;margin-top:2px;font-family:'IBM Plex Mono',monospace;}
+.snote{font-size:12px;color:#d97706;margin-top:5px;font-style:italic;}
+.swarn{font-size:12px;color:#dc2626;margin-top:5px;font-style:italic;}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;}
+.tbl th{background:#0f1117;color:#fff;padding:9px 13px;text-align:left;font-weight:600;}
+.tbl td{padding:9px 13px;border-bottom:1px solid #eee;vertical-align:top;}
+.tbl tr:nth-child(even) td{background:#f9fafb;}
+.tbl .key{font-weight:600;color:#1565c0;font-family:'IBM Plex Mono',monospace;}
+
+/* BOXES */
+.note-box{background:#fff8e1;border-left:4px solid #d97706;padding:10px 14px;margin:10px 0;border-radius:0 6px 6px 0;font-size:13px;color:#7c5c00;}
+.warn-box{background:#fff3f3;border-left:4px solid #dc2626;padding:10px 14px;margin:10px 0;border-radius:0 6px 6px 0;font-size:13px;color:#7c0000;}
+.info-box{background:#e8f5e9;border-left:4px solid #00a86b;padding:10px 14px;margin:10px 0;border-radius:0 6px 6px 0;font-size:13px;color:#1b5e20;}
+.code-box{background:#1e2330;border-radius:8px;padding:14px 18px;margin:10px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#00e187;line-height:1.8;}
+
+/* PROCESS GRID */
+.proc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:12px 0;}
+.proc-card{background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;}
+.proc-num{font-size:11px;font-weight:700;color:#9e9e9e;font-family:'IBM Plex Mono',monospace;min-width:20px;}
+.proc-icon{font-size:20px;}
+.proc-name{font-size:13px;font-weight:600;color:#111;}
+
+/* MOCKUP */
+.mockup{background:#0f1117;border-radius:16px;padding:20px;margin:16px 0;max-width:340px;}
+.mockup-bar{background:#1a2035;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:11px;color:#8b92a5;font-family:'IBM Plex Mono',monospace;}
+.mockup-card{background:#1a2035;border-radius:10px;padding:14px;margin-bottom:8px;}
+.mockup-label{font-size:10px;color:#8b92a5;margin-bottom:4px;}
+.mockup-value{font-size:14px;font-weight:600;color:#f0f2f5;}
+.mockup-btn-row{display:flex;gap:8px;margin-top:10px;}
+.mockup-btn{flex:1;border-radius:10px;padding:10px;text-align:center;font-size:12px;font-weight:700;}
+.btn-in{background:#1b5e20;color:#00e187;}
+.btn-out{background:#7f0000;color:#ff5c5c;}
+.mockup-proc{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
+.mockup-proc-item{background:#0f1117;border-radius:8px;padding:8px;text-align:center;font-size:10px;color:#f0f2f5;}
+
+/* FLOWCHART */
+.flow{display:flex;flex-direction:column;align-items:center;gap:0;margin:16px auto;max-width:500px;}
+.flow-box{background:#1565c0;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;text-align:center;width:100%;}
+.flow-box.green{background:#00a86b;}
+.flow-box.dark{background:#0f1117;}
+.flow-box.amber{background:#d97706;}
+.flow-box.red{background:#dc2626;}
+.flow-box.gray{background:#607d8b;}
+.flow-arrow{font-size:20px;color:#8b92a5;line-height:1;}
+.flow-note{font-size:11px;color:#9e9e9e;text-align:center;font-style:italic;}
+
+/* DO DONT */
+.do-dont{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:12px 0;}
+.do-box{background:#e8f5e9;border-radius:8px;padding:14px;}
+.dont-box{background:#fff3f3;border-radius:8px;padding:14px;}
+.do-title{font-size:13px;font-weight:700;color:#1b5e20;margin-bottom:8px;}
+.dont-title{font-size:13px;font-weight:700;color:#7c0000;margin-bottom:8px;}
+.do-item{font-size:12px;color:#1b5e20;margin-bottom:4px;}
+.dont-item{font-size:12px;color:#7c0000;margin-bottom:4px;}
+
+/* PRINT */
+@media print{
+  body{background:#fff;}
+  .page{box-shadow:none;}
+  .nav{display:none;}
+  .content{padding:20px 36px;}
+  .part-header{margin:20px -36px 20px;}
+  .page-break{page-break-before:always;}
+}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <a href="#cover">หน้าปก</a>
+  <a href="#flow">Flow</a>
+  <a href="#part1">Part 1: เบียร์</a>
+  <a href="#part2">Part 2: Admin</a>
+  <a href="#part3">Part 3: พนักงาน</a>
+  <a href="#part4">Part 4: หัวหน้า</a>
+  <a href="#appendix">Appendix</a>
+  <button class="print-btn" onclick="window.print()">🖨️ พิมพ์ / PDF</button>
+</div>
+
+<div class="page">
+
+<!-- COVER -->
+<div class="cover" id="cover">
+  <div class="cover-logo">JOBTRACK</div>
+  <div class="cover-sub">Work Instruction / Standard Operating Procedure</div>
+  <div class="cover-th">ระบบบันทึกเวลาทำงานพนักงาน — คู่มือการใช้งาน</div>
+  <table class="cover-table">
+    <tr><td>รหัสเอกสาร</td><td>STT-WI-001</td></tr>
+    <tr><td>Revision</td><td>2.0</td></tr>
+    <tr><td>วันที่จัดทำ</td><td>29 เมษายน 2568</td></tr>
+    <tr><td>จัดทำโดย</td><td>เบียร์</td></tr>
+    <tr><td>อนุมัติโดย</td><td>_________________</td></tr>
+  </table>
+  <div class="cover-badges">
+    <span class="cover-badge" style="background:#0f1117;color:#00e187;border:1px solid #00e187;">เบียร์ · Owner</span>
+    <span class="cover-badge" style="background:#1565c0;color:#fff;">Admin</span>
+    <span class="cover-badge" style="background:#00a86b;color:#fff;">พนักงาน</span>
+    <span class="cover-badge" style="background:#d97706;color:#fff;">หัวหน้าหน่วยงาน</span>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- FLOW OVERVIEW -->
+<div id="flow"></div>
+<div class="sec">ภาพรวมการทำงานของระบบ <span>System Overview Flow</span></div>
+
+<div class="flow">
+  <div class="flow-box dark">🏢 Admin เพิ่ม Job ใหม่ใน Google Sheet → QR Link สร้างอัตโนมัติ</div>
+  <div class="flow-arrow">↓</div>
+  <div class="flow-box gray">🖨️ Admin พิมพ์ QR Code → ติดที่หน้างาน/แท็งค์</div>
+  <div class="flow-arrow">↓</div>
+  <div class="flow-box green">👷 พนักงานสแกน QR → เลือก Process → Check In ✅</div>
+  <div class="flow-arrow">↓</div>
+  <div class="flow-note">พนักงานทำงาน...</div>
+  <div class="flow-arrow">↓</div>
+  <div class="flow-box amber">📸 พนักงานถ่ายรูปงาน → Check Out → ระบบคำนวณชั่วโมง</div>
+  <div class="flow-arrow">↓</div>
+  <div class="flow-box dark">📊 ข้อมูลบันทึกลง Google Sheet อัตโนมัติ (รอบ 26-25)</div>
+  <div class="flow-arrow">↓</div>
+  <div class="flow-box" style="background:#6a1b9a;color:#fff;">🔍 หัวหน้าตรวจสอบข้อมูล · ชั่วโมง · รูปภาพ Evidence</div>
+</div>
+
+<div class="note-box">⚠️ ข้อมูลแต่ละรอบเงินเดือน (26-25) จะเก็บในแต่ละ Tab ของ Google Sheet อัตโนมัติ เช่น Job_Log_2569_05 = รอบ 26/04-25/05/2569</div>
+
+<!-- PREREQUISITES -->
+<div class="sec" style="margin-top:32px;">สิ่งที่ต้องมีก่อนใช้งาน <span>Prerequisites</span></div>
+<table class="tbl">
+  <tr><th>#</th><th>สิ่งที่ต้องมี</th><th>รายละเอียด</th><th>ใครต้องมี</th></tr>
+  <tr><td class="key">1</td><td><b>มือถือส่วนตัว</b></td><td>Android หรือ iOS มี LINE App</td><td>ทุกคน</td></tr>
+  <tr><td class="key">2</td><td><b>LINE Account</b></td><td>บัญชี LINE ส่วนตัว ไม่ต้องมี Email</td><td>ทุกคน</td></tr>
+  <tr><td class="key">3</td><td><b>Chrome / Safari</b></td><td>ห้ามใช้ LINE Browser เด็ดขาด</td><td>ทุกคน</td></tr>
+  <tr><td class="key">4</td><td><b>อินเตอร์เน็ต</b></td><td>WiFi หรือ Mobile Data</td><td>ทุกคน</td></tr>
+  <tr><td class="key">5</td><td><b>รหัสพนักงาน</b></td><td>รับจาก HR ตอนลงทะเบียนครั้งแรก</td><td>พนักงาน</td></tr>
+  <tr><td class="key">6</td><td><b>Google Account</b></td><td>สำหรับเข้า Google Sheet และ Apps Script</td><td>เบียร์, Admin</td></tr>
+  <tr><td class="key">7</td><td><b>GitHub Account</b></td><td>สำหรับ Upload ไฟล์ Web App</td><td>เบียร์</td></tr>
+</table>
+
+<!-- PART 1 -->
+<div class="page-break" id="part1"></div>
+<div class="part-header">
+  <h2>PART 1 — เบียร์ (System Owner)</h2>
+  <p>ตั้งค่าระบบ · แก้โค้ด · ดูแล Infrastructure · Troubleshoot ปัญหาระดับ System</p>
+</div>
+<div class="role-badge">
+  <div class="rb-label" style="background:#0f1117;">👑<br>เบียร์<br>System Owner</div>
+  <div class="rb-desc">มีสิทธิ์สูงสุด แก้ไขโค้ด GitHub ได้ Deploy Apps Script ได้ ดูแลทุกอย่าง</div>
+</div>
+
+<div class="sec">1.1 การตั้งค่าระบบครั้งแรก <span>One-time Setup</span></div>
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">เปิด Google Sheet JOBTRACK_Database</div><div class="sen">Open Google Sheet</div><div class="snote">💡 Login ด้วย Google Account ที่ต้องการเป็น Owner</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">กด Extensions (ส่วนขยาย) → Apps Script</div><div class="sen">Open Apps Script Editor</div></td></tr>
+  <tr><td class="snum">3</td><td class="scontent"><div class="sth">Ctrl+A → Delete → วางโค้ดจากไฟล์ jobtrack_apps_script.gs ทั้งหมด</div><div class="sen">Paste complete Apps Script code</div></td></tr>
+  <tr><td class="snum">4</td><td class="scontent"><div class="sth">แก้ค่า SHEET_ID บรรทัดแรกๆ ของโค้ด ให้ตรงกับ Sheet ID ของบริษัท</div><div class="sen">Update SHEET_ID constant</div><div class="snote">💡 Copy Sheet ID จาก URL ของ Google Sheet เช่น https://docs.google.com/spreadsheets/d/<b>SHEET_ID</b>/edit</div></td></tr>
+  <tr><td class="snum">5</td><td class="scontent"><div class="sth">กด ⚙️ Project Settings → ติ๊ก "แสดงไฟล์ Manifest appsscript.json"</div></td></tr>
+  <tr><td class="snum">6</td><td class="scontent"><div class="sth">คลิก appsscript.json → ลบทั้งหมด → วางโค้ดนี้แทน</div>
+<div class="code-box">{
+  "timeZone": "Asia/Bangkok",
+  "dependencies": {},
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/script.external_request"
+  ]
+}</div></td></tr>
+  <tr><td class="snum">7</td><td class="scontent"><div class="sth">กลับไปไฟล์ รหัส.gs → เลือก function testUrlFetch → ▶ Run</div><div class="sen">Run testUrlFetch to grant permissions</div><div class="snote">💡 จะมี Popup ขอสิทธิ์ → กด "ตรวจสอบสิทธิ์" → Allow</div></td></tr>
+  <tr><td class="snum">8</td><td class="scontent"><div class="sth">กด Deploy → การติดตั้งใช้งานใหม่ → เลือก เว็บแอป</div><div class="sen">Deploy as Web App</div>
+<div class="code-box">ดำเนินการในฐานะ: ฉัน
+ผู้ที่มีสิทธิ์เข้าถึง: ทุกคน
+→ กด ติดตั้งใช้งาน → Copy URL</div></td></tr>
+  <tr><td class="snum">9</td><td class="scontent"><div class="sth">เปิดไฟล์ job_checkin_app.html → หาบรรทัด APPS_SCRIPT_URL → วาง URL ที่ได้</div><div class="sen">Update Apps Script URL in Web App</div></td></tr>
+  <tr><td class="snum">10</td><td class="scontent"><div class="sth">Upload ไฟล์ทั้งหมดขึ้น GitHub: github.com/stt-web/STT-JOBTRACK</div><div class="sen">Upload files to GitHub repository</div><div class="snote">💡 ไฟล์ที่ต้องอัปโหลด: job_checkin_app.html, register.html, callback.html, callback_register.html, qr_generator.html</div></td></tr>
+  <tr><td class="snum">11</td><td class="scontent"><div class="sth">GitHub → Settings → Pages → Branch: main → Save</div><div class="sen">Enable GitHub Pages</div></td></tr>
+  <tr><td class="snum">12</td><td class="scontent"><div class="sth">รัน testImportEmployee ใน Apps Script → Import พนักงานจาก DATA EMPLOYEE</div></td></tr>
+  <tr><td class="snum">13</td><td class="scontent"><div class="sth">รัน testInstallTrigger → ติดตั้ง Auto QR Trigger</div></td></tr>
+  <tr><td class="snum">14</td><td class="scontent"><div class="sth">ทดสอบเปิด URL บนมือถือ</div>
+<div class="code-box">stt-web.github.io/STT-JOBTRACK/job_checkin_app.html</div>
+<div class="snote">💡 ควรเห็นหน้า Login LINE หรือหน้า Check In</div></td></tr>
+</table>
+<div class="info-box">✅ ทำครั้งแรกครั้งเดียว URL และ System จะใช้ได้ตลอดไป</div>
+
+<div class="sec">1.2 การเพิ่ม/แก้ไข/ลด Process งาน <span>Modify Process List</span></div>
+<div class="note-box">⚠️ Process คือประเภทงานที่พนักงานเลือกตอน Check In เบียร์เป็นคนดูแลส่วนนี้</div>
+
+<p style="margin-bottom:12px;font-size:13px;">Process ปัจจุบันทั้งหมด 14 รายการ</p>
+<div class="proc-grid">
+  <div class="proc-card"><span class="proc-num">01</span><span class="proc-icon">🔨</span><div class="proc-name">Fabrication</div></div>
+  <div class="proc-card"><span class="proc-num">02</span><span class="proc-icon">🔧</span><div class="proc-name">Piping Installation</div></div>
+  <div class="proc-card"><span class="proc-num">03</span><span class="proc-icon">⚡</span><div class="proc-name">Electrical System Installation</div></div>
+  <div class="proc-card"><span class="proc-num">04</span><span class="proc-icon">💨</span><div class="proc-name">Pneumatic System Installation</div></div>
+  <div class="proc-card"><span class="proc-num">05</span><span class="proc-icon">🛢️</span><div class="proc-name">Hydraulic System Installation</div></div>
+  <div class="proc-card"><span class="proc-num">06</span><span class="proc-icon">🎨</span><div class="proc-name">Painting</div></div>
+  <div class="proc-card"><span class="proc-num">07</span><span class="proc-icon">🏷️</span><div class="proc-name">Sticker / Labeling</div></div>
+  <div class="proc-card"><span class="proc-num">08</span><span class="proc-icon">✅</span><div class="proc-name">QC / Quality Control</div></div>
+  <div class="proc-card"><span class="proc-num">09</span><span class="proc-icon">🔄</span><div class="proc-name">Reinstallation</div></div>
+  <div class="proc-card"><span class="proc-num">10</span><span class="proc-icon">🚗</span><div class="proc-name">Suspension Installation</div></div>
+  <div class="proc-card"><span class="proc-num">11</span><span class="proc-icon">🧹</span><div class="proc-name">Cleaning</div></div>
+  <div class="proc-card"><span class="proc-num">12</span><span class="proc-icon">🔩</span><div class="proc-name">Part Tank</div></div>
+  <div class="proc-card"><span class="proc-num">13</span><span class="proc-icon">🛠️</span><div class="proc-name">Part Reinstallation</div></div>
+  <div class="proc-card"><span class="proc-num">14</span><span class="proc-icon">⚙️</span><div class="proc-name">Kemrex</div></div>
+</div>
+
+<p style="margin:16px 0 10px;font-size:14px;font-weight:700;">วิธีเพิ่ม Process ใหม่</p>
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">เปิด github.com/stt-web/STT-JOBTRACK → คลิกไฟล์ job_checkin_app.html</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">กดไอคอน ✏️ Edit (รูปดินสอ) มุมขวาบน</div></td></tr>
+  <tr><td class="snum">3</td><td class="scontent"><div class="sth">กด Ctrl+F ค้นหาคำว่า const PROCS = [</div></td></tr>
+  <tr><td class="snum">4</td><td class="scontent"><div class="sth">เพิ่มบรรทัดใหม่ก่อนปิด ]; โดยใช้รูปแบบนี้</div>
+<div class="code-box">{e:'🔧', n:'ชื่อ Process', th:'ชื่อภาษาไทย', la:'', mm:'', kh:''},</div>
+<div class="snote">💡 e = Emoji Icon | n = ชื่อ Process (ใช้แสดงใน Sheet) | th = ชื่อภาษาไทย</div></td></tr>
+  <tr><td class="snum">5</td><td class="scontent"><div class="sth">กด Commit changes → ใส่ข้อความว่า "เพิ่ม Process: [ชื่อ]" → Commit</div></td></tr>
+  <tr><td class="snum">6</td><td class="scontent"><div class="sth">รอ 1-2 นาที → GitHub Pages อัปเดตอัตโนมัติ</div><div class="snote">💡 พนักงาน Refresh มือถือ → เห็น Process ใหม่ทันที</div></td></tr>
+</table>
+
+<p style="margin:16px 0 10px;font-size:14px;font-weight:700;">วิธีลบ Process</p>
+<div class="warn-box">🚫 ก่อนลบ Process ต้องแน่ใจว่าไม่มีพนักงานที่ยัง Check In ค้างอยู่ใน Process นั้น</div>
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">ทำตามขั้นตอน 1-3 ด้านบน → หาบรรทัดของ Process ที่ต้องการลบ</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">ลบทั้งบรรทัดนั้นออก → Commit changes</div></td></tr>
+</table>
+
+<div class="sec">1.3 การดูแลระบบประจำเดือน <span>Monthly Maintenance</span></div>
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">ตรวจสอบว่า Tab Job_Log รอบเดือนใหม่ถูกสร้างขึ้นแล้ว</div><div class="snote">💡 Tab จะสร้างอัตโนมัติเมื่อมีการ Check In ครั้งแรกของรอบ</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">ตรวจสอบ Apps Script Executions: script.google.com → โปรเจกต์ → การดำเนินการ</div></td></tr>
+  <tr><td class="snum">3</td><td class="scontent"><div class="sth">ถ้า Tab ปฏิทินวันทำงานยังไม่ได้อัปเดตปีใหม่ → เพิ่มข้อมูลวันหยุดของปีนั้น</div></td></tr>
+</table>
+
+<div class="sec">1.4 Troubleshooting Guide</div>
+<table class="tbl">
+  <tr><th>ปัญหา</th><th>สาเหตุที่น่าจะเป็น</th><th style="color:#00e187;">วิธีแก้ไข</th></tr>
+  <tr><td><b>Check In หมุนค้าง ไม่บันทึก</b></td><td>Deploy ยังไม่ได้ New version</td><td>Deploy → Manage → New version</td></tr>
+  <tr><td><b>Error 403 / Permission denied</b></td><td>Who has access ไม่ได้ตั้งเป็น Anyone</td><td>Deploy ใหม่ → ตั้ง Anyone</td></tr>
+  <tr><td><b>QR Link ไม่ขึ้นอัตโนมัติ</b></td><td>Trigger หาย</td><td>Apps Script → testInstallTrigger → Run</td></tr>
+  <tr><td><b>พนักงานลงทะเบียนไม่ได้</b></td><td>ไม่มีชื่อใน Employee_List</td><td>Apps Script → testImportEmployee → Run</td></tr>
+  <tr><td><b>รูปภาพ Upload ไม่สำเร็จ</b></td><td>เปิดจาก LINE Browser</td><td>แจ้งให้เปิดใน Chrome โดยตรง</td></tr>
+  <tr><td><b>UrlFetch Permission Error</b></td><td>ยังไม่ได้ Authorize</td><td>Apps Script → testUrlFetch → Run → Allow</td></tr>
+  <tr><td><b>Tab Job_Log ไม่ถูกสร้าง</b></td><td>ยังไม่มีการ Check In ในรอบนั้น</td><td>ปกติ Tab สร้างเองเมื่อมีการ Check In ครั้งแรก</td></tr>
+</table>
+
+<!-- PART 2 -->
+<div class="page-break" id="part2"></div>
+<div class="part-header">
+  <h2>PART 2 — Admin (ผู้ดูแลระบบ)</h2>
+  <p>จัดการ Job ประจำเดือน · ลงทะเบียนพนักงาน · ออก QR Code · ดูแล Employee_List</p>
+</div>
+<div class="role-badge">
+  <div class="rb-label" style="background:#1565c0;">🗂️<br>Admin<br>ผู้ดูแลระบบ</div>
+  <div class="rb-desc">จัดการ Job_List และ Employee_List ผ่าน Google Sheet ออก QR Code พิมพ์ติดหน้างาน</div>
+</div>
+
+<div class="sec">2.1 งานประจำวันที่ Admin ต้องทำ <span>Daily Tasks</span></div>
+<table class="tbl">
+  <tr><th>ช่วงเวลา</th><th>สิ่งที่ต้องตรวจสอบ</th><th>วิธีตรวจ</th></tr>
+  <tr><td><b>เช้า</b></td><td>มีพนักงาน Check In ค้างจากเมื่อวานไหม</td><td>Job_Log → Filter สถานะ "Check In" + วันที่เมื่อวาน</td></tr>
+  <tr><td><b>กลางวัน</b></td><td>Job ใหม่ที่ต้องเพิ่มวันนี้</td><td>รับ Job ใหม่จากฝ่ายขาย → เพิ่มใน Job_List</td></tr>
+  <tr><td><b>เย็น</b></td><td>พนักงานลงทะเบียนใหม่ที่รอ Verify</td><td>Employee_List → หาแถวสีเหลือง (รอ Verify)</td></tr>
+</table>
+
+<div class="sec">2.2 การเพิ่ม Job ใหม่ <span>Adding New Jobs</span></div>
+
+<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
+<div style="flex:1;min-width:280px;">
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">เปิด Google Sheet → Tab Job_List</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">เลื่อนลงแถวว่างสุดท้าย → กรอก 3 ช่องนี้</div>
+<div class="code-box">A = ประเภทงาน: JM / JT / JMS / JP / Other Job
+B = Job Code: เช่น JM-69/0100
+C = ชื่อลูกค้า: บริษัท xxxxxx จำกัด</div></td></tr>
+  <tr><td class="snum">3</td><td class="scontent"><div class="sth">กด Enter → QR Link ขึ้นในคอลัมน์ E อัตโนมัติ ✅</div></td></tr>
+  <tr><td class="snum">4</td><td class="scontent"><div class="sth">เปิดไฟล์ qr_generator.html ใน Browser</div></td></tr>
+  <tr><td class="snum">5</td><td class="scontent"><div class="sth">กลับไป Job_List → Click คอลัมน์ E บรรทัดแรก → Ctrl+Shift+End → Ctrl+C</div><div class="snote">💡 เลือกทั้งคอลัมน์ E แล้ว Copy</div></td></tr>
+  <tr><td class="snum">6</td><td class="scontent"><div class="sth">กลับมา qr_generator.html → Paste ในช่อง → กด Generate QR</div></td></tr>
+  <tr><td class="snum">7</td><td class="scontent"><div class="sth">ตรวจสอบว่า QR ขึ้นครบ → กด 🖨️ พิมพ์ → ตัดติดที่แท็งค์/หน้างาน</div></td></tr>
+</table>
+</div>
+<div style="min-width:200px;">
+<div class="mockup">
+  <div class="mockup-bar">📋 Job_List — Google Sheet</div>
+  <div style="font-size:10px;color:#8b92a5;margin-bottom:8px;">กรอกแค่ 3 ช่อง → E ขึ้นเอง</div>
+  <table style="width:100%;font-size:10px;color:#f0f2f5;border-collapse:collapse;">
+    <tr style="background:#1a2035;">
+      <td style="padding:4px;color:#00e187;font-weight:700;">A</td>
+      <td style="padding:4px;color:#00e187;font-weight:700;">B</td>
+      <td style="padding:4px;color:#00e187;font-weight:700;">C</td>
+      <td style="padding:4px;color:#4d9cff;font-weight:700;">E (Auto)</td>
+    </tr>
+    <tr><td style="padding:4px;">JM</td><td style="padding:4px;">JM-69/0100</td><td style="padding:4px;">บริษัท ABC</td><td style="padding:4px;color:#4d9cff;">https://...</td></tr>
+    <tr style="background:#1a2035;"><td style="padding:4px;">JT</td><td style="padding:4px;">JT-69/0050</td><td style="padding:4px;">บริษัท XYZ</td><td style="padding:4px;color:#4d9cff;">https://...</td></tr>
+  </table>
+</div>
+</div>
+</div>
+<div class="note-box">⚠️ Job Code ต้องไม่ซ้ำ | ประเภทงาน: JM=งานซ่อม JT=งานรถ JMS=งานสัญญา JP=งานโปรเจกต์</div>
+
+<div class="sec">2.3 การลงทะเบียนพนักงานใหม่ <span>New Employee Registration</span></div>
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">ตรวจสอบว่าพนักงานใหม่มีชื่อและรหัสอยู่ใน Tab DATA EMPLOYEE แล้ว</div><div class="snote">💡 ถ้ายังไม่มี → เพิ่มข้อมูลใน DATA EMPLOYEE ก่อน</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">Apps Script → เลือก function testImportEmployee → ▶ Run</div><div class="snote">💡 ระบบจะ Sync ข้อมูลจาก DATA EMPLOYEE → Employee_List โดย LINE ID เดิมจะไม่หาย</div></td></tr>
+  <tr><td class="snum">3</td><td class="scontent"><div class="sth">พิมพ์ QR Register 1 ใบ → แจกให้พนักงานใหม่</div>
+<div class="code-box">URL สำหรับ QR Register:
+stt-web.github.io/STT-JOBTRACK/register.html</div>
+<div class="snote">💡 QR Register ใบเดียวใช้ได้กับพนักงานทุกคน ไม่ต้องพิมพ์ใหม่</div></td></tr>
+  <tr><td class="snum">4</td><td class="scontent"><div class="sth">นั่งเฝ้า → ให้พนักงานสแกน QR ด้วยกล้องมือถือ (ไม่ใช่ LINE)</div></td></tr>
+  <tr><td class="snum">5</td><td class="scontent"><div class="sth">พนักงาน Login LINE → กรอกรหัสพนักงาน → ยืนยัน</div></td></tr>
+  <tr><td class="snum">6</td><td class="scontent"><div class="sth">ตรวจสอบ Tab Employee_List → แถวของพนักงานนั้น → คอลัมน์ D (LINE ID) ควรมีข้อมูลแล้ว</div></td></tr>
+</table>
+
+<div class="sec">2.4 การปิด Job ที่เสร็จแล้ว <span>Closing Completed Jobs</span></div>
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">ตรวจสอบ Job_Log → ไม่มีพนักงาน Check In ค้างใน Job นั้นแล้ว</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">เปิด Tab Job_List → หา Job ที่เสร็จ → คอลัมน์ D เปลี่ยนจาก Active → Done</div></td></tr>
+  <tr><td class="snum">3</td><td class="scontent"><div class="sth">ถอด QR Code ออกจากหน้างาน</div></td></tr>
+</table>
+
+<div class="sec">2.5 การจัดการพนักงานลาออก <span>Employee Offboarding</span></div>
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">ตรวจสอบว่าพนักงานไม่มีงานค้างใน Job_Log</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">เปิด Tab Employee_List → หาแถวของพนักงานนั้น → ลบ LINE ID ในคอลัมน์ D ออก</div><div class="snote">💡 ไม่ต้องลบแถวออก เพราะข้อมูลชื่อยังต้องใช้อ้างอิงกับ Job_Log เก่า</div></td></tr>
+</table>
+
+<!-- PART 3 -->
+<div class="page-break" id="part3"></div>
+<div class="part-header">
+  <h2>PART 3 — พนักงาน (Employee)</h2>
+  <p>ลงทะเบียนครั้งแรก · Check In ก่อนเริ่มงานทุกครั้ง · Check Out + ถ่ายรูปทุกครั้งที่เสร็จ</p>
+</div>
+<div class="role-badge">
+  <div class="rb-label" style="background:#00a86b;">👷<br>พนักงาน<br>Employee</div>
+  <div class="rb-desc">สแกน QR ที่หน้างาน → เลือก Process → Check In/Out → ถ่ายรูป Evidence ทุกครั้ง</div>
+</div>
+<div class="warn-box">🚫 ห้ามเปิด App จาก LINE Browser เด็ดขาด! ต้องใช้ Chrome หรือ Safari เท่านั้น</div>
+
+<div class="sec">3.1 การลงทะเบียนครั้งแรก <span>First-time Registration — ทำครั้งเดียวตลอดไป</span></div>
+
+<div style="display:flex;gap:20px;flex-wrap:wrap;">
+<div style="flex:1;min-width:260px;">
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">รับ QR Register จาก HR หรือ Admin</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">เปิดกล้องมือถือ → สแกน QR (ห้ามเปิดจาก LINE)</div><div class="swarn">❌ ถ้าเปิดจาก LINE → กด ⋮ 3 จุด → เปิดใน Chrome</div></td></tr>
+  <tr><td class="snum">3</td><td class="scontent"><div class="sth">กด "เข้าสู่ระบบด้วย LINE" สีเขียว</div></td></tr>
+  <tr><td class="snum">4</td><td class="scontent"><div class="sth">LINE เปิดขึ้น → กด "Log in with LINE app" หรือใส่เบอร์+รหัส</div></td></tr>
+  <tr><td class="snum">5</td><td class="scontent"><div class="sth">กด Numpad กรอกรหัสพนักงาน (ตัวเลข)</div><div class="snote">💡 รหัสดูได้จากสลิปเงินเดือน หรือถาม HR/Admin</div></td></tr>
+  <tr><td class="snum">6</td><td class="scontent"><div class="sth">กด ยืนยัน → ตรวจสอบชื่อและแผนกที่ขึ้นมาว่าถูกต้อง</div></td></tr>
+  <tr><td class="snum">7</td><td class="scontent"><div class="sth">หน้า "ลงทะเบียนสำเร็จ" ขึ้น = เสร็จ ✅</div></td></tr>
+  <tr><td class="snum">8</td><td class="scontent"><div class="sth">เพิ่ม Shortcut บน Home Screen</div>
+<div class="code-box">Chrome Android: ⋮ → เพิ่มในหน้าจอหลัก
+Safari iOS: แชร์ → เพิ่มในหน้าจอโฮม</div>
+<div class="snote">💡 ครั้งต่อไปกดจาก Icon บน Home Screen ได้เลย</div></td></tr>
+</table>
+</div>
+<div style="min-width:180px;">
+<div class="mockup">
+  <div class="mockup-bar">register.html</div>
+  <div style="text-align:center;padding:16px 0;">
+    <div style="font-size:36px;">👷</div>
+    <div style="color:#fff;font-size:14px;font-weight:700;margin-top:8px;">JOBTRACK</div>
+    <div style="color:#8b92a5;font-size:11px;margin-top:4px;">ลงทะเบียนพนักงานใหม่</div>
+  </div>
+  <div style="background:#00B900;border-radius:10px;padding:10px;text-align:center;color:#fff;font-size:12px;font-weight:700;">💬 เข้าสู่ระบบด้วย LINE</div>
+  <div style="margin-top:10px;background:#1a2035;border-radius:8px;padding:10px;">
+    <div style="color:#8b92a5;font-size:10px;margin-bottom:6px;">กรอกรหัสพนักงาน</div>
+    <div style="background:#0f1117;border-radius:6px;padding:8px;text-align:center;color:#00e187;font-family:monospace;font-size:18px;font-weight:700;letter-spacing:4px;">_ _ _ _ _ _ _</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px;">
+      <div style="background:#2a3550;border-radius:6px;padding:6px;text-align:center;color:#fff;font-size:14px;">1</div>
+      <div style="background:#2a3550;border-radius:6px;padding:6px;text-align:center;color:#fff;font-size:14px;">2</div>
+      <div style="background:#2a3550;border-radius:6px;padding:6px;text-align:center;color:#fff;font-size:14px;">3</div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<div class="sec">3.2 การ Check In เข้างาน <span>Check In</span></div>
+
+<div style="display:flex;gap:20px;flex-wrap:wrap;">
+<div style="flex:1;min-width:260px;">
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">เดินไปที่แท็งค์/หน้างาน → เปิดกล้องมือถือ → สแกน QR Code ของงานนั้น</div><div class="snote">💡 QR แต่ละใบผูกกับ Job นั้นโดยเฉพาะ</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">หน้า App เปิดขึ้น → ตรวจสอบชื่อตัวเองและ Job ID ที่แสดง</div><div class="swarn">❌ ถ้าชื่อผิดหรือ Job ผิด → ปิดแล้วสแกน QR ใหม่</div></td></tr>
+  <tr><td class="snum">3</td><td class="scontent"><div class="sth">กด ▶ เข้างาน (ปุ่มสีเขียว)</div></td></tr>
+  <tr><td class="snum">4</td><td class="scontent"><div class="sth">เลือก Process ที่กำลังทำ (แตะที่ Icon)</div><div class="snote">💡 เลือกให้ตรงกับงานที่ทำจริง</div></td></tr>
+  <tr><td class="snum">5</td><td class="scontent"><div class="sth">กด บันทึก → รอหน้า "เข้างานสำเร็จ" → เห็นเวลาเข้างาน ✅</div></td></tr>
+</table>
+<div class="warn-box">🚫 ถ้าระบบแจ้งว่า "มีงานค้างอยู่" → ต้องไป Check Out งานเดิมก่อน แล้วค่อย Check In ใหม่</div>
+</div>
+<div style="min-width:180px;">
+<div class="mockup">
+  <div class="mockup-bar">job_checkin_app.html</div>
+  <div class="mockup-card">
+    <div class="mockup-label">JM · งาน/JOB</div>
+    <div class="mockup-value">JM-69/0100</div>
+    <div style="font-size:10px;color:#8b92a5;margin-top:2px;">บริษัท ABC จำกัด</div>
+  </div>
+  <div class="mockup-card" style="display:flex;align-items:center;gap:8px;">
+    <div style="width:36px;height:36px;border-radius:50%;background:#2a3550;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:16px;">👤</div>
+    <div>
+      <div style="color:#fff;font-size:12px;font-weight:600;">นายสมชาย รักงาน</div>
+      <div style="color:#00e187;font-size:10px;">LINE ✓</div>
+    </div>
+  </div>
+  <div class="mockup-btn-row">
+    <div class="mockup-btn btn-in">▶ เข้างาน</div>
+    <div class="mockup-btn btn-out">■ ออกงาน</div>
+  </div>
+  <div style="font-size:10px;color:#8b92a5;margin:8px 0 4px;">เลือก PROCESS</div>
+  <div class="mockup-proc">
+    <div class="mockup-proc-item">🔨<br>Fabrication</div>
+    <div class="mockup-proc-item">🔧<br>Piping<br>Installation</div>
+    <div class="mockup-proc-item">✅<br>QC</div>
+    <div class="mockup-proc-item">🎨<br>Painting</div>
+  </div>
+</div>
+</div>
+</div>
+
+<div class="sec">3.3 การ Check Out ออกงาน <span>Check Out</span></div>
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">สแกน QR ของงานนั้น → หน้า App เปิดขึ้น</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">กด ■ ออกงาน (ปุ่มสีแดง)</div></td></tr>
+  <tr><td class="snum">3</td><td class="scontent"><div class="sth">Section ถ่ายรูปปรากฏขึ้น → กดปุ่ม ถ่ายรูป</div><div class="snote">💡 บังคับถ่ายอย่างน้อย 1 รูป สูงสุด 3 รูป</div></td></tr>
+  <tr><td class="snum">4</td><td class="scontent"><div class="sth">ถ่ายรูปให้เห็นงานที่ทำชัดเจน → กด ตกลง</div><div class="swarn">❌ ห้ามใช้รูปจาก Gallery ระบบจะปฏิเสธอัตโนมัติ</div></td></tr>
+  <tr><td class="snum">5</td><td class="scontent"><div class="sth">ตรวจสอบรูปที่ถ่าย → กด บันทึก</div></td></tr>
+  <tr><td class="snum">6</td><td class="scontent"><div class="sth">หน้า "ออกงานสำเร็จ" ขึ้นพร้อมชั่วโมงรวม ✅</div></td></tr>
+  <tr><td class="snum">7</td><td class="scontent"><div class="sth">รอดูสถานะรูป → ควรเห็น ✅ Upload สำเร็จ X รูป</div><div class="snote">💡 Upload ทำใน Background ไม่ต้องรอ กลับไปทำงานได้เลย</div></td></tr>
+</table>
+
+<div class="sec">3.4 กรณีพิเศษ <span>Special Cases</span></div>
+<table class="tbl">
+  <tr><th>กรณี</th><th>วิธีแก้ไข</th></tr>
+  <tr><td><b>ลืม Check Out งานเมื่อวาน</b></td><td>แจ้ง Admin ทันที ให้ Admin แก้ใน Job_Log โดยใส่เวลา Check Out และชั่วโมงด้วยตนเอง</td></tr>
+  <tr><td><b>Check In ผิด Job</b></td><td>แจ้ง Admin ทันที อย่า Check Out เอง เพราะจะบันทึกข้อมูลผิด</td></tr>
+  <tr><td><b>เปลี่ยนมือถือหรือมือถือหาย</b></td><td>แจ้ง Admin → Admin ลบ LINE ID เดิมออกจาก Employee_List → ลงทะเบียนใหม่ผ่าน QR Register</td></tr>
+  <tr><td><b>มือถือแบตหมดตอน Check Out</b></td><td>ชาร์จแบตแล้ว Check Out ทันที หรือแจ้ง Admin ถ้านานกว่า 30 นาที</td></tr>
+  <tr><td><b>เน็ตไม่มีตอน Check In/Out</b></td><td>รอจนมีเน็ต แล้ว Check In/Out ตามเวลาจริง เพราะระบบบันทึกเวลาปัจจุบัน</td></tr>
+</table>
+
+<div class="sec">3.5 Do & Don't</div>
+<div class="do-dont">
+  <div class="do-box">
+    <div class="do-title">✅ ต้องทำ (DO)</div>
+    <div class="do-item">✅ Check In ทุกครั้งก่อนเริ่มงาน</div>
+    <div class="do-item">✅ Check Out ทุกครั้งที่เสร็จงาน</div>
+    <div class="do-item">✅ ถ่ายรูปงานให้ชัดเจนทุกครั้ง</div>
+    <div class="do-item">✅ เปิด App จาก Chrome เท่านั้น</div>
+    <div class="do-item">✅ แจ้ง Admin ทันทีถ้าเกิดปัญหา</div>
+    <div class="do-item">✅ ตรวจสอบชื่อและ Job ก่อน Check In</div>
+  </div>
+  <div class="dont-box">
+    <div class="dont-title">❌ ห้ามทำ (DON'T)</div>
+    <div class="dont-item">❌ ห้ามเปิด App จาก LINE Browser</div>
+    <div class="dont-item">❌ ห้ามใช้รูปจาก Gallery</div>
+    <div class="dont-item">❌ ห้าม Check In แทนกัน</div>
+    <div class="dont-item">❌ ห้ามปิด App ก่อน Upload รูปเสร็จ</div>
+    <div class="dont-item">❌ ห้าม Check In ค้างข้ามวันโดยไม่แจ้ง</div>
+    <div class="dont-item">❌ ห้ามถ่ายรูปอะไรก็ได้ที่ไม่ใช่งาน</div>
+  </div>
+</div>
+
+<!-- PART 4 -->
+<div class="page-break" id="part4"></div>
+<div class="part-header">
+  <h2>PART 4 — หัวหน้าหน่วยงาน (Supervisor)</h2>
+  <p>ตรวจสอบการทำงาน · ดู Process · ชั่วโมง · รูปภาพ Evidence · รายงานผิดปกติ</p>
+</div>
+<div class="role-badge">
+  <div class="rb-label" style="background:#6a1b9a;">🔍<br>หัวหน้า<br>Supervisor</div>
+  <div class="rb-desc">เปิด Google Sheet → ดูข้อมูล Job_Log ตรวจสอบชั่วโมง Process และรูปภาพ Evidence ของพนักงาน</div>
+</div>
+
+<div class="sec">4.1 การเข้าดูข้อมูล <span>Accessing Data</span></div>
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">เปิด Google Sheet JOBTRACK_Database</div><div class="snote">💡 ขอ Link จาก Admin หรือเบียร์</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">คลิก Tab ด้านล่าง → เลือก Tab ของรอบเงินเดือนที่ต้องการ</div>
+<div class="code-box">Job_Log_2569_05 = รอบ 26/04-25/05/2569
+Job_Log_2569_06 = รอบ 26/05-25/06/2569</div></td></tr>
+  <tr><td class="snum">3</td><td class="scontent"><div class="sth">ดูข้อมูลจากคอลัมน์ต่างๆ ตามตารางด้านล่าง</div></td></tr>
+</table>
+
+<table class="tbl">
+  <tr><th style="width:50px;">Col</th><th>หัวข้อ</th><th>ข้อมูลที่เห็น</th></tr>
+  <tr><td class="key">B</td><td><b>วันที่</b></td><td>วันที่ทำงาน</td></tr>
+  <tr><td class="key">C</td><td><b>เวลาเข้า</b></td><td>เวลาที่พนักงาน Check In</td></tr>
+  <tr><td class="key">D</td><td><b>เวลาออก</b></td><td>เวลาที่พนักงาน Check Out</td></tr>
+  <tr><td class="key">E</td><td><b>ชม.รวม</b></td><td>จำนวนชั่วโมงที่ทำงาน</td></tr>
+  <tr><td class="key">F</td><td><b>Job ID</b></td><td>รหัสงานที่ทำ เช่น JM-69/0100</td></tr>
+  <tr><td class="key">G</td><td><b>ชื่องาน</b></td><td>ชื่อลูกค้า</td></tr>
+  <tr><td class="key">I</td><td><b>รหัสพนักงาน</b></td><td>รหัสพนักงาน</td></tr>
+  <tr><td class="key">J</td><td><b>ชื่อพนักงาน</b></td><td>ชื่อ-นามสกุล</td></tr>
+  <tr><td class="key">K</td><td><b>แผนก</b></td><td>แผนกของพนักงาน</td></tr>
+  <tr><td class="key">L</td><td><b>สถานะ</b></td><td>Check In / Check Out</td></tr>
+  <tr><td class="key">M</td><td><b>Process</b></td><td>ประเภทงานที่ทำ</td></tr>
+  <tr><td class="key">O</td><td><b>หมายเหตุ</b></td><td>📷 รูปที่ 1, 📷 รูปที่ 2 — คลิกได้เลย</td></tr>
+  <tr><td class="key">P</td><td><b>ประเภทวันทำงาน</b></td><td>วันทำงานปกติ / วันหยุด / วันหยุดนักขัตฤกษ์</td></tr>
+  <tr><td class="key">Q</td><td><b>ประเภทชั่วโมง</b></td><td>ชม.ปกติ / OT x1.5 / วันหยุด / OT วันหยุด x3</td></tr>
+</table>
+
+<div class="sec">4.2 การดูรูปภาพ Evidence <span>Viewing Photo Evidence</span></div>
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">เปิด Tab Job_Log → หาแถว Check Out ของพนักงานที่ต้องการตรวจ</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">ดูคอลัมน์ O (หมายเหตุ) จะเห็น 📷 รูปที่ 1, 📷 รูปที่ 2 เป็น Link สีน้ำเงิน</div></td></tr>
+  <tr><td class="snum">3</td><td class="scontent"><div class="sth">คลิกที่ 📷 รูปที่ 1 → Browser เปิดรูปขึ้นมา</div></td></tr>
+  <tr><td class="snum">4</td><td class="scontent"><div class="sth">ตรวจสอบ 3 อย่าง</div>
+<div class="code-box">① รูปแสดงงานที่ทำจริงหรือไม่
+② Watermark แสดงชื่อพนักงาน + Job ID + เวลาถูกต้องไหม
+③ เวลาใน Watermark ตรงกับเวลา Check Out ใน Sheet ไหม</div></td></tr>
+</table>
+<div class="info-box">✅ รูปทุกรูปมี Watermark อัตโนมัติ ป้องกันการแอบอ้างถ่ายรูปเก่า</div>
+
+<div class="sec">4.3 การ Filter ข้อมูล <span>Filtering Data</span></div>
+<table class="steps">
+  <tr><td class="snum">1</td><td class="scontent"><div class="sth">ใน Job_Log → กด ไอคอน Filter ที่แถว Header (แถวสีดำ)</div></td></tr>
+  <tr><td class="snum">2</td><td class="scontent"><div class="sth">เลือก Filter ที่ต้องการ</div>
+<div class="code-box">กรอง Column J (ชื่อพนักงาน) → ดูเฉพาะคนที่ต้องการ
+กรอง Column F (Job ID)       → ดูเฉพาะ Job นั้น
+กรอง Column M (Process)      → ดูเฉพาะ Process
+กรอง Column B (วันที่)        → ดูช่วงเวลาที่ต้องการ
+กรอง Column L (สถานะ = Check In) → ดูคนที่ยังไม่ Check Out</div></td></tr>
+</table>
+
+<div class="sec">4.4 สัญญาณเตือนที่ต้องสังเกต <span>Warning Signs to Watch</span></div>
+<table class="tbl">
+  <tr><th>สัญญาณที่เห็น</th><th>ความหมาย</th><th style="color:#dc2626;">ต้องทำอะไร</th></tr>
+  <tr><td><b>สถานะ "Check In" ค้างข้ามวัน</b></td><td>พนักงานลืม Check Out</td><td>แจ้ง Admin แก้ไขข้อมูลใน Sheet</td></tr>
+  <tr><td><b>คอลัมน์ O ว่าง (ไม่มีรูป)</b></td><td>Upload รูปไม่สำเร็จ</td><td>แจ้ง Admin ตรวจสอบ</td></tr>
+  <tr><td><b>ชม.รวม = 0 หรือ ลบ</b></td><td>เวลาผิดพลาด</td><td>แจ้ง Admin แก้ไขข้อมูล</td></tr>
+  <tr><td><b>ประเภทวันทำงานผิด</b></td><td>ปฏิทินยังไม่อัปเดต</td><td>แจ้งเบียร์อัปเดต Tab ประเภทวันทำงาน</td></tr>
+  <tr><td><b>Check In/Out ห่างกันมากผิดปกติ เช่น 20+ ชม.</b></td><td>น่าจะลืม Check Out</td><td>แจ้ง Admin ตรวจสอบ</td></tr>
+</table>
+
+<!-- APPENDIX -->
+<div class="page-break" id="appendix"></div>
+<div class="part-header" style="border-left-color:#9e9e9e;">
+  <h2>APPENDIX — ข้อมูลอ้างอิง</h2>
+  <p>URL · System Info · Process List · Revision History</p>
+</div>
+
+<div class="sec">A. URL และ Link สำคัญทั้งหมด</div>
+<table class="tbl">
+  <tr><th>ชื่อ</th><th>URL / วิธีเข้า</th><th>ใครใช้</th></tr>
+  <tr><td><b>Web App (พนักงาน)</b></td><td style="font-family:monospace;font-size:12px;">stt-web.github.io/STT-JOBTRACK/job_checkin_app.html</td><td>พนักงาน</td></tr>
+  <tr><td><b>ลงทะเบียนพนักงานใหม่</b></td><td style="font-family:monospace;font-size:12px;">stt-web.github.io/STT-JOBTRACK/register.html</td><td>Admin, HR</td></tr>
+  <tr><td><b>QR Code Generator</b></td><td>เปิดไฟล์ qr_generator.html ใน Browser</td><td>Admin</td></tr>
+  <tr><td><b>Google Sheet Database</b></td><td>JOBTRACK_Database (เปิดจาก Google Drive)</td><td>Admin, หัวหน้า, เบียร์</td></tr>
+  <tr><td><b>Apps Script</b></td><td>Google Sheet → ส่วนขยาย → Apps Script</td><td>เบียร์</td></tr>
+  <tr><td><b>GitHub Repository</b></td><td style="font-family:monospace;font-size:12px;">github.com/stt-web/STT-JOBTRACK</td><td>เบียร์</td></tr>
+  <tr><td><b>LINE Developers</b></td><td style="font-family:monospace;font-size:12px;">developers.line.biz</td><td>เบียร์</td></tr>
+</table>
+
+<div class="sec">B. ข้อมูล System สำคัญ</div>
+<div class="warn-box">🔒 ข้อมูลด้านล่างเป็นความลับ ห้ามแชร์ภายนอก</div>
+<table class="tbl">
+  <tr><th>รายการ</th><th>ค่า</th></tr>
+  <tr><td><b>Google Sheet ID</b></td><td style="font-family:monospace;font-size:12px;">1MYWORYN3sOjov3Gxv3UqCV1jRSxgxwGi1tRomFUGSr0</td></tr>
+  <tr><td><b>Apps Script URL</b></td><td style="font-family:monospace;font-size:12px;">...AKfycbyTkeQyQm9yFMcZMS.../exec</td></tr>
+  <tr><td><b>LINE Channel ID</b></td><td style="font-family:monospace;">2009924671</td></tr>
+  <tr><td><b>ImgBB API Key</b></td><td style="font-family:monospace;">8e405c97165321f3c68eafb9d3d9bd8e</td></tr>
+  <tr><td><b>GitHub Repo</b></td><td style="font-family:monospace;">stt-web/STT-JOBTRACK</td></tr>
+</table>
+
+<div class="sec">C. Process List ทั้งหมด</div>
+<div class="proc-grid">
+  <div class="proc-card"><span class="proc-num">01</span><span class="proc-icon">🔨</span><div class="proc-name">Fabrication</div></div>
+  <div class="proc-card"><span class="proc-num">02</span><span class="proc-icon">🔧</span><div class="proc-name">Piping Installation</div></div>
+  <div class="proc-card"><span class="proc-num">03</span><span class="proc-icon">⚡</span><div class="proc-name">Electrical System Installation</div></div>
+  <div class="proc-card"><span class="proc-num">04</span><span class="proc-icon">💨</span><div class="proc-name">Pneumatic System Installation</div></div>
+  <div class="proc-card"><span class="proc-num">05</span><span class="proc-icon">🛢️</span><div class="proc-name">Hydraulic System Installation</div></div>
+  <div class="proc-card"><span class="proc-num">06</span><span class="proc-icon">🎨</span><div class="proc-name">Painting</div></div>
+  <div class="proc-card"><span class="proc-num">07</span><span class="proc-icon">🏷️</span><div class="proc-name">Sticker / Labeling</div></div>
+  <div class="proc-card"><span class="proc-num">08</span><span class="proc-icon">✅</span><div class="proc-name">QC / Quality Control</div></div>
+  <div class="proc-card"><span class="proc-num">09</span><span class="proc-icon">🔄</span><div class="proc-name">Reinstallation</div></div>
+  <div class="proc-card"><span class="proc-num">10</span><span class="proc-icon">🚗</span><div class="proc-name">Suspension Installation</div></div>
+  <div class="proc-card"><span class="proc-num">11</span><span class="proc-icon">🧹</span><div class="proc-name">Cleaning</div></div>
+  <div class="proc-card"><span class="proc-num">12</span><span class="proc-icon">🔩</span><div class="proc-name">Part Tank</div></div>
+  <div class="proc-card"><span class="proc-num">13</span><span class="proc-icon">🛠️</span><div class="proc-name">Part Reinstallation</div></div>
+  <div class="proc-card"><span class="proc-num">14</span><span class="proc-icon">⚙️</span><div class="proc-name">Kemrex</div></div>
+</div>
+
+<div class="sec">D. ประวัติการแก้ไขเอกสาร <span>Revision History</span></div>
+<table class="tbl">
+  <tr><th>Rev</th><th>วันที่</th><th>รายการเปลี่ยนแปลง</th><th>ผู้แก้ไข</th></tr>
+  <tr><td>1.0</td><td>29/04/2568</td><td>จัดทำครั้งแรก</td><td>เบียร์</td></tr>
+  <tr><td>2.0</td><td>29/04/2568</td><td>เพิ่ม Process List ครบ 14 รายการ, เพิ่มกรณีพิเศษ, Do&Don't, Flow ภาพรวม, Mockup UI</td><td>เบียร์</td></tr>
+</table>
+
+<div style="height:40px;"></div>
+</div>
+</div>
+</body>
+</html>

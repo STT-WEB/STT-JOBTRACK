@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ImgBB Test</title>
+<style>
+body{font-family:sans-serif;padding:20px;background:#111;color:#fff;}
+button{padding:12px 24px;background:#00e187;color:#000;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;width:100%;margin:8px 0;}
+#result{margin-top:16px;padding:12px;background:#1e2330;border-radius:8px;font-size:12px;word-break:break-all;line-height:1.6;}
+img{max-width:100%;margin-top:12px;border-radius:8px;}
+</style>
+</head>
+<body>
+<h2>🧪 ทดสอบ ImgBB Upload</h2>
+
+<button onclick="testUpload()">📷 ทดสอบ Upload รูปทดสอบ</button>
+<button onclick="document.getElementById('cam').click()">📸 ถ่ายรูปแล้ว Upload</button>
+<input type="file" id="cam" capture="environment" style="display:none" onchange="uploadReal(event)">
+
+<div id="result">กด ปุ่มด้านบนเพื่อทดสอบ...</div>
+
+<script>
+const API_KEY = '8e405c97165321f3c68eafb9d3d9bd8e';
+
+async function testUpload() {
+  document.getElementById('result').textContent = '⏳ กำลัง Upload รูปทดสอบ...';
+  try {
+    // รูปทดสอบ 1x1 pixel
+    var base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    var fd = new FormData();
+    fd.append('key', API_KEY);
+    fd.append('image', base64);
+    fd.append('name', 'test_' + Date.now());
+
+    var res  = await fetch('https://api.imgbb.com/1/upload', { method:'POST', body:fd });
+    var json = await res.json();
+    document.getElementById('result').innerHTML = '✅ ผล:<br>' + JSON.stringify(json, null, 2);
+    if(json.success) {
+      document.getElementById('result').innerHTML += '<br><img src="'+json.data.url+'">';
+    }
+  } catch(e) {
+    document.getElementById('result').textContent = '❌ Error: ' + e.message;
+  }
+}
+
+async function uploadReal(event) {
+  var file = event.target.files[0];
+  if(!file) return;
+  event.target.value = ''; // reset input
+
+  document.getElementById('result').textContent = '⏳ กำลัง Compress รูป...';
+
+  try {
+    // ใช้ createObjectURL แทน FileReader — เร็วกว่ามาก
+    var objectUrl = URL.createObjectURL(file);
+    var img = new Image();
+
+    img.onload = async function(){
+      URL.revokeObjectURL(objectUrl);
+
+      // Resize เล็กลงก่อน — MAX 600px
+      var canvas = document.createElement('canvas');
+      var MAX = 600;
+      var w = img.width, h = img.height;
+      if(w > MAX){ h = Math.round(h*MAX/w); w = MAX; }
+      if(h > MAX){ w = Math.round(w*MAX/h); h = MAX; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+      document.getElementById('result').textContent = '⏳ กำลัง Upload (' + w + 'x' + h + ')...';
+
+      // Export JPEG ใหม่ — EXIF หายหมด
+      var cleanBase64 = canvas.toDataURL('image/jpeg', 0.75).split(',')[1];
+
+      var fd = new FormData();
+      fd.append('key', API_KEY);
+      fd.append('image', cleanBase64);
+      fd.append('name', 'photo_' + Date.now());
+
+      var res  = await fetch('https://api.imgbb.com/1/upload', { method:'POST', body:fd });
+      var json = await res.json();
+
+      if(json.success){
+        document.getElementById('result').innerHTML =
+          '✅ Upload สำเร็จ! (' + w + 'x' + h + ')<br>' +
+          '<a href="'+json.data.url+'" target="_blank" style="color:#00e187">เปิดรูป</a>' +
+          '<br><img src="'+json.data.url+'" style="max-width:100%;margin-top:8px;border-radius:8px;">';
+      } else {
+        document.getElementById('result').textContent = '❌ ' + JSON.stringify(json);
+      }
+    };
+
+    img.onerror = function(){
+      document.getElementById('result').textContent = '❌ โหลดรูปไม่ได้';
+    };
+
+    img.src = objectUrl;
+
+  } catch(e) {
+    document.getElementById('result').textContent = '❌ Error: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>

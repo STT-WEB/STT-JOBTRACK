@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JOBTRACK · กติกาเวลาเข้า-ออกงาน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root{
+    --red:#CC0000; --green:#1B7A3D; --green-bg:#E8F5E9;
+    --amber:#9A6A00; --amber-bg:#FFF3CD; --accent:#0055CC; --accent-bg:#EAF1FC;
+    --ink:#1A1A1A; --muted:#555; --line:#DDD;
+  }
+  html,body{ font-family:'Sarabun','Leelawadee UI','Tahoma',sans-serif; color:var(--ink); background:#fff; }
+  @page { size:A4 portrait; margin:10mm; }
+  body{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .page{ width:190mm; margin:0 auto; padding:6mm 0; }
+  .head{ background:var(--red); color:#fff; border-radius:10px; padding:14px 18px; text-align:center; margin-bottom:14px; }
+  .head h1{ font-size:24px; font-weight:700; }
+  .head p{ font-size:14px; opacity:.95; margin-top:2px; }
+  h2{ font-size:16px; font-weight:700; margin:14px 0 7px; padding-left:8px; border-left:5px solid var(--red); }
+  h2.g{ border-color:var(--green); } h2.r{ border-color:var(--red); } h2.a{ border-color:var(--accent); }
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  th{ background:#F3F3F3; text-align:left; padding:8px 10px; font-weight:700; color:var(--muted); }
+  td{ padding:8px 10px; border-top:1px solid var(--line); }
+  .mono{ font-family:'Sarabun',monospace; letter-spacing:.5px; }
+  .snapG{ background:var(--green-bg); } .snapG b{ color:var(--green); }
+  .snapA{ background:var(--amber-bg); } .snapA b{ color:var(--amber); }
+  .ex td:nth-child(3){ color:var(--green); font-weight:700; }
+  .keys{ background:var(--accent-bg); border:1px solid #CFE0FB; border-radius:10px; padding:12px 16px; margin-top:14px; }
+  .keys h3{ color:var(--accent); font-size:15px; margin-bottom:6px; }
+  .keys li{ margin:4px 0 4px 18px; font-size:14px; line-height:1.6; }
+  .foot{ text-align:center; color:var(--muted); font-size:11px; margin-top:14px; }
+  .tag{ display:inline-block; padding:1px 7px; border-radius:6px; font-size:12px; font-weight:700; }
+  .tOT{ background:var(--amber-bg); color:var(--amber); } .tN{ background:var(--green-bg); color:var(--green); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="head">
+    <h1>⏱️ กติกาเวลาเข้า–ออกงาน JOBTRACK</h1>
+    <p>เมื่อสแกน QR ระบบจะ “ปัดเวลา” ให้อัตโนมัติตามตารางนี้</p>
+  </div>
+
+  <h2 class="a">⭐ ตัวอย่างจริง</h2>
+  <table class="ex">
+    <thead><tr><th>กรณี</th><th>สแกนจริง</th><th>ระบบนับเป็น</th><th>ได้ชั่วโมง</th></tr></thead>
+    <tbody>
+      <tr><td>มาเช้าปกติ</td><td class="mono">07:56 → 12:03</td><td class="mono">08:00 → 12:00</td><td style="color:var(--ink)!important">ปกติ <b>4:00</b></td></tr>
+      <tr><td>OT เช้า</td><td class="mono">07:00 → 12:00</td><td class="mono">07:00 → 12:00</td><td style="color:var(--ink)!important">ปกติ 4 + <span class="tag tOT">OT 1</span></td></tr>
+      <tr><td>เลิกก่อน 17:30</td><td class="mono">13:10 → 17:20</td><td class="mono">13:00 → 17:00</td><td style="color:var(--ink)!important">ปกติ <b>4:00</b> · ไม่มี OT</td></tr>
+      <tr><td>ทำ OT เย็น</td><td class="mono">13:00 → 19:00</td><td class="mono">13:00 → 19:00</td><td style="color:var(--ink)!important">ปกติ 4 + <span class="tag tOT">OT 2</span></td></tr>
+      <tr><td>OT ผ่าเที่ยง</td><td class="mono">12:00 → 13:00</td><td class="mono">12:00 → 13:00</td><td style="color:var(--ink)!important"><span class="tag tOT">OT 1</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="g">🟢 เวลาเข้างาน</h2>
+  <table>
+    <thead><tr><th style="width:40%">สแกนเข้าตอน</th><th>ระบบนับเป็น</th></tr></thead>
+    <tbody>
+      <tr><td>ก่อน / ถึง 07:00</td><td>เวลาจริง — นับ OT เช้า</td></tr>
+      <tr class="snapG"><td>07:01 – 08:15</td><td><b>→ 08:00</b> (มาเช้า/ตรงเวลา)</td></tr>
+      <tr><td>หลัง 08:15</td><td>เวลาจริง (มาสาย)</td></tr>
+      <tr class="snapA"><td>11:55 – 12:05</td><td><b>→ 12:00</b> (OT ผ่าเที่ยง)</td></tr>
+      <tr class="snapG"><td>12:50 – 13:15</td><td><b>→ 13:00</b> (เข้าบ่าย)</td></tr>
+      <tr><td>หลัง 13:15</td><td>เวลาจริง (เข้าบ่ายสาย)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="r">🔴 เวลาออกงาน</h2>
+  <table>
+    <thead><tr><th style="width:40%">สแกนออกตอน</th><th>ระบบนับเป็น</th></tr></thead>
+    <tbody>
+      <tr><td>ก่อน / ถึง 12:00</td><td>เวลาจริง</td></tr>
+      <tr class="snapG"><td>12:01 – 12:54</td><td><b>→ 12:00</b> (จบรอบเช้า)</td></tr>
+      <tr class="snapA"><td>12:55 – 13:05</td><td><b>→ 13:00</b> (OT ผ่าเที่ยง)</td></tr>
+      <tr><td>13:06 – 16:54</td><td>เวลาจริง</td></tr>
+      <tr class="snapG"><td>16:55 – 17:29</td><td><b>→ 17:00</b> (เลิกปกติ · ยังไม่มี OT)</td></tr>
+      <tr class="snapA"><td>17:30 เป็นต้นไป</td><td><b>เวลาจริง</b> · นับ OT ตั้งแต่ 17:00</td></tr>
+    </tbody>
+  </table>
+
+  <div class="keys">
+    <h3>📌 จำ 3 ข้อ</h3>
+    <ol>
+      <li><b>มาเช้าไม่ใช่ OT</b> — เข้าก่อน 8 โมงระบบนับเริ่ม 8:00 (OT เช้าจริงต้องเข้าประมาณ 7:00)</li>
+      <li><b>OT เย็นต้องทำเลย 17:30</b> ถึงจะเริ่มนับ — แต่ถ้าเลยแล้ว ระบบนับ OT ให้ตั้งแต่ 17:00</li>
+      <li><b>ต้องกดออกงาน + ถ่ายรูปปิดงานทุกครั้ง</b> ไม่งั้นงานจะค้างในระบบ</li>
+    </ol>
+  </div>
+
+  <div class="foot">Sutee Tankers · ระบบ JOBTRACK — ปริ้นติดบอร์ด | อัปเดต 12 ก.ค. 2569</div>
+
+</div>
+</body>
+</html>

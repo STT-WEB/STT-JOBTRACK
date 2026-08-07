@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>STT-JOBTRACK คู่มือพนักงาน</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sarabun',sans-serif;background:#fff;color:#1a1a1a;}
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
+.page{max-width:800px;margin:0 auto;padding:0;}
+.print-btn{position:fixed;top:12px;right:12px;background:#CC0000;color:#fff;border:none;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;z-index:100;}
+@media print{.print-btn{display:none;}}
+
+/* HEADER */
+.header{background:#CC0000;padding:24px 28px;display:flex;align-items:center;gap:16px;}
+.header-logo{font-size:28px;font-weight:800;color:#fff;letter-spacing:1px;}
+.header-sub{font-size:13px;color:rgba(255,255,255,0.8);}
+
+/* SECTION */
+.section{padding:24px 28px;border-bottom:3px solid #f0f0f0;}
+.section-title{font-size:22px;font-weight:800;color:#1a1a1a;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.section-title .badge{background:#CC0000;color:#fff;font-size:13px;padding:3px 10px;border-radius:20px;font-weight:700;}
+
+/* STEP CARDS */
+.steps{display:flex;flex-direction:column;gap:12px;}
+.step{display:flex;gap:14px;align-items:flex-start;}
+.step-num{min-width:44px;height:44px;background:#1a1a1a;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#CC0000;flex-shrink:0;}
+.step-content{flex:1;padding-top:8px;}
+.step-title{font-size:16px;font-weight:700;color:#1a1a1a;line-height:1.4;}
+.step-note{font-size:12px;color:#D97706;margin-top:4px;}
+.step-warn{font-size:12px;color:#CC0000;margin-top:4px;font-weight:600;}
+.step-code{background:#1a1a1a;border-radius:6px;padding:8px 12px;margin-top:6px;font-size:12px;color:#00e187;font-family:monospace;}
+
+/* BIG ICON STEPS */
+.icon-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.icon-step{background:#f9fafb;border:2px solid #e0e0e0;border-radius:12px;padding:16px;text-align:center;}
+.icon-step .num{font-size:11px;font-weight:700;color:#CC0000;margin-bottom:4px;}
+.icon-step .icon{font-size:36px;margin-bottom:8px;}
+.icon-step .title{font-size:13px;font-weight:700;color:#1a1a1a;line-height:1.3;}
+.icon-step .desc{font-size:11px;color:#666;margin-top:4px;}
+
+/* DO DONT */
+.do-dont{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
+.do-box{background:#E8F5E9;border-radius:10px;padding:14px;}
+.dont-box{background:#FFF3F3;border-radius:10px;padding:14px;}
+.box-title{font-size:15px;font-weight:800;margin-bottom:10px;}
+.box-item{font-size:13px;margin-bottom:6px;line-height:1.4;}
+
+/* WARN BOX */
+.warn-box{background:#FFF3F3;border-left:5px solid #CC0000;padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0;font-size:13px;color:#7C0000;font-weight:600;}
+.info-box{background:#E8F5E9;border-left:5px solid #00872A;padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0;font-size:13px;color:#1B5E20;font-weight:600;}
+
+/* FOOTER */
+.footer{background:#1a1a1a;padding:20px 28px;text-align:center;}
+.footer-text{color:#888;font-size:12px;}
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ พิมพ์</button>
+
+<div class="page">
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-logo">STT-JOBTRACK</div>
+    <div class="header-sub">คู่มือการใช้งานสำหรับพนักงานหน้างาน</div>
+  </div>
+  <div style="margin-left:auto;font-size:40px;">👷</div>
+</div>
+
+<!-- ก่อนเริ่มใช้งาน -->
+<div class="section">
+  <div class="section-title">
+    สิ่งที่ต้องมีก่อนใช้งาน
+    <span class="badge">สำคัญมาก</span>
+  </div>
+  <div class="icon-steps">
+    <div class="icon-step">
+      <div class="num">ต้องมี</div>
+      <div class="icon">📱</div>
+      <div class="title">มือถือส่วนตัว</div>
+      <div class="desc">Android หรือ iOS</div>
+    </div>
+    <div class="icon-step">
+      <div class="num">ต้องมี</div>
+      <div class="icon">💬</div>
+      <div class="title">บัญชี LINE</div>
+      <div class="desc">ส่วนตัวของตัวเอง</div>
+    </div>
+    <div class="icon-step">
+      <div class="num">ต้องมี</div>
+      <div class="icon">🌐</div>
+      <div class="title">อินเตอร์เน็ต</div>
+      <div class="desc">WiFi หรือ Data</div>
+    </div>
+    <div class="icon-step">
+      <div class="num">ต้องใช้</div>
+      <div class="icon">🔵</div>
+      <div class="title">Chrome หรือ Safari</div>
+      <div class="desc">ห้ามเปิดจาก LINE!</div>
+    </div>
+    <div class="icon-step">
+      <div class="num">ต้องมี</div>
+      <div class="icon">🪪</div>
+      <div class="title">รหัสพนักงาน</div>
+      <div class="desc">ถาม HR ถ้าไม่มี</div>
+    </div>
+    <div class="icon-step" style="border-color:#CC0000;background:#FFF3F3;">
+      <div class="num" style="color:#CC0000;">ห้าม!</div>
+      <div class="icon">🚫</div>
+      <div class="title" style="color:#CC0000;">LINE Browser</div>
+      <div class="desc" style="color:#CC0000;">กล้องใช้ไม่ได้</div>
+    </div>
+  </div>
+</div>
+
+<!-- ลงทะเบียนครั้งแรก -->
+<div class="section">
+  <div class="section-title">
+    ขั้นตอนที่ 1 — ลงทะเบียนครั้งแรก
+    <span class="badge">ทำครั้งเดียว</span>
+  </div>
+  <div class="info-box">✅ ทำครั้งแรกครั้งเดียวตลอดไป ไม่ต้องทำซ้ำ</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <div class="step-title">รับ QR Register จาก HR หรือ Admin</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <div class="step-title">เปิดกล้องมือถือ → สแกน QR</div>
+        <div class="step-warn">❌ ถ้าเปิดจาก LINE → กด ⋮ 3 จุด → เปิดใน Chrome</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <div class="step-title">กด "เข้าสู่ระบบด้วย LINE" → Login LINE ของตัวเอง</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">กรอกรหัสพนักงาน (ตัวเลข) → กด ยืนยัน</div>
+        <div class="step-note">💡 รหัสดูจากสลิปเงินเดือน หรือถาม HR</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <div class="step-title">ตรวจสอบชื่อและแผนกที่ขึ้นมา → หน้า "ลงทะเบียนสำเร็จ" ✅</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <div class="step-title">เพิ่มไว้บน Home Screen มือถือ</div>
+        <div class="step-code">Chrome: ⋮ → เพิ่มในหน้าจอหลัก
+Safari: แชร์ → เพิ่มในหน้าจอโฮม</div>
+        <div class="step-note">💡 ครั้งต่อไปกดจาก Icon ที่หน้าจอได้เลย</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Check In -->
+<div class="section">
+  <div class="section-title">
+    ขั้นตอนที่ 2 — Check In เข้างาน
+    <span class="badge">ทำทุกครั้งก่อนเริ่มงาน</span>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <div class="step-title">🔍 เดินไปที่แท็งค์/หน้างาน → เปิดกล้องมือถือ → สแกน QR Code ที่ติดอยู่</div>
+        <div class="step-note">💡 QR แต่ละใบผูกกับงานนั้นโดยเฉพาะ</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <div class="step-title">👀 ตรวจสอบชื่อตัวเองและ Job ที่แสดงบนหน้าจอ</div>
+        <div class="step-warn">❌ ถ้าชื่อหรือ Job ผิด → ปิดแล้วสแกน QR ใหม่</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <div class="step-title">▶️ กดปุ่ม "เข้างาน" สีเขียว</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">🔧 เลือก Process ที่กำลังทำ (แตะที่ไอคอน)</div>
+        <div class="step-note">💡 เลือกให้ตรงกับงานจริงที่ทำ</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:10px;">
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🔨</span><span style="font-size:12px;font-weight:600;">01 Fabrication</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🔧</span><span style="font-size:12px;font-weight:600;">02 Piping Installation</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">⚡</span><span style="font-size:12px;font-weight:600;">03 Electrical System Installation</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">💨</span><span style="font-size:12px;font-weight:600;">04 Pneumatic System Installation</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🛢️</span><span style="font-size:12px;font-weight:600;">05 Hydraulic System Installation</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🎨</span><span style="font-size:12px;font-weight:600;">06 Painting</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🏷️</span><span style="font-size:12px;font-weight:600;">07 Sticker / Labeling</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">✅</span><span style="font-size:12px;font-weight:600;">08 QC / Quality Control</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🔄</span><span style="font-size:12px;font-weight:600;">09 Reinstallation</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🚗</span><span style="font-size:12px;font-weight:600;">10 Suspension Installation</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🧹</span><span style="font-size:12px;font-weight:600;">11 Cleaning</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🔩</span><span style="font-size:12px;font-weight:600;">12 Part Tank</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🛠️</span><span style="font-size:12px;font-weight:600;">13 Part Reinstallation</span></div>
+          <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">⚙️</span><span style="font-size:12px;font-weight:600;">14 Kemrex</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <div class="step-title">💾 กด บันทึก → รอหน้า "เข้างานสำเร็จ" ✅</div>
+      </div>
+    </div>
+  </div>
+  <div class="warn-box">🚫 ถ้าขึ้น "มีงานค้างอยู่" → ต้องไป Check Out งานเดิมก่อน!</div>
+</div>
+
+<!-- Check Out -->
+<div class="section">
+  <div class="section-title">
+    ขั้นตอนที่ 3 — Check Out ออกงาน
+    <span class="badge">ทำทุกครั้งที่เสร็จงาน</span>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <div class="step-title">🔍 สแกน QR ของงานนั้น → กดปุ่ม "ออกงาน" สีแดง ■</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <div class="step-title">📷 กด "ถ่ายรูป" → ถ่ายรูปงานที่ทำให้เห็นชัด</div>
+        <div class="step-note">💡 ถ่ายอย่างน้อย 1 รูป สูงสุด 3 รูป</div>
+        <div class="step-warn">❌ ห้ามใช้รูปจาก Gallery ต้องถ่ายสดเท่านั้น!</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <div class="step-title">✔️ กด ตกลง → ตรวจสอบรูป → กด บันทึก</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">🎉 หน้า "ออกงานสำเร็จ" ขึ้นพร้อมชั่วโมงรวม ✅</div>
+        <div class="step-note">💡 กด "✅ เสร็จสิ้น" → ปิดได้เลย</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Do Dont -->
+<div class="section">
+  <div class="section-title">สิ่งที่ต้องทำ และห้ามทำ</div>
+  <div class="do-dont">
+    <div class="do-box">
+      <div class="box-title" style="color:#00872A;">✅ ต้องทำ</div>
+      <div class="box-item" style="color:#1B5E20;">✅ Check In ก่อนเริ่มงานทุกครั้ง</div>
+      <div class="box-item" style="color:#1B5E20;">✅ Check Out ทันทีที่เสร็จงาน</div>
+      <div class="box-item" style="color:#1B5E20;">✅ ถ่ายรูปงานให้ชัดทุกครั้ง</div>
+      <div class="box-item" style="color:#1B5E20;">✅ ใช้ Chrome หรือ Safari</div>
+      <div class="box-item" style="color:#1B5E20;">✅ แจ้ง Admin ถ้ามีปัญหา</div>
+    </div>
+    <div class="dont-box">
+      <div class="box-title" style="color:#CC0000;">❌ ห้ามทำ</div>
+      <div class="box-item" style="color:#7C0000;">❌ เปิดจาก LINE Browser</div>
+      <div class="box-item" style="color:#7C0000;">❌ ใช้รูปจาก Gallery</div>
+      <div class="box-item" style="color:#7C0000;">❌ Check In แทนกัน</div>
+      <div class="box-item" style="color:#7C0000;">❌ ลืม Check Out</div>
+      <div class="box-item" style="color:#7C0000;">❌ ถ่ายรูปอะไรก็ได้ที่ไม่ใช่งาน</div>
+    </div>
+  </div>
+</div>
+
+<!-- มีปัญหา -->
+<div class="section">
+  <div class="section-title">ถ้ามีปัญหา → แจ้งใคร?</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:10px;padding:14px;">
+      <div style="font-size:14px;font-weight:700;color:#CC0000;margin-bottom:8px;">🔴 แจ้ง Admin ทันที</div>
+      <div style="font-size:12px;color:#444;line-height:1.8;">• ลืม Check Out<br>• Check In ผิด Job<br>• เปลี่ยนมือถือ<br>• รหัสพนักงานไม่ถูกต้อง</div>
+    </div>
+    <div style="background:#f9fafb;border:1px solid #e0e0e0;border-radius:10px;padding:14px;">
+      <div style="font-size:14px;font-weight:700;color:#D97706;margin-bottom:8px;">🟡 แก้ได้เอง</div>
+      <div style="font-size:12px;color:#444;line-height:1.8;">• เปิดจาก LINE → กด Chrome<br>• กล้องไม่ทำงาน → เปิด Chrome<br>• เน็ตไม่มี → รอแล้วลองใหม่</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-text">STT-JOBTRACK | Sutee Tankers and Special Trucks Co.,Ltd. | พ.ค. 2568</div>
+</div>
+
+</div>
+</body>
+</html>

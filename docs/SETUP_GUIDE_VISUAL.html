@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JOBTRACK · คู่มือติดตั้ง</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f8f7f4;--white:#ffffff;--dark:#111318;--dark2:#2a2d36;
+  --border:#e2e0d9;--border2:#ccc9c0;
+  --text:#1a1c22;--text2:#5a5d68;--text3:#9095a0;
+  --green:#00a86b;--green-bg:#e8f8f2;--green-bd:#b3e6d0;
+  --blue:#2563eb;--blue-bg:#eff6ff;--blue-bd:#bfdbfe;
+  --amber:#d97706;--amber-bg:#fffbeb;--amber-bd:#fcd34d;
+  --red:#dc2626;--red-bg:#fef2f2;
+  --step-size:32px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;font-size:15px;line-height:1.7;padding:0;}
+
+/* HEADER */
+.header{background:var(--dark);color:#fff;padding:28px 32px 24px;border-bottom:3px solid #00e187;}
+.header-inner{max-width:820px;margin:0 auto;}
+.header-badge{font-size:11px;letter-spacing:0.12em;color:#00e187;font-weight:600;text-transform:uppercase;margin-bottom:8px;}
+.header h1{font-size:26px;font-weight:700;line-height:1.2;margin-bottom:6px;}
+.header p{font-size:14px;color:#8b92a5;}
+.header-time{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:12px;color:#ccc;margin-top:12px;}
+.dot-live{width:6px;height:6px;border-radius:50%;background:#00e187;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* PROGRESS BAR */
+.progress-wrap{background:var(--white);border-bottom:1px solid var(--border);padding:16px 32px;position:sticky;top:0;z-index:50;}
+.progress-inner{max-width:820px;margin:0 auto;}
+.progress-steps{display:flex;gap:0;align-items:center;}
+.ps{display:flex;align-items:center;gap:8px;flex:1;cursor:pointer;padding:4px 0;}
+.ps-num{width:28px;height:28px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text3);flex-shrink:0;transition:all 0.2s;}
+.ps-label{font-size:12px;color:var(--text3);font-weight:500;white-space:nowrap;}
+.ps-line{flex:1;height:2px;background:var(--border);margin:0 4px;}
+.ps.active .ps-num{background:var(--blue);border-color:var(--blue);color:#fff;}
+.ps.active .ps-label{color:var(--blue);font-weight:600;}
+.ps.done .ps-num{background:var(--green);border-color:var(--green);color:#fff;}
+.ps.done .ps-label{color:var(--green);}
+.ps.done .ps-line{background:var(--green);}
+
+/* CONTENT */
+.content{max-width:820px;margin:0 auto;padding:32px;}
+
+/* SECTION */
+.section{display:none;}
+.section.active{display:block;}
+
+/* STEP CARD */
+.step-card{background:var(--white);border:1px solid var(--border);border-radius:16px;margin-bottom:16px;overflow:hidden;}
+.step-head{display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid var(--border);}
+.step-num{width:var(--step-size);height:var(--step-size);border-radius:50%;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+.step-title{font-size:16px;font-weight:700;color:var(--text);}
+.step-sub{font-size:12px;color:var(--text3);margin-top:2px;}
+.step-body{padding:20px;}
+
+/* ACTION ROW */
+.action{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg);}
+.action:last-child{border-bottom:none;}
+.action-num{width:22px;height:22px;border-radius:50%;background:var(--blue-bg);border:1px solid var(--blue-bd);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--blue);flex-shrink:0;margin-top:2px;}
+.action-txt{font-size:14px;color:var(--text2);line-height:1.6;}
+.action-txt b{color:var(--text);font-weight:600;}
+
+/* URL BOX */
+.url-box{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:11px 14px;margin:10px 0;display:flex;align-items:center;gap:10px;}
+.url-txt{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1e40af;flex:1;word-break:break-all;}
+.copy-btn{font-size:11px;padding:5px 12px;border:1px solid #93c5fd;border-radius:8px;background:#eff6ff;color:#2563eb;cursor:pointer;white-space:nowrap;font-family:'IBM Plex Sans Thai',sans-serif;font-weight:600;flex-shrink:0;transition:all 0.15s;}
+.copy-btn:hover{background:#dbeafe;}
+.copy-btn.copied{background:#dcfce7;border-color:#86efac;color:#166534;}
+
+/* SCREEN MOCK */
+.screen-mock{background:#1e2330;border-radius:12px;padding:16px;margin:14px 0;border:1px solid #2d3344;}
+.mock-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.mock-dot{width:10px;height:10px;border-radius:50%;}
+.mock-url{flex:1;background:rgba(255,255,255,0.06);border-radius:6px;padding:5px 10px;font-size:11px;font-family:'IBM Plex Mono',monospace;color:#8b92a5;}
+.mock-content{font-size:13px;font-family:'IBM Plex Mono',monospace;color:#a0aec0;line-height:1.8;}
+.mock-content .hl{color:#00e187;}
+.mock-content .hl2{color:#4d9cff;}
+.mock-content .hl3{color:#ffb830;}
+.mock-content .comment{color:#555d70;}
+
+/* MENU MOCK */
+.menu-mock{background:#2d3244;border-radius:8px;padding:2px 0;margin:10px 0;display:inline-flex;flex-direction:column;min-width:200px;border:1px solid rgba(255,255,255,0.1);}
+.menu-item{padding:8px 16px;font-size:13px;color:#e2e8f0;cursor:pointer;display:flex;align-items:center;gap:8px;}
+.menu-item:hover,.menu-item.sel{background:rgba(77,156,255,0.15);color:#4d9cff;}
+.menu-item .mi-icon{font-size:14px;}
+.menu-sep{height:1px;background:rgba(255,255,255,0.08);margin:3px 0;}
+
+/* SHEET MOCK */
+.sheet-mock{border:1px solid #d1d5db;border-radius:8px;overflow:hidden;margin:14px 0;font-size:12px;}
+.sheet-header{background:#1a73e8;color:#fff;display:grid;padding:6px 0;}
+.sheet-row{display:grid;border-bottom:1px solid #e5e7eb;}
+.sheet-row:last-child{border-bottom:none;}
+.sheet-row:nth-child(even){background:#f8fafc;}
+.sheet-cell{padding:6px 10px;border-right:1px solid #e5e7eb;font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap;overflow:hidden;}
+.sheet-cell:last-child{border-right:none;}
+.sheet-cell.hd{background:#0d5bba;color:#fff;font-weight:600;font-family:'IBM Plex Sans Thai',sans-serif;}
+.sheet-cell.green{background:#e8f5e9;color:#1b5e20;}
+.sheet-cell.red-c{background:#ffebee;color:#7f0000;}
+
+/* ALERT BOXES */
+.alert{border-radius:10px;padding:12px 16px;margin:14px 0;display:flex;gap:10px;align-items:flex-start;}
+.alert-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.alert-txt{font-size:13px;line-height:1.6;}
+.alert-txt b{font-weight:600;}
+.alert.info{background:var(--blue-bg);border:1px solid var(--blue-bd);}
+.alert.info .alert-txt{color:#1e40af;}
+.alert.warn{background:var(--amber-bg);border:1px solid var(--amber-bd);}
+.alert.warn .alert-txt{color:#92400e;}
+.alert.success{background:var(--green-bg);border:1px solid var(--green-bd);}
+.alert.success .alert-txt{color:#064e3b;}
+
+/* INLINE CODE */
+code{background:#f1f3f5;border:1px solid #dde1e7;border-radius:4px;padding:1px 6px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c7254e;}
+
+/* NAV BUTTONS */
+.nav-row{display:flex;justify-content:space-between;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid var(--border);}
+.btn-prev{padding:12px 24px;border:1px solid var(--border2);border-radius:10px;background:var(--white);color:var(--text2);cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;font-size:14px;font-weight:500;transition:all 0.15s;}
+.btn-prev:hover{background:var(--bg);border-color:var(--text3);}
+.btn-next{padding:12px 28px;border:none;border-radius:10px;background:var(--dark);color:#fff;cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;font-size:14px;font-weight:700;transition:all 0.15s;display:flex;align-items:center;gap:8px;}
+.btn-next:hover{background:var(--dark2);}
+.btn-next:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* SECTION TITLE */
+.section-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.section-desc{font-size:14px;color:var(--text2);margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);}
+.big-num{font-size:48px;font-weight:700;color:var(--border2);line-height:1;margin-bottom:4px;}
+
+/* PHASE BADGE */
+.phase-badge{display:inline-flex;align-items:center;gap:6px;background:var(--blue-bg);border:1px solid var(--blue-bd);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--blue);font-weight:600;margin-bottom:16px;}
+
+/* DEPLOY SETTINGS */
+.deploy-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px;}
+.deploy-table td{padding:9px 12px;border:1px solid var(--border);}
+.deploy-table tr:first-child td{background:#f1f5f9;font-weight:600;color:var(--text2);}
+.deploy-table .key{color:var(--text2);width:40%;}
+.deploy-table .val{font-weight:600;color:var(--text);}
+.deploy-table .val .chip{display:inline-block;background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green);border-radius:6px;padding:1px 8px;font-size:11px;font-weight:700;}
+
+/* DONE SECTION */
+.done-circle{width:80px;height:80px;border-radius:50%;background:var(--green-bg);border:3px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:36px;}
+.done-title{font-size:26px;font-weight:700;text-align:center;margin-bottom:8px;}
+.done-sub{font-size:15px;color:var(--text2);text-align:center;margin-bottom:32px;}
+.done-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+.done-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.done-card-icon{font-size:24px;margin-bottom:8px;}
+.done-card-title{font-size:13px;font-weight:700;margin-bottom:4px;}
+.done-card-sub{font-size:12px;color:var(--text3);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-badge">JOBTRACK · คู่มือติดตั้ง</div>
+    <h1>วิธีเชื่อม Web App กับ Google Sheets</h1>
+    <p>ทำตามขั้นตอน 1–3 ใช้เวลาประมาณ 10–15 นาที ไม่ต้องมีพื้นฐานโปรแกรม</p>
+    <div class="header-time"><span class="dot-live"></span> ทำได้เลยวันนี้ · ฟรี 100%</div>
+  </div>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <div class="progress-inner">
+    <div class="progress-steps">
+      <div class="ps active" id="ps1" onclick="goTo(1)">
+        <div class="ps-num">1</div>
+        <div class="ps-label">สร้าง Google Sheet</div>
+      </div>
+      <div class="ps-line" id="pl1"></div>
+      <div class="ps" id="ps2" onclick="goTo(2)">
+        <div class="ps-num">2</div>
+        <div class="ps-label">ตั้งค่า Apps Script</div>
+      </div>
+      <div class="ps-line" id="pl2"></div>
+      <div class="ps" id="ps3" onclick="goTo(3)">
+        <div class="ps-num">3</div>
+        <div class="ps-label">Deploy & เชื่อม App</div>
+      </div>
+      <div class="ps-line" id="pl3"></div>
+      <div class="ps" id="ps4" onclick="goTo(4)">
+        <div class="ps-num">4</div>
+        <div class="ps-label">ทดสอบ</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ═══════════════════════════════════════════
+     SECTION 1 — สร้าง Google Sheet
+═══════════════════════════════════════════ -->
+<div class="section active" id="sec1">
+  <div class="big-num">01</div>
+  <div class="section-title">สร้าง Google Sheet</div>
+  <div class="section-desc">Google Sheet จะเป็น Database เก็บข้อมูลพนักงานทุก Check In/Out</div>
+
+  <div class="step-card">
+    <div class="step-head">
+      <div class="step-num">1</div>
+      <div><div class="step-title">เปิด Google Sheets</div><div class="step-sub">ต้อง Login Google Account ของบริษัทหรือตัวเองก่อน</div></div>
+    </div>
+    <div class="step-body">
+      <div class="action">
+        <div class="action-num">1</div>
+        <div class="action-txt">เปิด Browser แล้วพิมพ์ใน Address Bar</div>
+      </div>
+      <div class="url-box">
+        <div class="url-txt">sheets.google.com</div>
+        <button class="copy-btn" onclick="copyUrl(this,'sheets.google.com')">Copy</button>
+      </div>
+      <div class="action">
+        <div class="action-num">2</div>
+        <div class="action-txt">กด <b>Enter</b> → หน้า Google Sheets จะเปิดขึ้น</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head">
+      <div class="step-num">2</div>
+      <div><div class="step-title">สร้าง Spreadsheet ใหม่</div></div>
+    </div>
+    <div class="step-body">
+      <div class="action">
+        <div class="action-num">1</div>
+        <div class="action-txt">กดปุ่ม <b>"+ Blank"</b> หรือ <b>"สร้าง"</b> ที่มุมซ้ายบน</div>
+      </div>
+      <div class="action">
+        <div class="action-num">2</div>
+        <div class="action-txt">Spreadsheet ว่างเปล่าจะเปิดขึ้น → คลิกชื่อ <b>"Untitled spreadsheet"</b> ที่มุมซ้ายบนสุด แล้วแก้เป็น <b>JOBTRACK_Database</b></div>
+      </div>
+      <div class="action">
+        <div class="action-num">3</div>
+        <div class="action-txt">กด <b>Enter</b> เพื่อยืนยันชื่อ</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head">
+      <div class="step-num">3</div>
+      <div><div class="step-title">Copy Sheet ID จาก URL</div><div class="step-sub">นี่คือ "รหัส" ที่ Apps Script จะใช้หา Sheet</div></div>
+    </div>
+    <div class="step-body">
+      <div class="action">
+        <div class="action-num">1</div>
+        <div class="action-txt">มองที่ Address Bar ของ Browser จะเห็น URL แบบนี้</div>
+      </div>
+      <div class="screen-mock">
+        <div class="mock-bar">
+          <div class="mock-dot" style="background:#ff5f56"></div>
+          <div class="mock-dot" style="background:#ffbd2e"></div>
+          <div class="mock-dot" style="background:#27c93f"></div>
+          <div class="mock-url">docs.google.com/spreadsheets/d/<span style="color:#ffb830;font-weight:700">1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms</span>/edit#gid=0</div>
+        </div>
+        <div class="mock-content">
+          <span class="comment">// URL แบ่งเป็น 3 ส่วน:</span><br>
+          docs.google.com/spreadsheets/d/ <span class="hl">← prefix ปกติ</span><br>
+          <span class="hl3">1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms</span> <span class="hl">← Sheet ID (ต้องการส่วนนี้)</span><br>
+          /edit#gid=0 <span class="hl">← suffix ปกติ</span>
+        </div>
+      </div>
+      <div class="action">
+        <div class="action-num">2</div>
+        <div class="action-txt">ลาก <b>เลือก (Highlight)</b> เฉพาะส่วนตรงกลาง — ตัวอักษรยาวๆ ระหว่าง <code>/d/</code> กับ <code>/edit</code></div>
+      </div>
+      <div class="action">
+        <div class="action-num">3</div>
+        <div class="action-txt">กด <b>Ctrl+C</b> (Windows) หรือ <b>Cmd+C</b> (Mac) เพื่อ Copy</div>
+      </div>
+      <div class="action">
+        <div class="action-num">4</div>
+        <div class="action-txt">เปิด Notepad หรือ Notes แล้ว Paste ไว้ก่อน จะได้ใช้ในขั้นตอนถัดไป</div>
+      </div>
+      <div class="alert warn">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-txt"><b>อย่าปิด Tab นี้</b> เดี๋ยวต้องกลับมาเปิด Apps Script จาก Sheet นี้ต่อ</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button class="btn-prev" disabled>← ย้อนกลับ</button>
+    <button class="btn-next" onclick="goTo(2)">ไปขั้นตอนที่ 2 →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SECTION 2 — ตั้งค่า Apps Script
+═══════════════════════════════════════════ -->
+<div class="section" id="sec2">
+  <div class="big-num">02</div>
+  <div class="section-title">ตั้งค่า Google Apps Script</div>
+  <div class="section-desc">Apps Script คือ "Backend" ที่รับข้อมูลจาก Web App แล้วเขียนลง Sheet</div>
+
+  <div class="step-card">
+    <div class="step-head">
+      <div class="step-num">1</div>
+      <div><div class="step-title">เปิด Apps Script จาก Sheet</div></div>
+    </div>
+    <div class="step-body">
+      <div class="action">
+        <div class="action-num">1</div>
+        <div class="action-txt">กลับไปที่ Tab <b>JOBTRACK_Database</b> ที่เปิดค้างไว้</div>
+      </div>
+      <div class="action">
+        <div class="action-num">2</div>
+        <div class="action-txt">คลิก Menu bar ด้านบน → กด <b>"Extensions"</b> (หรือ "ส่วนเสริม" ถ้าเป็นภาษาไทย)</div>
+      </div>
+      <div class="screen-mock">
+        <div class="mock-content" style="padding:4px 0;">
+          <div style="display:inline-flex;flex-direction:column;">
+            <div style="display:flex;gap:16px;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.08);font-size:13px;color:#8b92a5;">
+              <span>File</span><span>Edit</span><span>View</span><span>Insert</span><span>Format</span><span>Data</span><span>Tools</span><span style="color:#4d9cff;font-weight:600;text-decoration:underline;">Extensions ←</span><span>Help</span>
+            </div>
+            <div class="menu-mock" style="margin:8px 0 0 140px;">
+              <div class="menu-item sel"><span class="mi-icon">📝</span> Apps Script</div>
+              <div class="menu-sep"></div>
+              <div class="menu-item"><span class="mi-icon">🔌</span> Add-ons</div>
+              <div class="menu-item"><span class="mi-icon">⚡</span> Macros</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="action">
+        <div class="action-num">3</div>
+        <div class="action-txt">คลิก <b>"Apps Script"</b> → Tab ใหม่จะเปิดขึ้น มีหน้า Editor สีขาว</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head">
+      <div class="step-num">2</div>
+      <div><div class="step-title">วางโค้ดลงใน Editor</div></div>
+    </div>
+    <div class="step-body">
+      <div class="action">
+        <div class="action-num">1</div>
+        <div class="action-txt">ใน Apps Script Editor จะมีโค้ดเริ่มต้นอยู่แล้วแบบนี้</div>
+      </div>
+      <div class="screen-mock">
+        <div class="mock-content">
+          <span class="comment">// เห็นโค้ดแบบนี้อยู่ → ลบทิ้งทั้งหมด</span><br>
+          <span class="hl3">function</span> <span class="hl2">myFunction</span>() {<br>
+          &nbsp;&nbsp;<span class="comment">// ...</span><br>
+          }
+        </div>
+      </div>
+      <div class="action">
+        <div class="action-num">2</div>
+        <div class="action-txt">คลิกใน Editor → กด <b>Ctrl+A</b> (เลือกทั้งหมด) → กด <b>Delete</b> ลบออกให้หมด</div>
+      </div>
+      <div class="action">
+        <div class="action-num">3</div>
+        <div class="action-txt">เปิดไฟล์ <b>jobtrack_apps_script.gs</b> ที่ Candy ส่งให้ → Copy โค้ดทั้งหมด (Ctrl+A แล้ว Ctrl+C)</div>
+      </div>
+      <div class="action">
+        <div class="action-num">4</div>
+        <div class="action-txt">กลับมาที่ Apps Script Editor → Paste ลงไป (Ctrl+V)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head">
+      <div class="step-num">3</div>
+      <div><div class="step-title">ใส่ Sheet ID ที่ Copy ไว้</div></div>
+    </div>
+    <div class="step-body">
+      <div class="action">
+        <div class="action-num">1</div>
+        <div class="action-txt">ใน Editor หาบรรทัดที่เขียนว่า</div>
+      </div>
+      <div class="screen-mock">
+        <div class="mock-content">
+          <span class="comment">// บรรทัดที่ต้องหาและแก้</span><br>
+          <span class="hl3">const</span> SHEET_ID = <span class="hl">'<span style="color:#ff5c5c;">SHEET_ID_HERE</span>'</span>;
+        </div>
+      </div>
+      <div class="action">
+        <div class="action-num">2</div>
+        <div class="action-txt">ลบ <code>SHEET_ID_HERE</code> แล้ว Paste Sheet ID ที่ Copy มาจากขั้นตอนที่ 1 แทน</div>
+      </div>
+      <div class="screen-mock">
+        <div class="mock-content">
+          <span class="comment">// หลังแก้แล้ว จะได้แบบนี้ (Sheet ID ของเบียร์จะต่างออกไป)</span><br>
+          <span class="hl3">const</span> SHEET_ID = <span class="hl">'1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms'</span>;
+        </div>
+      </div>
+      <div class="action">
+        <div class="action-num">3</div>
+        <div class="action-txt">กด <b>Ctrl+S</b> เพื่อ Save</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head">
+      <div class="step-num">4</div>
+      <div><div class="step-title">ทดสอบ + ให้สิทธิ์ครั้งแรก</div></div>
+    </div>
+    <div class="step-body">
+      <div class="action">
+        <div class="action-num">1</div>
+        <div class="action-txt">ที่ Dropdown ข้าง ▶ Run → คลิก เปลี่ยนจาก <code>myFunction</code> เป็น <b>testInsert</b></div>
+      </div>
+      <div class="screen-mock">
+        <div class="mock-content">
+          <div style="display:inline-flex;align-items:center;gap:8px;background:#2a3550;border:1px solid rgba(77,156,255,0.3);border-radius:8px;padding:6px 12px;">
+            <span style="color:#8b92a5;font-size:12px;">function:</span>
+            <span class="hl2" style="font-weight:600;">testInsert</span>
+            <span style="color:#555d70;">▼</span>
+          </div>
+          <span style="margin-left:12px;color:#4d9cff;">▶ Run</span>
+        </div>
+      </div>
+      <div class="action">
+        <div class="action-num">2</div>
+        <div class="action-txt">กดปุ่ม <b>▶ Run</b> → จะมี Popup ขอสิทธิ์ขึ้นมา</div>
+      </div>
+      <div class="alert info">
+        <div class="alert-icon">🔐</div>
+        <div class="alert-txt"><b>Popup "Authorization required":</b> กด "Review permissions" → เลือก Google Account ของเบียร์ → กด "Advanced" → "Go to JOBTRACK (unsafe)" → "Allow" — นี่คือ Script ของเบียร์เอง ปลอดภัยแน่นอน</div>
+      </div>
+      <div class="action">
+        <div class="action-num">3</div>
+        <div class="action-txt">หลัง Allow แล้ว Script จะรันอีกครั้งอัตโนมัติ → กลับไปดู <b>JOBTRACK_Database</b> Sheet จะมี Tab ใหม่ชื่อ <b>Job_Log</b> และมีข้อมูล 1 แถว = สำเร็จ! ✅</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button class="btn-prev" onclick="goTo(1)">← ย้อนกลับ</button>
+    <button class="btn-next" onclick="goTo(3)">ไปขั้นตอนที่ 3 →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SECTION 3 — Deploy & เชื่อม App
+═══════════════════════════════════════════ -->
+<div class="section" id="sec3">
+  <div class="big-num">03</div>
+  <div class="section-title">Deploy และเชื่อม Web App</div>
+  <div class="section-desc">Deploy = เปิดให้ Apps Script รับข้อมูลจาก Web App ได้จริง</div>
+
+  <div class="step-card">
+    <div class="step-head">
+      <div class="step-num">1</div>
+      <div><div class="step-title">Deploy เป็น Web App</div></div>
+    </div>
+    <div class="step-body">
+      <div class="action">
+        <div class="action-num">1</div>
+        <div class="action-txt">ใน Apps Script Editor กดปุ่ม <b>"Deploy"</b> (มุมบนขวา) → เลือก <b>"New deployment"</b></div>
+      </div>
+      <div class="screen-mock">
+        <div class="mock-content">
+          <div style="display:inline-flex;flex-direction:column;gap:0;">
+            <div style="display:flex;justify-content:flex-end;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.08);">
+              <div style="display:inline-flex;align-items:center;gap:0;border:1px solid rgba(77,156,255,0.4);border-radius:8px;overflow:hidden;">
+                <span style="padding:6px 14px;background:rgba(77,156,255,0.15);color:#4d9cff;font-size:12px;font-weight:600;">Deploy</span>
+                <span style="padding:6px 8px;border-left:1px solid rgba(77,156,255,0.4);color:#4d9cff;font-size:12px;">▼</span>
+              </div>
+            </div>
+            <div class="menu-mock" style="margin:0 12px 8px auto;width:180px;">
+              <div class="menu-item sel"><span class="mi-icon">🚀</span> New deployment</div>
+              <div class="menu-item"><span class="mi-icon">📋</span> Manage deployments</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="action">
+        <div class="action-num">2</div>
+        <div class="action-txt">กด icon ⚙️ ข้าง "Select type" → เลือก <b>"Web app"</b></div>
+      </div>
+      <div class="action">
+        <div class="action-num">3</div>
+        <div class="action-txt">ตั้งค่าดังนี้ (สำคัญมาก!)</div>
+      </div>
+      <table class="deploy-table">
+        <tr><td>Field</td><td>ค่าที่ต้องใส่</td></tr>
+        <tr><td class="key">Description</td><td class="val">JOBTRACK v1</td></tr>
+        <tr><td class="key">Execute as</td><td class="val">Me (ชื่อ Google Account ของเบียร์)</td></tr>
+        <tr><td class="key">Who has access</td><td class="val"><span class="chip">Anyone</span> &nbsp;← สำคัญมากที่สุด!</td></tr>
+      </table>
+      <div class="alert warn">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-txt"><b>"Who has access" ต้องเป็น "Anyone"</b> เท่านั้น ถ้าเป็น "Only myself" Web App มือถือพนักงานจะส่งข้อมูลไม่ได้</div>
+      </div>
+      <div class="action">
+        <div class="action-num">4</div>
+        <div class="action-txt">กดปุ่ม <b>"Deploy"</b> → รอสักครู่</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head">
+      <div class="step-num">2</div>
+      <div><div class="step-title">Copy Web App URL</div></div>
+    </div>
+    <div class="step-body">
+      <div class="action">
+        <div class="action-num">1</div>
+        <div class="action-txt">หลัง Deploy สำเร็จ จะมี Popup แสดง <b>Web app URL</b></div>
+      </div>
+      <div class="screen-mock">
+        <div class="mock-content">
+          <span class="comment">// URL ที่จะได้หน้าตาแบบนี้</span><br>
+          <span class="hl">https://script.google.com/macros/s/</span><span class="hl3">AKfycbxXXXXXXXXXXXXXXXXX</span><span class="hl">/exec</span>
+        </div>
+      </div>
+      <div class="action">
+        <div class="action-num">2</div>
+        <div class="action-txt">กดปุ่ม <b>"Copy"</b> ข้าง URL นั้น → Paste ไว้ใน Notepad ก่อน</div>
+      </div>
+      <div class="action">
+        <div class="action-num">3</div>
+        <div class="action-txt">กด <b>"Done"</b> ปิด Popup</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head">
+      <div class="step-num">3</div>
+      <div><div class="step-title">ใส่ URL ใน Web App (job_checkin_app.html)</div></div>
+    </div>
+    <div class="step-body">
+      <div class="action">
+        <div class="action-num">1</div>
+        <div class="action-txt">เปิดไฟล์ <b>job_checkin_app.html</b> ด้วย Notepad หรือ Text Editor (คลิกขวา → Open with → Notepad)</div>
+      </div>
+      <div class="action">
+        <div class="action-num">2</div>
+        <div class="action-txt">กด <b>Ctrl+F</b> ค้นหาคำว่า <code>YOUR_APPS_SCRIPT_URL_HERE</code></div>
+      </div>
+      <div class="screen-mock">
+        <div class="mock-content">
+          <span class="comment">// หาบรรทัดนี้ใน job_checkin_app.html</span><br>
+          <span class="hl3">const</span> APPS_SCRIPT_URL = <span class="hl">'<span style="color:#ff5c5c;">YOUR_APPS_SCRIPT_URL_HERE</span>'</span>;
+        </div>
+      </div>
+      <div class="action">
+        <div class="action-num">3</div>
+        <div class="action-txt">ลบ <code>YOUR_APPS_SCRIPT_URL_HERE</code> แล้วใส่ Web App URL ที่ Copy มาแทน</div>
+      </div>
+      <div class="screen-mock">
+        <div class="mock-content">
+          <span class="comment">// หลังแก้แล้ว จะได้แบบนี้</span><br>
+          <span class="hl3">const</span> APPS_SCRIPT_URL = <span class="hl">'https://script.google.com/macros/s/AKfycb.../exec'</span>;
+        </div>
+      </div>
+      <div class="action">
+        <div class="action-num">4</div>
+        <div class="action-txt">กด <b>Ctrl+S</b> Save ไฟล์</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button class="btn-prev" onclick="goTo(2)">← ย้อนกลับ</button>
+    <button class="btn-next" onclick="goTo(4)">ไปทดสอบ →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SECTION 4 — ทดสอบ
+═══════════════════════════════════════════ -->
+<div class="section" id="sec4">
+  <div class="big-num">04</div>
+  <div class="section-title">ทดสอบระบบ</div>
+  <div class="section-desc">ตรวจสอบว่าข้อมูลลงถึง Google Sheets จริง</div>
+
+  <div class="step-card">
+    <div class="step-head">
+      <div class="step-num">1</div>
+      <div><div class="step-title">เปิด Web App ทดสอบ</div></div>
+    </div>
+    <div class="step-body">
+      <div class="action">
+        <div class="action-num">1</div>
+        <div class="action-txt">ดับเบิลคลิก ไฟล์ <b>job_checkin_app.html</b> → Browser จะเปิดหน้า App ขึ้น</div>
+      </div>
+      <div class="action">
+        <div class="action-num">2</div>
+        <div class="action-txt">ลองทำตาม Flow: เลือก <b>สถานะ</b> → เลือก <b>Process</b> → กด <b>"บันทึก"</b></div>
+      </div>
+      <div class="action">
+        <div class="action-num">3</div>
+        <div class="action-txt">จะเห็น Loading หมุน → แล้วหน้า <b>บันทึกสำเร็จ</b> พร้อม Summary ขึ้น</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head">
+      <div class="step-num">2</div>
+      <div><div class="step-title">ตรวจสอบข้อมูลใน Google Sheet</div></div>
+    </div>
+    <div class="step-body">
+      <div class="action">
+        <div class="action-num">1</div>
+        <div class="action-txt">กลับไปที่ <b>JOBTRACK_Database</b> → คลิก Tab <b>"Job_Log"</b> ด้านล่าง</div>
+      </div>
+      <div class="action">
+        <div class="action-num">2</div>
+        <div class="action-txt">ข้อมูลที่พนักงานกรอกจะขึ้นมาเป็นแถวใหม่ เช่นนี้</div>
+      </div>
+
+      <!-- SHEET PREVIEW -->
+      <div class="sheet-mock">
+        <div style="display:grid;grid-template-columns:130px 80px 55px 70px 130px 80px 100px 80px 100px;">
+          <div class="sheet-cell hd">Timestamp</div>
+          <div class="sheet-cell hd">วันที่</div>
+          <div class="sheet-cell hd">เวลา</div>
+          <div class="sheet-cell hd">Job ID</div>
+          <div class="sheet-cell hd">ชื่องาน</div>
+          <div class="sheet-cell hd">Zone</div>
+          <div class="sheet-cell hd">ชื่อพนักงาน</div>
+          <div class="sheet-cell hd">สถานะ</div>
+          <div class="sheet-cell hd">Process</div>
+        </div>
+        <div class="sheet-row" style="grid-template-columns:130px 80px 55px 70px 130px 80px 100px 80px 100px;display:grid;">
+          <div class="sheet-cell">27/4/2569 09:32</div>
+          <div class="sheet-cell">27/4/2569</div>
+          <div class="sheet-cell">09:32</div>
+          <div class="sheet-cell">T-0042</div>
+          <div class="sheet-cell">แท็งค์น้ำมัน #4</div>
+          <div class="sheet-cell">ลาน B Z3</div>
+          <div class="sheet-cell">สมชาย รักงาน</div>
+          <div class="sheet-cell green">Check In</div>
+          <div class="sheet-cell">Fabrication</div>
+        </div>
+        <div class="sheet-row" style="grid-template-columns:130px 80px 55px 70px 130px 80px 100px 80px 100px;display:grid;">
+          <div class="sheet-cell">27/4/2569 12:15</div>
+          <div class="sheet-cell">27/4/2569</div>
+          <div class="sheet-cell">12:15</div>
+          <div class="sheet-cell">T-0042</div>
+          <div class="sheet-cell">แท็งค์น้ำมัน #4</div>
+          <div class="sheet-cell">ลาน B Z3</div>
+          <div class="sheet-cell">สมชาย รักงาน</div>
+          <div class="sheet-cell red-c">Check Out</div>
+          <div class="sheet-cell">Fabrication</div>
+        </div>
+      </div>
+
+      <div class="alert success">
+        <div class="alert-icon">✅</div>
+        <div class="alert-txt"><b>ถ้าเห็นข้อมูลขึ้นใน Sheet แปลว่าระบบทำงานสมบูรณ์!</b> เอาไปโชว์ได้เลย พนักงานใช้งานได้จริงแล้ว</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DONE -->
+  <div style="text-align:center;padding:32px 0 16px;">
+    <div class="done-circle">🎉</div>
+    <div class="done-title">ระบบพร้อมใช้งานแล้ว!</div>
+    <div class="done-sub">ข้อมูลพนักงานทุก Check In/Out จะไหลเข้า Google Sheets อัตโนมัติ</div>
+    <div class="done-grid">
+      <div class="done-card">
+        <div class="done-card-icon">📱</div>
+        <div class="done-card-title">สำหรับพนักงาน</div>
+        <div class="done-card-sub">เปิดไฟล์ HTML → สแกน QR → Check In/Out → เสร็จ</div>
+      </div>
+      <div class="done-card">
+        <div class="done-card-icon">📊</div>
+        <div class="done-card-title">สำหรับ Admin</div>
+        <div class="done-card-sub">เปิด Google Sheet ดูข้อมูล Real-time ได้เลย</div>
+      </div>
+      <div class="done-card">
+        <div class="done-card-icon">🔜</div>
+        <div class="done-card-title">Phase ถัดไป</div>
+        <div class="done-card-sub">LINE Login ระบุพนักงานอัตโนมัติ ไม่ต้องกรอก</div>
+      </div>
+      <div class="done-card">
+        <div class="done-card-icon">📡</div>
+        <div class="done-card-title">Host บน Web</div>
+        <div class="done-card-sub">GitHub Pages (ฟรี) เพื่อให้เปิดจาก QR ได้ทันที</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button class="btn-prev" onclick="goTo(3)">← ย้อนกลับ</button>
+    <button class="btn-next" style="background:var(--green);" disabled>เสร็จสิ้น ✅</button>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+let cur = 1;
+function goTo(n) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec'+n).classList.add('active');
+  ['ps1','ps2','ps3','ps4'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.classList.remove('active','done');
+    if(i+1<n) el.classList.add('done');
+    else if(i+1===n) el.classList.add('active');
+  });
+  ['pl1','pl2','pl3'].forEach((id,i)=>{
+    document.getElementById(id).style.background = i+1<n ? 'var(--green)' : 'var(--border)';
+  });
+  cur=n;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function copyUrl(btn, url) {
+  navigator.clipboard.writeText(url).then(()=>{
+    btn.textContent='✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied');},2000);
+  });
+}
+</script>
+</body>
+</html>
