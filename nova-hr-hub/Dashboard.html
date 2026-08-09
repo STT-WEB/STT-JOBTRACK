@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--brand:#E2231A;--brandbg:#FCEBEB;--ink:#1A1A1A;--muted:#6B6B6B;--hint:#9A9A9A;--line:#E6E6E6;--bg:#F4F4F2;--card:#fff;--ok:#1B7A3D;--warn:#BA7517}
+  body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  .head{display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--brand);padding-bottom:11px;margin-bottom:16px;flex-wrap:wrap}
+  .head .t{font-weight:600;font-size:18px} .head .s{font-size:11.5px;color:var(--muted)}
+  .lock{font-size:10.5px;color:var(--brand);background:var(--brandbg);padding:2px 9px;border-radius:6px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-bottom:16px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .kpi .l{font-size:11px;color:var(--muted)} .kpi .v{font-size:22px;font-weight:600;margin-top:3px} .kpi .x{font-size:10.5px;color:var(--hint)}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+  .pt{font-size:12.5px;font-weight:600;margin-bottom:12px}
+  .chart{display:flex;align-items:flex-end;gap:8px;height:160px}
+  .chart .c{flex:1;text-align:center;min-width:0}
+  .chart .bar{background:var(--brand);border-radius:5px 5px 0 0;transition:.2s}
+  .chart .v{font-size:9px;color:var(--muted);margin-bottom:2px;white-space:nowrap} .chart .m{font-size:10px;color:var(--muted);margin-top:4px}
+  .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  .chip{border:1px solid var(--line);border-radius:16px;padding:4px 12px;font-size:12px;color:var(--muted);cursor:pointer;background:#fff}
+  .chip.on{border-color:var(--brand);background:var(--brandbg);color:var(--brand);font-weight:600}
+  .srch{margin-left:auto;border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-family:inherit;font-size:13px;min-width:160px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{position:sticky;top:0;background:var(--card);text-align:left;padding:9px 10px;color:var(--muted);font-size:11.5px;font-weight:600;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap}
+  td{padding:8px 10px;border-top:1px solid var(--line)}
+  .tw{max-height:440px;overflow:auto;border:1px solid var(--line);border-radius:12px}
+  .mono{font-family:monospace}
+  .tag{font-size:10px;padding:1px 7px;border-radius:5px;background:var(--brandbg);color:var(--brand)}
+  .load{text-align:center;padding:60px;color:var(--muted)}
+  .spin{display:inline-block;width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--brand);border-radius:50%;animation:sp 0.8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <span style="font-size:22px;color:var(--brand)"><i class="ti ti-cash"></i></span>
+    <div><div class="t">Job Cost — ต้นทุนค่าแรง</div><div class="s">STT · Sutee Tankers · ปี 2026 (Direct)</div></div>
+    <span style="margin-left:auto"></span>
+    <span class="lock"><i class="ti ti-lock"></i> HR / ผู้บริหาร</span>
+    <span class="chip" onclick="load()"><i class="ti ti-refresh"></i> รีเฟรช</span>
+  </div>
+  <div id="app"><div class="load"><div class="spin"></div><div style="margin-top:12px">กำลังโหลดข้อมูลจาก JOBCOST 2026…</div></div></div>
+</div>
+
+<script>
+var MN=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+var DATA=null, filt='all', q='', sortK='stt', sortD=-1;
+function fmt(n){return Math.round(n).toLocaleString();}
+function load(){
+  document.getElementById('app').innerHTML='<div class="load"><div class="spin"></div><div style="margin-top:12px">กำลังโหลด…</div></div>';
+  google.script.run.withSuccessHandler(function(d){DATA=d;render();})
+    .withFailureHandler(function(e){document.getElementById('app').innerHTML='<div class="load">โหลดไม่สำเร็จ: '+e.message+'</div>';})
+    .getMasterData();
+}
+function types(){var s={};DATA.jobs.forEach(function(j){if(j.type)s[j.type]=1;});return Object.keys(s).sort();}
+function render(){
+  var d=DATA, mmax=Math.max.apply(null,d.months.concat([1]));
+  var withData=d.months.filter(function(x){return x>0;}).length;
+  var topM=d.months.indexOf(Math.max.apply(null,d.months));
+  var kpis='<div class="kpis">'
+    +'<div class="kpi"><div class="l">ต้นทุน Direct รวมทั้งปี</div><div class="v">฿'+ (d.total>=1e6?(d.total/1e6).toFixed(2)+'M':fmt(d.total)) +'</div><div class="x">'+fmt(d.total)+' บาท</div></div>'
+    +'<div class="kpi"><div class="l">จ๊อบที่มีต้นทุน</div><div class="v">'+d.jobs.length+'</div><div class="x">ทั้งปี 2026</div></div>'
+    +'<div class="kpi"><div class="l">เดือนที่มีข้อมูล</div><div class="v">'+withData+'</div><div class="x">เดือน</div></div>'
+    +'<div class="kpi"><div class="l">เดือนต้นทุนสูงสุด</div><div class="v">'+(d.months[topM]>0?MN[topM]:'—')+'</div><div class="x">'+(d.months[topM]>0?fmt(d.months[topM])+' บาท':'')+'</div></div></div>';
+  var bars='<div class="panel"><div class="pt">ต้นทุนค่าแรง Direct รายเดือน (บาท)</div><div class="chart">'
+    +d.months.map(function(v,i){var h=v>0?Math.max(8,Math.round(v/mmax*140)):5;
+      return '<div class="c"><div class="v">'+(v>0?(v>=1000?Math.round(v/1000)+'K':v):'')+'</div><div class="bar" style="height:'+h+'px;'+(v>0?'':'background:var(--line)')+'"></div><div class="m">'+MN[i]+'</div></div>';}).join('')
+    +'</div></div>';
+  var chips='<span class="chip'+(filt=='all'?' on':'')+'" onclick="setF(\'all\')">ทั้งหมด</span>'
+    +types().map(function(t){return '<span class="chip'+(filt==t?' on':'')+'" onclick="setF(\''+t+'\')">'+t+'</span>';}).join('');
+  document.getElementById('app').innerHTML=kpis+bars
+    +'<div class="tools">'+chips+'<input class="srch" placeholder="ค้นหา Job / ชื่องาน" oninput="setQ(this.value)" value="'+q.replace(/"/g,'&quot;')+'"></div>'
+    +'<div class="tw"><table><thead><tr>'
+      +'<th onclick="sort(\'type\')">ประเภท</th><th onclick="sort(\'code\')">Job Code</th><th onclick="sort(\'name\')">ชื่องาน / ลูกค้า</th>'
+      +'<th onclick="sort(\'stt\')" style="text-align:right">ต้นทุนรวม ▾</th></tr></thead><tbody id="tb"></tbody></table></div>'
+    +'<div class="s" style="margin-top:8px;color:var(--hint)">อัปเดต '+d.generated+' · คลิกหัวคอลัมน์เพื่อเรียง · ต้นทุน Direct (Indirect + งบ กำลังทำต่อ)</div>';
+  paint();
+}
+function paint(){
+  var rows=DATA.jobs.filter(function(j){
+    return (filt=='all'||j.type==filt) && (!q || (j.code+' '+j.name).toLowerCase().indexOf(q.toLowerCase())>=0);
+  });
+  rows.sort(function(a,b){var x=a[sortK],y=b[sortK];if(typeof x=='string'){return sortD*x.localeCompare(y);}return sortD*(x-y);});
+  var tot=rows.reduce(function(s,j){return s+j.stt;},0);
+  document.getElementById('tb').innerHTML=rows.slice(0,400).map(function(j){
+    return '<tr><td><span class="tag">'+j.type+'</span></td><td class="mono">'+j.code+'</td><td>'+j.name+'</td><td style="text-align:right;font-weight:500">'+fmt(j.stt)+'</td></tr>';
+  }).join('')
+  +'<tr style="background:var(--brandbg);font-weight:600"><td colspan="3">รวม '+rows.length+' จ๊อบ'+(rows.length>400?' (แสดง 400 แรก)':'')+'</td><td style="text-align:right;color:var(--brand)">'+fmt(tot)+'</td></tr>';
+}
+function setF(t){filt=t;render();}
+function setQ(v){q=v;paint();}
+function sort(k){if(sortK==k)sortD*=-1;else{sortK=k;sortD=(k=='stt')?-1:1;}paint();}
+load();
+</script>
+</body>
+</html>
