@@ -569,7 +569,7 @@ function renderProcs(){
       const b=document.createElement('button');
       b.className='proc-item'+(cnt>0?' sel':'')+(disableAll?' disabled':'');
       const badge=cnt>0?`<span class="pc-badge">${cnt}</span>`:'';
-      b.innerHTML=`${badge}<div class="pc">${m.e}</div><div class="ptext"><div class="pn">${m.code} · ${m.name}</div><div class="psub">แตะเลือกงานย่อย</div></div>`;
+      b.innerHTML=`${badge}<div class="pc">${m.e}</div><div class="ptext"><div class="pn">${m.code} · ${m.name}</div></div>`;
       b.onclick=()=>{if(!disableAll){procLevel='sub';activeMainIdx=idx;renderProcs();}};
       g.appendChild(b);
     });
@@ -597,6 +597,7 @@ function selAction(type){
     document.getElementById('photo-section').style.display='block';
     capturedPhotos=[];
     var _op=(_lastCheckResult&&_lastCheckResult.openJob&&_lastCheckResult.openJob.process)||'';
+    if(!_op && spSel.length) _op=spSel.map(function(x){return x.label;}).join(' || ');
     outProcs=_op.split(' || ').map(function(x){return x.trim();}).filter(Boolean);
     if(outProcs.length===0) outProcs=[''];
     curProc=0;
