@@ -515,7 +515,8 @@ const L = {
 
 let lg='th', sp=null, sa=null, submitting=false, isBlocked=false, canEditProcess=false, lastCheckInRow=null;
 let spSel=[], procLevel='main', activeMainIdx=null;   // เลือกหลายงาน + ระดับ 2 ชั้น
-let capturedPhotos = []; // เก็บ base64 รูปที่ถ่าย (สูงสุด 3)
+let capturedPhotos = []; // เก็บ base64 รูปที่ถ่าย (1 รูป/process)
+let outProcs=[];         // process ที่ต้องถ่ายตอนออกงาน (คู่กับ capturedPhotos[i])
 
 function sv(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 
@@ -590,6 +591,9 @@ function selAction(type){
     // แสดง photo section เฉพาะ Check Out
     document.getElementById('photo-section').style.display='block';
     capturedPhotos=[];
+    var _op=(_lastCheckResult&&_lastCheckResult.openJob&&_lastCheckResult.openJob.process)||'';
+    outProcs=_op.split(' || ').map(function(x){return x.trim();}).filter(Boolean);
+    if(outProcs.length===0) outProcs=[''];
     renderPhotoPreview();
   } else {
     document.getElementById('photo-section').style.display='none';
@@ -695,7 +699,7 @@ async function doSubmit(){
   }
 
   if(sa==='in' && spSel.length===0){showToast('กรุณาเลือก Process ก่อน');return;}
-  if(sa==='out' && capturedPhotos.length===0){showToast('กรุณาถ่ายรูปงานก่อน Check Out');return;}
+  if(sa==='out' && capturedPhotos.length < (outProcs.length||1)){showToast('ถ่ายรูปให้ครบทุก process ก่อน ('+capturedPhotos.length+'/'+(outProcs.length||1)+')');return;}
   if(!sa){showToast('กรุณาเลือก เข้างาน หรือ ออกงาน');return;}
   if(sa==='in' && isBlocked){showToast('มีงานค้าง กรุณา Check Out ก่อน');return;}
 
@@ -874,35 +878,24 @@ async function uploadPhotosBackground(procName, today, now){
   function setS(t,c){ if(statusEl){ statusEl.textContent=t; statusEl.style.color=c; } }
   if(!capturedPhotos || capturedPhotos.length===0) return;
 
-  var images = capturedPhotos.map(function(p){ return typeof p==='object' ? p.b64 : p; });
-  setS('⏳ กำลังอัปโหลด '+images.length+' รูป...', 'var(--amber)');
-
-  var payload = {
-    action:  'UPLOAD_PHOTOS',
-    emp_id:  EMP_ID,
-    job_id:  JOB_ID,
-    process: procName,
-    date:    today,
-    images:  images,
-  };
-
-  var ok = false;
-  for(var attempt=0; attempt<2 && !ok; attempt++){
-    try{
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode:   'no-cors',
-        headers:{ 'Content-Type': 'text/plain;charset=utf-8' },
-        body:   JSON.stringify(payload),
-      });
-      ok = true;
-    }catch(e){
-      console.warn('Drive upload attempt '+attempt+' failed:', e);
+  var okAll = true;
+  setS('\u23f3 \u0e01\u0e33\u0e25\u0e31\u0e07\u0e2d\u0e31\u0e1b\u0e42\u0e2b\u0e25\u0e14 '+capturedPhotos.length+' \u0e23\u0e39\u0e1b...', 'var(--amber)');
+  for(var pi=0; pi<capturedPhotos.length; pi++){
+    var proc = outProcs[pi] || procName;
+    var code = String(proc).split(' ')[0];
+    var b64  = typeof capturedPhotos[pi]==='object' ? capturedPhotos[pi].b64 : capturedPhotos[pi];
+    var payload = { action:'UPLOAD_PHOTOS', emp_id:EMP_ID, job_id:JOB_ID, process:proc, proc_code:code, date:today, images:[b64] };
+    var ok = false;
+    for(var attempt=0; attempt<2 && !ok; attempt++){
+      try{
+        await fetch(APPS_SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body:JSON.stringify(payload) });
+        ok = true;
+      }catch(e){ console.warn('upload proc '+pi+' attempt '+attempt+' failed:', e); }
     }
+    if(!ok) okAll=false;
   }
-
-  if(ok) setS('✅ ส่งรูปแล้ว '+images.length+' รูป', 'var(--green)');
-  else   setS('⚠️ เน็ตมีปัญหา — รูปยังไม่ขึ้น ลองใหม่ภายหลัง', 'var(--red)');
+  if(okAll) setS('\u2705 \u0e2a\u0e48\u0e07\u0e23\u0e39\u0e1b\u0e41\u0e25\u0e49\u0e27 '+capturedPhotos.length+' \u0e23\u0e39\u0e1b (\u0e41\u0e22\u0e01\u0e15\u0e32\u0e21 process)', 'var(--green)');
+  else      setS('\u26a0\ufe0f \u0e40\u0e19\u0e47\u0e15\u0e21\u0e35\u0e1b\u0e31\u0e0d\u0e2b\u0e32 \u2014 \u0e1a\u0e32\u0e07\u0e23\u0e39\u0e1b\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e02\u0e36\u0e49\u0e19', 'var(--red)');
 }
 
 // Compress รูปให้เล็กลงก่อน Upload
@@ -1028,7 +1021,7 @@ function goMainScreen(){
 }
 
 function triggerCamera(){
-  if(capturedPhotos.length>=3){showToast('ถ่ายได้สูงสุด 3 รูปเท่านั้น');return;}
+  if(capturedPhotos.length>=(outProcs.length||1)){showToast('ถ่ายครบทุก process แล้ว');return;}
   // Reset input ทุกครั้งก่อนเปิด เพื่อบังคับถ่ายใหม่
   const inp = document.getElementById('camera-input');
   inp.value = '';
@@ -1103,6 +1096,8 @@ function drawWatermarkAndSave(source, MAX){
 function renderPhotoPreview(){
   const row = document.getElementById('photo-preview-row');
   const countBar = document.getElementById('photo-count-bar');
+  const head = document.getElementById('lbl-photo-head');
+  const N = outProcs.length || 1;
   row.innerHTML='';
   capturedPhotos.forEach((b64,i)=>{
     const wrap=document.createElement('div');
@@ -1112,19 +1107,28 @@ function renderPhotoPreview(){
     const del=document.createElement('button');
     del.className='photo-del'; del.textContent='✕';
     del.onclick=(()=>{const idx=i;return ()=>{capturedPhotos.splice(idx,1);renderPhotoPreview();}})();
-    wrap.appendChild(img); wrap.appendChild(del);
+    const tag=document.createElement('div');
+    tag.style.cssText='font-size:9px;text-align:center;color:var(--green);max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    tag.textContent='\u2713 '+(outProcs[i]||'');
+    wrap.appendChild(img); wrap.appendChild(del); wrap.appendChild(tag);
     row.appendChild(wrap);
   });
-  // แสดงปุ่ม + ถ้ายังไม่ครบ 3
-  if(capturedPhotos.length<3){
+  const done = capturedPhotos.length;
+  if(done < N){
+    const cur = outProcs[done] || '';
+    if(head) head.innerHTML='\ud83d\udcf8 \u0e16\u0e48\u0e32\u0e22\u0e23\u0e39\u0e1b Process \u0e17\u0e35\u0e48 '+(done+1)+'/'+N+' :<br><span style="font-size:18px;color:var(--red);font-weight:700">'+cur+'</span>';
     const slot=document.createElement('div');
     slot.className='photo-add-slot';
-    slot.innerHTML='<span>📷</span><small>+'+(3-capturedPhotos.length)+' รูป</small>';
+    slot.innerHTML='<span>\ud83d\udcf7</span><small>\u0e16\u0e48\u0e32\u0e22</small>';
     slot.onclick=triggerCamera;
     row.appendChild(slot);
+    countBar.textContent='\u0e16\u0e48\u0e32\u0e22\u0e41\u0e25\u0e49\u0e27 '+done+'/'+N+' \u0e23\u0e39\u0e1b \u00b7 \u0e15\u0e49\u0e2d\u0e07\u0e16\u0e48\u0e32\u0e22\u0e43\u0e2b\u0e49\u0e04\u0e23\u0e1a\u0e17\u0e38\u0e01 process';
+    countBar.style.color='var(--red)';
+  } else {
+    if(head) head.innerHTML='\ud83d\udcf8 \u0e16\u0e48\u0e32\u0e22\u0e04\u0e23\u0e1a\u0e17\u0e38\u0e01 process \u0e41\u0e25\u0e49\u0e27 ('+N+' \u0e23\u0e39\u0e1b) \u2713';
+    countBar.textContent='\u0e04\u0e23\u0e1a\u0e41\u0e25\u0e49\u0e27 '+done+'/'+N+' \u0e23\u0e39\u0e1b \u2713';
+    countBar.style.color='var(--green)';
   }
-  countBar.textContent = capturedPhotos.length + '/3 รูป' + (capturedPhotos.length===0?' · ยังไม่มีรูป — ต้องถ่ายอย่างน้อย 1 รูป':'');
-  countBar.style.color = capturedPhotos.length===0 ? 'var(--red)' : 'var(--green)';
 }
 
 function tick(){

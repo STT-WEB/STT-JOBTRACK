@@ -618,13 +618,13 @@ function doUploadPhotos(data) {
       urls.push('https://drive.google.com/uc?export=view&id=' + file.getId());
     }
     if (!urls.length) return { ok:false, message:'decode รูปไม่ได้' };
-    writePhotoUrlsToRow(String(data.emp_id||'').trim(), String(data.job_id||'').trim(), urls);
+    writePhotoUrlsToRow(String(data.emp_id||'').trim(), String(data.job_id||'').trim(), urls, String(data.proc_code||'').trim());
     return { ok:true, count:urls.length, urls:urls };
   } catch (e) { return { ok:false, message:e.toString() }; }
 }
 
 // เขียนลิงก์รูป (rich text) ลงช่องหมายเหตุของแถว Check Out
-function writePhotoUrlsToRow(empId, jobId, urls) {
+function writePhotoUrlsToRow(empId, jobId, urls, procCode) {
   var ss = SpreadsheetApp.openById(LOG_SHEET_ID);
   var allSheets = ss.getSheets().filter(function(s){return s.getName().indexOf('Job_Log_')===0;})
                     .sort(function(a,b){return b.getName().localeCompare(a.getName());});
@@ -632,7 +632,7 @@ function writePhotoUrlsToRow(empId, jobId, urls) {
     var sheet = allSheets[si]; var values = sheet.getDataRange().getValues();
     for (var i = values.length-1; i >= 1; i--) {
       var row = values[i];
-      if (String(row[COL.EMP_ID]).trim()===empId && String(row[COL.JOB_ID]).trim()===jobId && String(row[COL.STATUS])==='Check Out') {
+      if (String(row[COL.EMP_ID]).trim()===empId && String(row[COL.JOB_ID]).trim()===jobId && String(row[COL.STATUS])==='Check Out' && (!procCode || String(row[COL.PROC_CODE]).trim()===String(procCode).trim()) && String(row[COL.NOTE]||'').trim()==='') {
         var noteCell = sheet.getRange(i+1, COL.NOTE+1);
         var rtb = SpreadsheetApp.newRichTextValue();
         var text = '', links = [];
