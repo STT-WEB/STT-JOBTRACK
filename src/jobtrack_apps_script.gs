@@ -451,6 +451,9 @@ function doCheckIn(data) {
 // CHECK OUT
 // ============================================================
 function doCheckOut(data) {
+  var _lock=LockService.getScriptLock();
+  try{ _lock.waitLock(15000); }catch(e){ return {ok:false,message:'BUSY'}; }
+  try{
   var openResult=checkOpenJob(data.emp_id); var sheet,values;
   if (openResult.hasOpen&&openResult.openJob.sheet_name) sheet=SpreadsheetApp.openById(LOG_SHEET_ID).getSheetByName(openResult.openJob.sheet_name);
   else sheet=getJobLogSheet();
@@ -462,7 +465,16 @@ function doCheckOut(data) {
       targetRow=i+1; break;
     }
   }
-  if (targetRow===-1) return {ok:false,message:'NO_CHECKIN_FOUND'};
+  if (targetRow===-1) {
+    // อาจ Check Out ไปแล้วจากครั้งก่อน (retry หลัง timeout) — ถ้าเจอแถวที่ออกไปแล้ว ถือว่าสำเร็จ กัน phantom + กันหน้าเว็บขึ้นเขียวหลอก
+    for (var j=values.length-1;j>=1;j--) {
+      var rj=values[j];
+      if (String(rj[COL.EMP_ID]).trim()===String(data.emp_id).trim()&&String(rj[COL.JOB_ID]).trim()===String(data.job_id).trim()&&String(rj[COL.STATUS])==='Check Out'&&String(rj[COL.TIME_OUT]).trim()!=='') {
+        return {ok:true,action:'CHECK_OUT',already:true,time_in:timeToString(rj[COL.TIME_IN]),time_out:String(rj[COL.TIME_OUT]),proc_count:Number(rj[COL.PROC_COUNT])||1,message:'ALREADY_CHECKED_OUT'};
+      }
+    }
+    return {ok:false,message:'NO_CHECKIN_FOUND'};
+  }
 
   var timeInStr = timeToString(values[targetRow-1][COL.TIME_IN]);
   var startDate = String(values[targetRow-1][COL.DATE]);
@@ -491,6 +503,7 @@ function doCheckOut(data) {
   var totMin = bd.byCodeMin['1']+bd.byCodeMin['2A']+bd.byCodeMin['2B']+bd.byCodeMin['3']+bd.byCodeMin['4'];
   Logger.log('CHECK OUT v4.2: '+data.emp_id+' ['+empType+'] '+n+' proc ÷'+n+' ('+timeInStr+'-'+timeOut+') รวม='+minutesToHHMM(Math.round(totMin))+' payHrs='+bd.payHours);
   return {ok:true,action:'CHECK_OUT',time_in:timeInStr,time_out:timeOut,proc_count:n,hours:minutesToHHMM(Math.round(totMin)),pay_hours:bd.payHours,breakdown:bd.byCodeHours};
+  }finally{ try{_lock.releaseLock();}catch(e){} }
 }
 
 // เขียนค่า Check Out ลง 1 แถว รองรับหารเฉลี่ย (scale = 1/N) — ใช้ทั้งแถวเดิมและแถวที่เพิ่มใหม่
