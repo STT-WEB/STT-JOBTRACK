@@ -90,13 +90,16 @@ body{background:#E8E8E8;display:flex;justify-content:center;align-items:flex-sta
 
 /* PROCESS */
 .proc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:0 14px;margin-bottom:12px;}
-.proc-item{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:13px 11px;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Sans Thai',sans-serif;transition:all 0.15s;min-height:64px;min-width:0;overflow:hidden;}
+.proc-item{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:13px 11px;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Sans Thai',sans-serif;transition:all 0.15s;min-height:64px;min-width:0;overflow:hidden;position:relative;}
 .proc-item:active{transform:scale(0.97);}
 .proc-item:hover{border-color:var(--border2);background:var(--bg3);}
-.proc-item.sel{background:var(--blue-dim);border-color:rgba(77,156,255,0.5);}
-.proc-item.sel .pn{color:var(--blue);font-weight:700;}
-.proc-item.sel .pc{background:rgba(77,156,255,0.15);border-color:rgba(77,156,255,0.4);}
+.proc-item.sel{background:rgba(0,225,135,0.22);border:2.5px solid var(--green);box-shadow:0 0 16px rgba(0,225,135,0.4);}
+.proc-item.sel .pn{color:var(--green);font-weight:800;}
+.proc-item.sel .pc{background:rgba(0,225,135,0.20);border-color:var(--green);}
 .proc-item.disabled{opacity:0.25;pointer-events:none;}
+.pc-badge{position:absolute;top:6px;right:8px;min-width:20px;height:20px;padding:0 4px;background:var(--green);color:#04120b;font-weight:800;font-size:12px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.pptab{border:1.5px solid var(--border);border-radius:14px;padding:6px 12px;font-size:12.5px;color:var(--text2);cursor:pointer;background:var(--bg2);}
+.pptab.on{border-color:var(--green);background:rgba(0,225,135,0.18);color:var(--green);font-weight:800;}
 .pc{width:36px;height:36px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
 .ptext{min-width:0;flex:1;}
 .pn{font-size:15px;color:var(--text2);font-weight:700;line-height:1.35;overflow-wrap:anywhere;}
@@ -309,7 +312,8 @@ body{background:#E8E8E8;display:flex;justify-content:center;align-items:flex-sta
 
       <!-- PHOTO SECTION — แสดงเฉพาะ Check Out -->
       <div id="photo-section" style="display:none;">
-        <div class="slabel" id="lbl-photo-head">📸 ถ่ายรูปงาน (บังคับ · สูงสุด 3 รูป)</div>
+        <div class="slabel" id="lbl-photo-head">📸 ถ่ายรูปงาน</div>
+        <div id="proc-photo-tabs" style="display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 8px;"></div>
 
         <!-- รูปที่ถ่ายแล้ว -->
         <div id="photo-preview-row" style="display:flex;gap:6px;padding:0 14px;margin-bottom:8px;flex-wrap:wrap;"></div>
@@ -467,7 +471,7 @@ const LINE_PIC = _user ? _user.pictureUrl  : '';
 // ============================================================
 // PROCESS LIST แยกตาม Department
 // ============================================================
-const PROC_TREE=[{"code": "A", "e": "🔨", "name": "FABRICATION & ASSEMBLY", "qc": false, "subs": [{"n": "Shell Assembly", "th": "ประกอบเชลล์"}, {"n": "Head Assembly", "th": "ประกอบฝา"}, {"n": "Baffle Assembly", "th": "ประกอบบัฟเฟิล"}, {"n": "Protection Guard Assembly", "th": "ประกอบโพรเทคชั่นการ์ด"}, {"n": "Ring Assembly", "th": "ประกอบริง"}, {"n": "Chassis Assembly", "th": "ประกอบแชสซี"}, {"n": "Tank Mounting on Trailer Chassis", "th": "ติดตั้งแท็งค์ขึ้นแชสซี (Trailer)"}, {"n": "Landing Gear Assembly", "th": "ประกอบขาช้าง"}, {"n": "Tank Accessories Assembly", "th": "ประกอบอุปกรณ์แท็งค์"}, {"n": "Suspension Assembly", "th": "ประกอบช่วงล่าง"}]}, {"code": "B", "e": "🔥", "name": "WELDING", "qc": false, "subs": [{"n": "Shell Welding", "th": "เชื่อมเชลล์"}, {"n": "Head Welding", "th": "เชื่อมฝา"}, {"n": "Baffle Welding", "th": "เชื่อมบัฟเฟิล"}, {"n": "Manhole Welding", "th": "เชื่อมแมนโฮล"}, {"n": "Protection Guard Welding", "th": "เชื่อมโพรเทคชั่นการ์ด"}, {"n": "Ring Welding", "th": "เชื่อมริง"}, {"n": "Chassis Welding", "th": "เชื่อมแชสซี"}, {"n": "Suspension Welding", "th": "เชื่อมช่วงล่าง"}, {"n": "Piping Welding", "th": "เชื่อมไลน์ท่อ"}, {"n": "Part Welding", "th": "เชื่อมชิ้นส่วน Part"}, {"n": "Tank Accessories Welding", "th": "เชื่อมชิ้นส่วนควบแท็งค์"}]}, {"code": "C", "e": "🔩", "name": "PART", "qc": false, "subs": [{"n": "Tank Parts Fabrication", "th": "ผลิตชิ้นส่วนแท็งค์"}, {"n": "Accessories Parts Fabrication", "th": "ผลิตชิ้นส่วนอุปกรณ์ส่วนควบ"}, {"n": "Stock Parts Fabrication", "th": "ผลิตชิ้นส่วน Stock Part"}, {"n": "Tank Stock Parts Fabrication", "th": "ผลิตชิ้นส่วน Stock Part Tank"}]}, {"code": "D", "e": "⚙️", "name": "KEMREX", "qc": false, "subs": [{"n": "Steel Tube Fabrication", "th": "ผลิตเหล็กกล่อง"}, {"n": "Steel Pile Fabrication", "th": "ผลิตเข็มเหล็ก"}]}, {"code": "E", "e": "🎨", "name": "PAINTING", "qc": false, "subs": [{"n": "Sand Blasting", "th": "พ่นทราย"}, {"n": "Primer Coating", "th": "พ่นสีรองพื้น"}, {"n": "Putty Application", "th": "โป๊วสี"}, {"n": "Primer Touch-up", "th": "พ่นสีรองพื้นกลบรอย"}, {"n": "Top Coat Painting", "th": "พ่นสีทับหน้าจริง"}, {"n": "Chassis Painting", "th": "พ่นสีแชสซี"}]}, {"code": "F", "e": "⚡", "name": "SYSTEM", "qc": false, "subs": [{"n": "Cab Lighting Installation", "th": "ติดตั้งไฟหัวเก๋ง"}, {"n": "Side Marker Light Installation", "th": "ติดตั้งไฟสัญญาณรอบคัน"}, {"n": "Rear Tail Light Installation", "th": "ติดตั้งไฟท้ายกันชนท้าย"}, {"n": "Battery Master Switch Installation", "th": "ติดตั้งไฟตัดกราวด์"}, {"n": "Electrical Control Box Installation", "th": "ติดตั้งระบบคอนโทรลตู้ไฟ"}, {"n": "Pneumatic Control System Installation", "th": "ติดตั้งระบบคอนโทรลลม"}, {"n": "Overfill Prevention System Installation", "th": "ติดตั้งระบบโอเวอร์ฟิลล์"}, {"n": "Handrail Installation", "th": "ติดตั้งระบบแฮนด์เรล"}, {"n": "Electrical & Pneumatic System Inspection", "th": "ตรวจสอบระบบไฟฟ้าและลม"}]}, {"code": "G", "e": "🔧", "name": "PIPING & VALVES", "qc": false, "subs": [{"n": "Emergency Valve Installation", "th": "ติดตั้งอีเมอร์เจนซีวาล์ว"}, {"n": "Pump Installation", "th": "ติดตั้งปั๊ม"}, {"n": "Piping & Valve Assembly", "th": "ประกอบไลน์ท่อพร้อมวาล์ว"}, {"n": "Vapor Piping & Valve Assembly", "th": "ประกอบไลน์ท่อเวเปอร์พร้อมวาล์ว"}, {"n": "Return Piping Assembly", "th": "ประกอบไลน์ท่อกลับหลังเชื่อม"}, {"n": "Piping & Valve Inspection", "th": "ตรวจสอบไลน์ท่อและวาล์ว"}]}, {"code": "H", "e": "🔄", "name": "RE-INSTALLATION", "qc": false, "subs": [{"n": "Equipment Transfer", "th": "โยกย้ายอุปกรณ์"}, {"n": "Bracket Installation", "th": "ติดตั้งแบร็กเก็ต"}, {"n": "Tank Mounting on Chassis", "th": "ติดตั้งแท็งค์ขึ้นแชสซี"}, {"n": "Mudguard Installation", "th": "ติดตั้งบังโคลน"}, {"n": "Motorcycle Guard Installation", "th": "ติดตั้งการ์ดมอเตอร์ไซค์"}, {"n": "Rear Walkway Installation", "th": "ติดตั้งทางเดินหลังแท็งค์"}, {"n": "Rear Bumper Installation", "th": "ติดตั้งกันชนท้าย"}, {"n": "Fire Extinguisher Installation", "th": "ติดตั้งถังดับเพลิง"}, {"n": "Traffic Cone Installation", "th": "ติดตั้งกรวยจราจร"}, {"n": "Wheel Chock Installation", "th": "ติดตั้งยางหนุนล้อ"}, {"n": "Side Pipe Installation", "th": "ติดตั้งท่อข้าง"}, {"n": "UN Plate Installation", "th": "ติดตั้งป้าย UN"}, {"n": "Manhole Cover Installation", "th": "ติดตั้งฝาแมนโฮล"}, {"n": "Ladder Installation", "th": "ติดตั้งบันได"}, {"n": "Cable Control System Installation", "th": "ติดตั้งระบบสลิงคอนโทรล"}, {"n": "Hydraulic System Installation", "th": "ติดตั้งระบบไฮดรอลิก"}, {"n": "Accessories Inspection", "th": "ตรวจสอบอุปกรณ์"}]}, {"code": "I", "e": "🚗", "name": "SUSPENSION", "qc": false, "subs": [{"n": "Axle Installation", "th": "ติดตั้งเพลา"}, {"n": "Wheel & Tire Installation", "th": "ติดตั้งล้อยาง"}, {"n": "Suspension Installation", "th": "ติดตั้งช่วงล่าง"}, {"n": "Suspension System Installation", "th": "ติดตั้งระบบช่วงล่าง"}, {"n": "Wheel Alignment", "th": "ตั้งศูนย์ล้อ"}, {"n": "Brake Adjustment", "th": "ตั้งเบรกล้อ"}, {"n": "Suspension Inspection", "th": "ตรวจสอบช่วงล่าง"}]}, {"code": "J", "e": "🏷️", "name": "STICKER", "qc": false, "subs": [{"n": "Customer Logo Sticker Installation", "th": "ติดตั้งสติกเกอร์โลโก้ลูกค้า"}, {"n": "Safety Sticker Installation", "th": "ติดตั้งสติกเกอร์บ่งชี้รอบคัน"}, {"n": "Regulatory Sticker Installation", "th": "ติดตั้งสติกเกอร์ตามกฎหมายขนส่ง"}]}, {"code": "K", "e": "🔍", "name": "QC", "qc": true, "subs": [{"n": "Run Pump Test Inspection", "th": "Run Pump Test Inspection"}, {"n": "Hydrostatic Test Inspection", "th": "Hydrostatic Test Inspection"}, {"n": "Leak Tightness Test Inspection", "th": "Leak Tightness Test Inspection"}, {"n": "Calibration Inspection", "th": "Calibration Inspection"}, {"n": "Electrical Lighting Inspection & Test", "th": "Electrical Lighting Inspection & Test"}, {"n": "Electrical Control System Inspection & Test", "th": "Electrical Control System Inspection & Test"}, {"n": "Pneumatic Control System Inspection & Test", "th": "Pneumatic Control System Inspection & Test"}, {"n": "Final Delivery Inspection", "th": "Final Delivery Inspection"}]}, {"code": "L", "e": "🧹", "name": "CLEANING", "qc": false, "subs": [{"n": "Internal Cleaning", "th": "ล้างภายใน"}, {"n": "External Cleaning", "th": "ล้างภายนอก"}, {"n": "Accessories Cleaning", "th": "ล้างอุปกรณ์"}, {"n": "Internal Polishing", "th": "ขัดเงาภายใน"}, {"n": "External Polishing", "th": "ขัดเงาภายนอก"}, {"n": "Accessories Polishing", "th": "ขัดเงาอุปกรณ์"}]}];
+const PROC_TREE=[{"code": "A", "e": "🔨", "name": "FABRICATION & ASSEMBLY", "qc": false, "subs": [{"n": "Shell Assembly", "th": "ประกอบเชลล์"}, {"n": "Head Assembly", "th": "ประกอบฝา"}, {"n": "Baffle Assembly", "th": "ประกอบบัฟเฟิล"}, {"n": "Protection Guard Assembly", "th": "ประกอบโพรเทคชั่นการ์ด"}, {"n": "Ring Assembly", "th": "ประกอบริง"}, {"n": "Chassis Assembly", "th": "ประกอบแชสซี"}, {"n": "Tank Mounting on Trailer Chassis", "th": "ติดตั้งแท็งค์ขึ้นแชสซี (Trailer)"}, {"n": "Landing Gear Assembly", "th": "ประกอบขาช้าง"}, {"n": "Tank Accessories Assembly", "th": "ประกอบอุปกรณ์แท็งค์"}, {"n": "Suspension Assembly", "th": "ประกอบช่วงล่าง"}]}, {"code": "B", "e": "🔥", "name": "WELDING", "qc": false, "subs": [{"n": "Shell Welding", "th": "เชื่อมเชลล์"}, {"n": "Head Welding", "th": "เชื่อมฝา"}, {"n": "Baffle Welding", "th": "เชื่อมบัฟเฟิล"}, {"n": "Manhole Welding", "th": "เชื่อมแมนโฮล"}, {"n": "Protection Guard Welding", "th": "เชื่อมโพรเทคชั่นการ์ด"}, {"n": "Ring Welding", "th": "เชื่อมริง"}, {"n": "Chassis Welding", "th": "เชื่อมแชสซี"}, {"n": "Suspension Welding", "th": "เชื่อมช่วงล่าง"}, {"n": "Piping Welding", "th": "เชื่อมไลน์ท่อ"}, {"n": "Part Welding", "th": "เชื่อมชิ้นส่วน Part"}, {"n": "Tank Accessories Welding", "th": "เชื่อมชิ้นส่วนควบแท็งค์"}]}, {"code": "C", "e": "🔩", "name": "PART", "qc": false, "subs": [{"n": "Tank Parts Fabrication", "th": "ผลิตชิ้นส่วนแท็งค์"}, {"n": "Accessories Parts Fabrication", "th": "ผลิตชิ้นส่วนอุปกรณ์ส่วนควบ"}, {"n": "Stock Parts Fabrication", "th": "ผลิตชิ้นส่วน Stock Part"}, {"n": "Tank Stock Parts Fabrication", "th": "ผลิตชิ้นส่วน Stock Part Tank"}]}, {"code": "D", "e": "⚙️", "name": "KEMREX", "qc": false, "subs": [{"n": "Steel Tube Fabrication", "th": "ผลิตเหล็กกล่อง"}, {"n": "Steel Pile Fabrication", "th": "ผลิตเข็มเหล็ก"}]}, {"code": "E", "e": "🎨", "name": "PAINTING", "qc": false, "subs": [{"n": "Sand Blasting", "th": "พ่นทราย"}, {"n": "Primer Coating", "th": "พ่นสีรองพื้น"}, {"n": "Putty Application", "th": "โป๊วสี"}, {"n": "Primer Touch-up", "th": "พ่นสีรองพื้นกลบรอย"}, {"n": "Top Coat Painting", "th": "พ่นสีทับหน้าจริง"}, {"n": "Chassis Painting", "th": "พ่นสีแชสซี"}]}, {"code": "F", "e": "⚡", "name": "SYSTEM", "qc": false, "subs": [{"n": "Cab Lighting Installation", "th": "ติดตั้งไฟหัวเก๋ง"}, {"n": "Side Marker Light Installation", "th": "ติดตั้งไฟสัญญาณรอบคัน"}, {"n": "Rear Tail Light Installation", "th": "ติดตั้งไฟท้ายกันชนท้าย"}, {"n": "Battery Master Switch Installation", "th": "ติดตั้งไฟตัดกราวด์"}, {"n": "Electrical Control Box Installation", "th": "ติดตั้งระบบคอนโทรลตู้ไฟ"}, {"n": "Pneumatic Control System Installation", "th": "ติดตั้งระบบคอนโทรลลม"}, {"n": "Overfill Prevention System Installation", "th": "ติดตั้งระบบโอเวอร์ฟิลล์"}, {"n": "Handrail Installation", "th": "ติดตั้งระบบแฮนด์เรล"}, {"n": "Electrical & Pneumatic System Inspection", "th": "ตรวจสอบระบบไฟฟ้าและลม"}]}, {"code": "G", "e": "🔧", "name": "PIPING & VALVES", "qc": false, "subs": [{"n": "Emergency Valve Installation", "th": "ติดตั้งอีเมอร์เจนซีวาล์ว"}, {"n": "Pump Installation", "th": "ติดตั้งปั๊ม"}, {"n": "Piping & Valve Assembly", "th": "ประกอบไลน์ท่อพร้อมวาล์ว"}, {"n": "Vapor Piping & Valve Assembly", "th": "ประกอบไลน์ท่อเวเปอร์พร้อมวาล์ว"}, {"n": "Return Piping Assembly", "th": "ประกอบไลน์ท่อกลับหลังเชื่อม"}, {"n": "Piping & Valve Inspection", "th": "ตรวจสอบไลน์ท่อและวาล์ว"}]}, {"code": "H", "e": "🔄", "name": "RE-INSTALLATION", "qc": false, "subs": [{"n": "Equipment Transfer", "th": "โยกย้ายอุปกรณ์"}, {"n": "Bracket Installation", "th": "ติดตั้งแบร็กเก็ต"}, {"n": "Tank Mounting on Chassis", "th": "ติดตั้งแท็งค์ขึ้นแชสซี"}, {"n": "Mudguard Installation", "th": "ติดตั้งบังโคลน"}, {"n": "Motorcycle Guard Installation", "th": "ติดตั้งการ์ดมอเตอร์ไซค์"}, {"n": "Rear Walkway Installation", "th": "ติดตั้งทางเดินหลังแท็งค์"}, {"n": "Rear Bumper Installation", "th": "ติดตั้งกันชนท้าย"}, {"n": "Fire Extinguisher Installation", "th": "ติดตั้งถังดับเพลิง"}, {"n": "Traffic Cone Installation", "th": "ติดตั้งกรวยจราจร"}, {"n": "Wheel Chock Installation", "th": "ติดตั้งยางหนุนล้อ"}, {"n": "Side Pipe Installation", "th": "ติดตั้งท่อข้าง"}, {"n": "UN Plate Installation", "th": "ติดตั้งป้าย UN"}, {"n": "Manhole Cover Installation", "th": "ติดตั้งฝาแมนโฮล"}, {"n": "Ladder Installation", "th": "ติดตั้งบันได"}, {"n": "Cable Control System Installation", "th": "ติดตั้งระบบสลิงคอนโทรล"}, {"n": "Hydraulic System Installation", "th": "ติดตั้งระบบไฮดรอลิก"}, {"n": "Accessories Inspection", "th": "ตรวจสอบอุปกรณ์"}]}, {"code": "I", "e": "🚗", "name": "SUSPENSION", "qc": false, "subs": [{"n": "Axle Installation", "th": "ติดตั้งเพลา"}, {"n": "Wheel & Tire Installation", "th": "ติดตั้งล้อยาง"}, {"n": "Suspension Installation", "th": "ติดตั้งช่วงล่าง"}, {"n": "Suspension System Installation", "th": "ติดตั้งระบบช่วงล่าง"}, {"n": "Wheel Alignment", "th": "ตั้งศูนย์ล้อ"}, {"n": "Brake Adjustment", "th": "ตั้งเบรกล้อ"}, {"n": "Suspension Inspection", "th": "ตรวจสอบช่วงล่าง"}]}, {"code": "J", "e": "🏷️", "name": "STICKER", "qc": false, "subs": [{"n": "Customer Logo Sticker Installation", "th": "ติดตั้งสติกเกอร์โลโก้ลูกค้า"}, {"n": "Safety Sticker Installation", "th": "ติดตั้งสติกเกอร์บ่งชี้รอบคัน"}, {"n": "Regulatory Sticker Installation", "th": "ติดตั้งสติกเกอร์ตามกฎหมายขนส่ง"}]}, {"code": "K", "e": "🔍", "name": "QC", "qc": true, "subs": [{"n": "Material Receiving Record", "th": "Material Receiving Record"}, {"n": "Mark-Cut of Shell and Head", "th": "Mark-Cut of Shell and Head"}, {"n": "Mark-Cut Baffle", "th": "Mark-Cut Baffle"}, {"n": "Mark-Cut Manhole and Nozzle", "th": "Mark-Cut Manhole and Nozzle"}, {"n": "Dimension Check of Head and Baffle", "th": "Dimension Check of Head and Baffle"}, {"n": "Fit-Up Head and Baffle Before Forming", "th": "Fit-Up Head and Baffle Before Forming"}, {"n": "Fit-Up Shell to Shell and Head to Shell", "th": "Fit-Up Shell to Shell and Head to Shell"}, {"n": "Fit-Up Baffle to Shell", "th": "Fit-Up Baffle to Shell"}, {"n": "Fit-Up Manhole and Nozzle", "th": "Fit-Up Manhole and Nozzle"}, {"n": "Fit-Up Chassis", "th": "Fit-Up Chassis"}, {"n": "Fit-Up Tank to Chassis", "th": "Fit-Up Tank to Chassis"}, {"n": "Fit-Up Side Saddle Inspection", "th": "Fit-Up Side Saddle Inspection"}, {"n": "Visual Inspection", "th": "Visual Inspection"}, {"n": "Liquid Penetrant Testing", "th": "Liquid Penetrant Testing"}, {"n": "Air Leak Test", "th": "Air Leak Test"}, {"n": "Hydrostatic Test and Pneumatic Test", "th": "Hydrostatic Test and Pneumatic Test"}, {"n": "Leak Proofness Test", "th": "Leak Proofness Test"}, {"n": "Run Pump Test Inspection", "th": "Run Pump Test Inspection"}, {"n": "Calibration Inspection", "th": "Calibration Inspection"}, {"n": "บันทึก Pressure gauge หลังจาก Calibrate", "th": "บันทึก Pressure gauge หลังจาก Calibrate"}, {"n": "Electrical Lighting Inspection & Test", "th": "Electrical Lighting Inspection & Test"}, {"n": "Electrical Control System Inspection & Test", "th": "Electrical Control System Inspection & Test"}, {"n": "Pneumatic Control System Inspection & Test", "th": "Pneumatic Control System Inspection & Test"}, {"n": "งานตรวจสอบการตั้งศูนย์ล้อ", "th": "งานตรวจสอบการตั้งศูนย์ล้อ"}, {"n": "Torque Bolt & Nut", "th": "Torque Bolt & Nut"}, {"n": "การตรวจสอบงานล้าง", "th": "การตรวจสอบงานล้าง"}, {"n": "ตอกเนมเพลท", "th": "ตอกเนมเพลท"}, {"n": "ตอกหมายเลขคัสซีรถ", "th": "ตอกหมายเลขคัสซีรถ"}, {"n": "ตอก ธพ.", "th": "ตอก ธพ."}, {"n": "การทดสอบถัง LPG ระยะที่ 1", "th": "การทดสอบถัง LPG ระยะที่ 1"}, {"n": "การทดสอบถัง LPG ระยะที่ 2", "th": "การทดสอบถัง LPG ระยะที่ 2"}, {"n": "วัดน้ำ", "th": "วัดน้ำ"}, {"n": "Final Delivery Inspection", "th": "Final Delivery Inspection"}, {"n": "ทำ Report Delivery", "th": "ทำ Report Delivery"}, {"n": "รับรถหัวลากใหม่", "th": "รับรถหัวลากใหม่"}, {"n": "งานตรวจวาระ 3 ปี", "th": "งานตรวจวาระ 3 ปี"}, {"n": "งานตรวจวาระ 6 ปี", "th": "งานตรวจวาระ 6 ปี"}, {"n": "งานตรวจวาระ 9 ปี", "th": "งานตรวจวาระ 9 ปี"}, {"n": "งานตรวจวาระ 12 ปี", "th": "งานตรวจวาระ 12 ปี"}, {"n": "งานเสนอประเมินราคา", "th": "งานเสนอประเมินราคา"}]}, {"code": "L", "e": "🧹", "name": "CLEANING", "qc": false, "subs": [{"n": "Internal Cleaning", "th": "ล้างภายใน"}, {"n": "External Cleaning", "th": "ล้างภายนอก"}, {"n": "Accessories Cleaning", "th": "ล้างอุปกรณ์"}, {"n": "Internal Polishing", "th": "ขัดเงาภายใน"}, {"n": "External Polishing", "th": "ขัดเงาภายนอก"}, {"n": "Accessories Polishing", "th": "ขัดเงาอุปกรณ์"}]}];
 
 // เลือกหมวดหลักตามแผนก: QC → เห็นเฉพาะหมวด QC, ที่เหลือ → เห็นทุกหมวดยกเว้น QC
 function getMainsByDept(deptMain, deptSub){
@@ -516,7 +520,15 @@ const L = {
 let lg='th', sp=null, sa=null, submitting=false, isBlocked=false, canEditProcess=false, lastCheckInRow=null;
 let spSel=[], procLevel='main', activeMainIdx=null;   // เลือกหลายงาน + ระดับ 2 ชั้น
 let capturedPhotos = []; // เก็บ base64 รูปที่ถ่าย (1 รูป/process)
-let outProcs=[];         // process ที่ต้องถ่ายตอนออกงาน (คู่กับ capturedPhotos[i])
+let outProcs=[];         // process ที่ต้องถ่ายตอนออกงาน
+let curProc=0;           // process ที่กำลังถ่ายรูปอยู่
+function getOutProcs(){
+  var p = openJobProc
+       || (_lastCheckResult && _lastCheckResult.openJob && _lastCheckResult.openJob.process)
+       || (spSel.length ? spSel.map(function(x){return x.label;}).join(' || ') : '');
+  var a = String(p).split(' || ').map(function(x){return x.trim();}).filter(Boolean);
+  return a.length ? a : [''];
+}
 
 function sv(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 
@@ -563,8 +575,8 @@ function renderProcs(){
       const cnt=spSel.filter(x=>x.code===m.code).length;
       const b=document.createElement('button');
       b.className='proc-item'+(cnt>0?' sel':'')+(disableAll?' disabled':'');
-      const line=cnt>0?('เลือกแล้ว '+cnt+' งาน'):'แตะเลือกงานย่อย';
-      b.innerHTML=`<div class="pc">${m.e}</div><div class="ptext"><div class="pn">${m.code} · ${m.name}</div><div class="psub">${line}</div></div>`;
+      const badge=cnt>0?`<span class="pc-badge">${cnt}</span>`:'';
+      b.innerHTML=`${badge}<div class="pc">${m.e}</div><div class="ptext"><div class="pn">${m.code} · ${m.name}</div></div>`;
       b.onclick=()=>{if(!disableAll){procLevel='sub';activeMainIdx=idx;renderProcs();}};
       g.appendChild(b);
     });
@@ -591,9 +603,8 @@ function selAction(type){
     // แสดง photo section เฉพาะ Check Out
     document.getElementById('photo-section').style.display='block';
     capturedPhotos=[];
-    var _op=(_lastCheckResult&&_lastCheckResult.openJob&&_lastCheckResult.openJob.process)||'';
-    outProcs=_op.split(' || ').map(function(x){return x.trim();}).filter(Boolean);
-    if(outProcs.length===0) outProcs=[''];
+    outProcs=getOutProcs();
+    curProc=0;
     renderPhotoPreview();
   } else {
     document.getElementById('photo-section').style.display='none';
@@ -604,6 +615,7 @@ function selAction(type){
 // เช็คสถานะ Job ค้างเมื่อโหลดหน้า
 var _lastCheckTime = 0;
 var _lastCheckResult = null;
+var openJobProc = '';   // ชื่อ process ของงานที่ค้างอยู่ (เก็บตั้งแต่เช็คอิน)
 
 async function checkStatus(force){
   if(APPS_SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE') return;
@@ -621,6 +633,7 @@ async function checkStatus(force){
     _lastCheckTime = Date.now();
     _lastCheckResult = res;
     if(res.hasOpen){
+      if(res.openJob && res.openJob.process) openJobProc = res.openJob.process;
       showBlocked(res.openJob);
     } else {
       isBlocked = false;
@@ -699,7 +712,7 @@ async function doSubmit(){
   }
 
   if(sa==='in' && spSel.length===0){showToast('กรุณาเลือก Process ก่อน');return;}
-  if(sa==='out' && capturedPhotos.length < (outProcs.length||1)){showToast('ถ่ายรูปให้ครบทุก process ก่อน ('+capturedPhotos.length+'/'+(outProcs.length||1)+')');return;}
+  if(sa==='out'){ var _N=outProcs.length||1,_miss=[]; for(var _k=0;_k<_N;_k++){ if(capturedPhotos.filter(function(p){return p.procIdx===_k;}).length===0) _miss.push(outProcs[_k]||('งาน '+(_k+1))); } if(_miss.length){ showToast('ถ่ายรูปให้ครบทุก process ก่อน: '+_miss.join(', ')); return; } }
   if(!sa){showToast('กรุณาเลือก เข้างาน หรือ ออกงาน');return;}
   if(sa==='in' && isBlocked){showToast('มีงานค้าง กรุณา Check Out ก่อน');return;}
 
@@ -735,6 +748,7 @@ async function doSubmit(){
 
   try{
     const result=await apiPost(payload);
+    if(action==='CHECK_IN') openJobProc = procName;
     document.getElementById('loading').classList.remove('show');
     // ถ้ามาจากการ "แก้ Process" → เรียก UPDATE_PROCESS แทน
     if(action === 'CHECK_IN' && !canEditProcess && isBlocked === false){
@@ -879,23 +893,23 @@ async function uploadPhotosBackground(procName, today, now){
   if(!capturedPhotos || capturedPhotos.length===0) return;
 
   var okAll = true;
-  setS('\u23f3 \u0e01\u0e33\u0e25\u0e31\u0e07\u0e2d\u0e31\u0e1b\u0e42\u0e2b\u0e25\u0e14 '+capturedPhotos.length+' \u0e23\u0e39\u0e1b...', 'var(--amber)');
-  for(var pi=0; pi<capturedPhotos.length; pi++){
-    var proc = outProcs[pi] || procName;
+  setS('⏳ กำลังอัปโหลด '+capturedPhotos.length+' รูป...', 'var(--amber)');
+  var _N = outProcs.length || 1;
+  for(var k=0;k<_N;k++){
+    var imgs = capturedPhotos.filter(function(p){return p.procIdx===k;}).map(function(p){return p.b64;});
+    if(imgs.length===0) continue;
+    var proc = outProcs[k] || procName;
     var code = String(proc).split(' ')[0];
-    var b64  = typeof capturedPhotos[pi]==='object' ? capturedPhotos[pi].b64 : capturedPhotos[pi];
-    var payload = { action:'UPLOAD_PHOTOS', emp_id:EMP_ID, job_id:JOB_ID, process:proc, proc_code:code, date:today, images:[b64] };
-    var ok = false;
+    var payload = { action:'UPLOAD_PHOTOS', emp_id:EMP_ID, job_id:JOB_ID, process:proc, proc_code:code, date:today, images:imgs };
+    var ok=false;
     for(var attempt=0; attempt<2 && !ok; attempt++){
-      try{
-        await fetch(APPS_SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body:JSON.stringify(payload) });
-        ok = true;
-      }catch(e){ console.warn('upload proc '+pi+' attempt '+attempt+' failed:', e); }
+      try{ await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)}); ok=true; }
+      catch(e){ console.warn('upload proc '+k+' attempt '+attempt+' failed:', e); }
     }
     if(!ok) okAll=false;
   }
-  if(okAll) setS('\u2705 \u0e2a\u0e48\u0e07\u0e23\u0e39\u0e1b\u0e41\u0e25\u0e49\u0e27 '+capturedPhotos.length+' \u0e23\u0e39\u0e1b (\u0e41\u0e22\u0e01\u0e15\u0e32\u0e21 process)', 'var(--green)');
-  else      setS('\u26a0\ufe0f \u0e40\u0e19\u0e47\u0e15\u0e21\u0e35\u0e1b\u0e31\u0e0d\u0e2b\u0e32 \u2014 \u0e1a\u0e32\u0e07\u0e23\u0e39\u0e1b\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e02\u0e36\u0e49\u0e19', 'var(--red)');
+  if(okAll) setS('✅ ส่งรูปแล้ว '+capturedPhotos.length+' รูป (แยกตาม process)', 'var(--green)');
+  else      setS('⚠️ เน็ตมีปัญหา — บางรูปยังไม่ขึ้น ลองใหม่ภายหลัง', 'var(--red)');
 }
 
 // Compress รูปให้เล็กลงก่อน Upload
@@ -1021,7 +1035,7 @@ function goMainScreen(){
 }
 
 function triggerCamera(){
-  if(capturedPhotos.length>=(outProcs.length||1)){showToast('ถ่ายครบทุก process แล้ว');return;}
+  if(capturedPhotos.filter(function(p){return p.procIdx===curProc;}).length>=3){showToast('Process นี้ถ่ายครบ 3 รูปแล้ว');return;}
   // Reset input ทุกครั้งก่อนเปิด เพื่อบังคับถ่ายใหม่
   const inp = document.getElementById('camera-input');
   inp.value = '';
@@ -1088,45 +1102,51 @@ function drawWatermarkAndSave(source, MAX){
   ctx.fillStyle = '#ffffff';
   ctx.fillText(empStamp, 8, h - fontSize*0.6);
   var b64 = canvas.toDataURL('image/jpeg', 0.82);
-  capturedPhotos.push({ b64: b64, timestamp: stamp, emp: EMP_NAME });
+  capturedPhotos.push({ b64: b64, timestamp: stamp, emp: EMP_NAME, procIdx: curProc });
   renderPhotoPreview();
   canvas.width = 0; canvas.height = 0;   // ปล่อย RAM ทันที
 }
 
 function renderPhotoPreview(){
+  if(outProcs.length===0 || (outProcs.length===1 && !outProcs[0])) outProcs=getOutProcs();
   const row = document.getElementById('photo-preview-row');
   const countBar = document.getElementById('photo-count-bar');
   const head = document.getElementById('lbl-photo-head');
+  const tabsEl = document.getElementById('proc-photo-tabs');
   const N = outProcs.length || 1;
+  function cntOf(k){ return capturedPhotos.filter(function(p){return p.procIdx===k;}).length; }
+  if(tabsEl){
+    tabsEl.innerHTML='';
+    for(var k=0;k<N;k++){ (function(k){
+      var c=cntOf(k);
+      var t=document.createElement('div');
+      t.className='pptab'+(k===curProc?' on':'');
+      t.textContent=(c>0?'✓ ':'')+(outProcs[k]||('งาน '+(k+1)))+' ('+c+')';
+      t.onclick=function(){ curProc=k; renderPhotoPreview(); };
+      tabsEl.appendChild(t);
+    })(k); }
+  }
+  if(head) head.innerHTML='📸 ถ่ายรูป : <span style="color:var(--green);font-weight:800">'+(outProcs[curProc]||'')+'</span> <span style="color:var(--text3);font-weight:400">('+cntOf(curProc)+'/3)</span>';
   row.innerHTML='';
-  capturedPhotos.forEach((b64,i)=>{
-    const wrap=document.createElement('div');
-    wrap.className='photo-thumb-wrap';
-    const img=document.createElement('img');
-    img.src=typeof b64==='object'?b64.b64:b64; img.className='photo-thumb';
-    const del=document.createElement('button');
-    del.className='photo-del'; del.textContent='✕';
-    del.onclick=(()=>{const idx=i;return ()=>{capturedPhotos.splice(idx,1);renderPhotoPreview();}})();
-    const tag=document.createElement('div');
-    tag.style.cssText='font-size:9px;text-align:center;color:var(--green);max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-    tag.textContent='\u2713 '+(outProcs[i]||'');
-    wrap.appendChild(img); wrap.appendChild(del); wrap.appendChild(tag);
-    row.appendChild(wrap);
+  capturedPhotos.forEach(function(p,i){
+    if(p.procIdx!==curProc) return;
+    var wrap=document.createElement('div'); wrap.className='photo-thumb-wrap';
+    var img=document.createElement('img'); img.src=p.b64; img.className='photo-thumb';
+    var del=document.createElement('button'); del.className='photo-del'; del.textContent='✕';
+    del.onclick=(function(){var idx=i;return function(){capturedPhotos.splice(idx,1);renderPhotoPreview();};})();
+    wrap.appendChild(img); wrap.appendChild(del); row.appendChild(wrap);
   });
-  const done = capturedPhotos.length;
-  if(done < N){
-    const cur = outProcs[done] || '';
-    if(head) head.innerHTML='\ud83d\udcf8 \u0e16\u0e48\u0e32\u0e22\u0e23\u0e39\u0e1b Process \u0e17\u0e35\u0e48 '+(done+1)+'/'+N+' :<br><span style="font-size:18px;color:var(--red);font-weight:700">'+cur+'</span>';
-    const slot=document.createElement('div');
-    slot.className='photo-add-slot';
-    slot.innerHTML='<span>\ud83d\udcf7</span><small>\u0e16\u0e48\u0e32\u0e22</small>';
-    slot.onclick=triggerCamera;
-    row.appendChild(slot);
-    countBar.textContent='\u0e16\u0e48\u0e32\u0e22\u0e41\u0e25\u0e49\u0e27 '+done+'/'+N+' \u0e23\u0e39\u0e1b \u00b7 \u0e15\u0e49\u0e2d\u0e07\u0e16\u0e48\u0e32\u0e22\u0e43\u0e2b\u0e49\u0e04\u0e23\u0e1a\u0e17\u0e38\u0e01 process';
+  if(cntOf(curProc)<3){
+    var slot=document.createElement('div'); slot.className='photo-add-slot';
+    slot.innerHTML='<span>📷</span><small>ถ่าย</small>';
+    slot.onclick=triggerCamera; row.appendChild(slot);
+  }
+  var missing=[]; for(var m=0;m<N;m++){ if(cntOf(m)===0) missing.push(outProcs[m]||('งาน '+(m+1))); }
+  if(missing.length){
+    countBar.textContent='ยังขาดรูป: '+missing.join(', ')+' (อย่างน้อย 1 รูป/process)';
     countBar.style.color='var(--red)';
   } else {
-    if(head) head.innerHTML='\ud83d\udcf8 \u0e16\u0e48\u0e32\u0e22\u0e04\u0e23\u0e1a\u0e17\u0e38\u0e01 process \u0e41\u0e25\u0e49\u0e27 ('+N+' \u0e23\u0e39\u0e1b) \u2713';
-    countBar.textContent='\u0e04\u0e23\u0e1a\u0e41\u0e25\u0e49\u0e27 '+done+'/'+N+' \u0e23\u0e39\u0e1b \u2713';
+    countBar.textContent='ถ่ายครบทุก process ✓ (รวม '+capturedPhotos.length+' รูป)';
     countBar.style.color='var(--green)';
   }
 }
