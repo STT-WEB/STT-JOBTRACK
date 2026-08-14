@@ -14,6 +14,7 @@ function doGet() {
 /** อ่านสรุปต่อจ๊อบจากแท็บ MASTER ของ JOBCOST 2026 (เร็ว: อ่านผลที่คำนวณไว้แล้ว) */
 function getMasterData() {
   var sh = SpreadsheetApp.openById(JOBCOST_FILE_ID).getSheetByName('MASTER');
+  if (!sh) return { jobs: [], months: [0,0,0,0,0,0,0,0,0,0,0,0], total: 0, generated: new Date().toLocaleString('th-TH'), note: 'ยังไม่มีแท็บ MASTER — รัน setupMasterFile ก่อน' };
   var last = sh.getLastRow();
   var months = [0,0,0,0,0,0,0,0,0,0,0,0], total = 0, jobs = [];
   if (last >= 2) {
