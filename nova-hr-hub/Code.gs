@@ -70,6 +70,79 @@ function setupJobcost2026() {
   return ss.getUrl();
 }
 
+/**
+ * ★ ตั้งค่าโครงไฟล์ Master (ไฟล์เปล่าที่เบียร์สร้างเอง = JOBCOST_FILE_ID)
+ *   สร้าง 3 แท็บ + หัวคอลัมน์ · รันครั้งเดียวหลังสร้างไฟล์เปล่า
+ *   → จากนั้นรัน rebuildJobcostFromMonthly เพื่อเติมข้อมูลเดือน 1–7
+ */
+function setupMasterFile() {
+  var ss = SpreadsheetApp.openById(JOBCOST_FILE_ID);
+  var master = ss.getSheetByName('MASTER') || ss.getSheets()[0];
+  master.setName('MASTER');
+  writeHeader_(master, [
+    'ประเภทงาน','Job Code','ชื่องาน',
+    'ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.',
+    'ยอดยกมา','รวมค่าแรง STT','ค่าแรงผู้รับเหมา','Total Cost',
+    'Est. Budget','Sale Budget','ส่วนต่าง Budget','% Cost/Budget','สถานะ'
+  ], '#E2231A');
+  var monthly = ss.getSheetByName('ผลรายเดือน') || ss.insertSheet('ผลรายเดือน');
+  writeHeader_(monthly, [
+    'งวด','Job Code','ชื่องาน','Process','รหัสพนักงาน','ชื่อพนักงาน','ประเภทพนักงาน',
+    'ชม.คิดค่าแรง','Rate/ชม.','ต้นทุน (บาท)','อัปเดตเมื่อ'
+  ], '#185FA5');
+  var recon = ss.getSheetByName('Reconcile') || ss.insertSheet('Reconcile');
+  writeHeader_(recon, [
+    'งวด','รหัสพนักงาน','ชื่อพนักงาน','ประเภทพนักงาน',
+    'ชม.ควรทำ','ชม.ทำจริง','ชม.หาย','ต้นทุนลงจ๊อบ','เงินเดือนจ่ายจริง (BP)','ส่วนต่าง (dif)','สถานะ'
+  ], '#1B7A3D');
+  Logger.log('✅ ตั้งค่าโครงไฟล์ Master เสร็จ (3 แท็บ): ' + ss.getUrl());
+  Logger.log('👉 ต่อไปรัน rebuildJobcostFromMonthly เพื่อเติมข้อมูลเดือน 1–7');
+}
+
+/***********************************************************
+ *  FILE REGISTRY — ทะเบียนไฟล์ (อยู่ในไฟล์ Payroll, แท็บ "File Registry")
+ *  layout: ฟิลด์อยู่คอลัมน์ A · ปีเป็นคอลัมน์ B, C, ... (แถว 1 = ปี)
+ *  ▶ testRegistry() = ทดสอบว่าอ่าน ID ครบไหม
+ ***********************************************************/
+function extractDriveId_(v) {
+  var s = String(v || '').trim();
+  var m = s.match(/[-\w]{25,}/);   // Drive ID = โทเคนยาว ≥25 ตัว (รองรับทั้ง ID ล้วนและ URL)
+  return m ? m[0] : s;
+}
+
+/** อ่านทะเบียนไฟล์ของปีที่ระบุ → คืน object {employeeDB, jobLog, timeBplusFolder, calFolder, master, salaryPayroll, payrollActual} */
+function getRegistry_(year) {
+  var sh = SpreadsheetApp.openById(SALARY_DB_ID).getSheetByName('File Registry');
+  if (!sh) throw new Error('ไม่พบแท็บ File Registry ในไฟล์ Payroll');
+  var vals = sh.getDataRange().getValues();
+  var yCol = -1;
+  for (var c = 1; c < vals[0].length; c++) if (String(vals[0][c]).trim() === String(year)) { yCol = c; break; }
+  if (yCol < 0) throw new Error('ไม่พบปี ' + year + ' ใน File Registry');
+  var reg = {};
+  for (var r = 1; r < vals.length; r++) {
+    var label = String(vals[r][0] || '');
+    var val = extractDriveId_(vals[r][yCol]);
+    if (!label || !val) continue;
+    if (label.indexOf('ฐานพนักงาน') >= 0)                 reg.employeeDB = val;
+    else if (label.indexOf('Job_Log') >= 0)              reg.jobLog = val;
+    else if (label.indexOf('Time Bplus') >= 0)           reg.timeBplusFolder = val;
+    else if (label.indexOf('Cal') >= 0)                  reg.calFolder = val;
+    else if (label.indexOf('Salary Master') >= 0)        reg.salaryPayroll = val;
+    else if (label.indexOf('Master') >= 0 || label.indexOf('Dashboard') >= 0) reg.master = val;
+    else if (label.indexOf('อัตราต่องวด') >= 0 || label.indexOf('ตารางเงินเดือนจริง') >= 0) reg.payrollActual = val;
+  }
+  return reg;
+}
+
+/** ทดสอบอ่าน Registry ปี 2026 — ดู Log ว่าครบไหม */
+function testRegistry() {
+  var reg = getRegistry_(2026);
+  Logger.log('📋 File Registry ปี 2026:');
+  ['employeeDB','jobLog','timeBplusFolder','calFolder','master','salaryPayroll','payrollActual']
+    .forEach(function(k){ Logger.log('   ' + k + ' = ' + (reg[k] || '❌ ขาด')); });
+  return reg;
+}
+
 /** เขียนหัวคอลัมน์ + จัดรูปแบบ (ตัวหนา พื้นสี ตรึงแถวแรก) */
 function writeHeader_(sheet, head, color) {
   sheet.getRange(1, 1, 1, head.length)
@@ -104,10 +177,11 @@ function getOrCreatePath_(parts) {
  ***********************************************************/
 
 // ---- Config (ไอดีไฟล์จริง) ----
-var JOBCOST_FILE_ID = '1pRje7p5Q9ixB7i8KqgBt1l_cy10vg7scL8sluPBhJDc';   // ไฟล์ผลลัพธ์ใหม่
-var DB_ID           = '1MYWORYN3sOjov3Gxv3UqCV1jRSxgxwGi1tRomFUGSr0';   // JOBTRACK_Database
+var JOBCOST_FILE_ID = '1gzryio6lwbhozn19-aOUGkzScNtk1bvJGk5tUw-gcbM';   // Jobcost Master/Dashboard 2026 (ไฟล์ใหม่สะอาด)
+var DB_ID           = '1MYWORYN3sOjov3Gxv3UqCV1jRSxgxwGi1tRomFUGSr0';   // STT Jobcost Database-Employee & Account
+var SALARY_DB_ID    = '1hw5cyLEZO3dEol5X1pX3_2oBYtuJmADTTMwrOsll1D8';   // STT Jobcost Database-Payroll (ลับ) — Salary Master อยู่ที่นี่
 var LOG_ID_BY_YEAR  = { '2026': '1ZPl3uVRtM5r4sPA-yX1OwTyp34XCTIcKRC0Sx8qsr9s' };
-var SETUP_TAB       = 'SETUP & MASTER Employee';
+var SETUP_TAB       = 'Salary Master';   // เดิมชื่อ 'SETUP & MASTER Employee' ย้ายมาไฟล์ Payroll
 
 // ไฟล์ระบบเก่า (ใช้ recheck)
 var OLD_CAL_ID    = '1keVRkC7tTWvEJGbsGsGBzOY0PcIsg-dGDSeIPgQB58U';   // Cal JOB COST JAN (JOB_COST_DIRECT)
@@ -291,8 +365,8 @@ function computeJobcostMonth(period) {
 
 /** โหลด base/salary/type ต่อพนักงาน จาก SETUP & MASTER Employee */
 function loadEmployeeMaster_() {
-  var sheet = SpreadsheetApp.openById(DB_ID).getSheetByName(SETUP_TAB);
-  if (!sheet) throw new Error('ไม่พบแท็บ ' + SETUP_TAB);
+  var sheet = SpreadsheetApp.openById(SALARY_DB_ID).getSheetByName(SETUP_TAB);
+  if (!sheet) throw new Error('ไม่พบแท็บ ' + SETUP_TAB + ' ในไฟล์ Payroll');
   var vals = sheet.getDataRange().getValues();
   var head = vals[0].map(function(h){ return String(h).trim(); });
   var cId = findCol_(head, ['รหัสพนักงาน']);
