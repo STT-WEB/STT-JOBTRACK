@@ -5,8 +5,8 @@
  ***********************************************************/
 
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile('Dashboard')
-    .setTitle('STT NOVA-HR Hub · Job Cost')
+  return HtmlService.createHtmlOutputFromFile('Hub')
+    .setTitle('STT NOVA-HR Hub')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }

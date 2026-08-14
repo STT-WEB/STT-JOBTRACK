@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+:root{--brand:#E2231A;--brand2:#B4160E;--brandbg:#FEF1F0;--navy:#1E2A4A;--ink:#111826;--ink2:#39424F;--muted:#6E7887;--hint:#9AA3B0;--line:#EBEEF3;--line2:#E1E5EC;--bg:#F3F5FA;--card:#fff;--ok:#12805C;--okbg:#E7F6EF;--warn:#B7791F;--blue:#2563C9;--bluebg:#EAF1FD;--purple:#6D46C6;--sh:0 1px 3px rgba(16,24,40,.1);--sh2:0 8px 24px rgba(16,24,40,.12);--num:'Inter','Sarabun',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+.screen{display:none}.screen.on{display:block}
+.num{font-family:var(--num)}
+.btn{background:var(--brand);color:#fff;border:none;border-radius:11px;padding:13px 18px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{background:var(--brand2)}.btn:disabled{opacity:.6}
+.btn.g{background:#fff;color:var(--ink2);border:1px solid var(--line2)}
+a.link{color:var(--brand);font-weight:700;cursor:pointer;text-decoration:none;font-size:13.5px}
+/* LOGIN */
+.wrapC{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px;background:radial-gradient(900px 500px at 0% 0%,#FFE9E7 0,transparent 55%),radial-gradient(800px 500px at 100% 100%,#E7ECFB 0,transparent 55%)}
+.card{background:#fff;border-radius:20px;box-shadow:var(--sh2);width:100%;max-width:390px;padding:30px 28px}
+.logos{display:flex;gap:14px;align-items:center;justify-content:center;margin-bottom:16px}
+.logos .lg{height:44px}
+.h1{font-size:23px;font-weight:800;text-align:center}.h1 .r{color:var(--brand)}
+.sub{color:var(--muted);font-size:13px;text-align:center;margin:4px 0 22px}
+.fld{margin-bottom:14px}.fld label{font-size:12.5px;font-weight:700;color:var(--ink2);display:block;margin-bottom:6px}
+.inp{display:flex;align-items:center;border:1.5px solid var(--line2);border-radius:12px;padding:0 13px;transition:.15s}
+.inp:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px var(--brandbg)}
+.inp i{color:var(--hint);font-size:19px}.inp input{border:none;outline:none;padding:13px 10px;font-size:15px;width:100%;font-family:inherit;background:transparent;letter-spacing:.5px}
+.msg{font-size:13px;padding:9px 12px;border-radius:9px;margin-bottom:12px;display:none}
+.msg.err{background:#FDECEA;color:#C0392B;display:block}.msg.ok{background:var(--okbg);color:var(--ok);display:block}
+.spin{width:18px;height:18px;border:2.5px solid #ffffff66;border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.pinbox{background:var(--okbg);border:2px dashed var(--ok);border-radius:14px;padding:18px;text-align:center;margin:6px 0 16px}
+.pinbox .n{font-size:36px;font-weight:800;letter-spacing:6px;color:var(--ok);font-family:var(--num)}
+/* APP */
+.top{background:#fff;border-bottom:1px solid var(--line);padding:11px 18px;display:flex;align-items:center;gap:11px;position:sticky;top:0;z-index:9}
+.top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:linear-gradient(90deg,var(--brand),#F0574F 40%,var(--blue) 75%,var(--purple))}
+.top .lg{height:26px}.top .co{font-weight:800;font-size:14px;line-height:1.1}.top .co small{display:block;color:var(--hint);font-weight:500;font-size:10.5px}
+.top .me{margin-left:auto;display:flex;align-items:center;gap:9px;font-size:12.5px}
+.av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--navy),#3A4C7A);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.wrap{max-width:1050px;margin:0 auto;padding:20px}
+.hi{font-size:21px;font-weight:800}.hi span{color:var(--brand)}
+.rl{color:var(--muted);font-size:13px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:15px}
+.tile{background:#fff;border:1px solid var(--line);border-radius:16px;padding:19px;cursor:pointer;transition:.15s;box-shadow:var(--sh);position:relative;overflow:hidden}
+.tile::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--ac,var(--brand))}
+.tile:hover{transform:translateY(-3px);box-shadow:var(--sh2)}
+.tile .ic{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:23px;color:#fff;margin-bottom:12px}
+.tile h3{font-size:15px;font-weight:700}.tile p{font-size:12px;color:var(--muted);margin-top:3px}
+.tile .soon{position:absolute;top:13px;right:13px;font-size:10px;background:#EEF0F4;color:var(--muted);padding:2px 8px;border-radius:6px;font-weight:600}
+.back{cursor:pointer;color:var(--muted);font-size:13.5px;font-weight:600;display:inline-flex;gap:5px;align-items:center;margin-bottom:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:13px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--line);border-left:4px solid var(--kc,var(--brand));border-radius:13px;padding:14px 16px;box-shadow:var(--sh)}
+.kpi .l{font-size:11.5px;color:var(--muted);font-weight:600}.kpi .v{font-size:23px;font-weight:800;margin-top:6px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--sh)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:8px 10px;color:var(--muted);font-size:11px;font-weight:700;border-bottom:1px solid var(--line2);background:#F7F9FC}
+td{padding:8px 10px;border-bottom:1px solid var(--line)}
+.center{text-align:center;padding:50px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<section id="s-login" class="screen on">
+ <div class="wrapC"><div class="card">
+  <div class="logos"><img src="https://stt-web.github.io/STT-JOBTRACK/Logo%20STT.png" class="lg" alt="STT" onerror="this.style.display='none'"></div>
+  <div class="h1">STT <span class="r">NOVA-HR</span> Hub</div>
+  <div class="sub">เข้าสู่ระบบด้วยรหัสพนักงาน + PIN</div>
+  <div id="lg-msg" class="msg"></div>
+  <div class="fld"><label>รหัสพนักงาน</label><div class="inp"><i class="ti ti-id-badge-2"></i><input id="lg-code" inputmode="numeric" placeholder="เช่น 1068016"></div></div>
+  <div class="fld"><label>PIN 6 หลัก</label><div class="inp"><i class="ti ti-lock"></i><input id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="● ● ● ● ● ●"></div></div>
+  <button class="btn" id="lg-btn" onclick="doLogin()">เข้าสู่ระบบ <i class="ti ti-arrow-right"></i></button>
+  <div style="text-align:center;margin-top:16px"><a class="link" onclick="showReg()">ยังไม่มี PIN? ลงทะเบียนด้วยรหัสพนักงาน →</a></div>
+ </div></div>
+</section>
+
+<!-- ===== REGISTER ===== -->
+<section id="s-reg" class="screen">
+ <div class="wrapC"><div class="card">
+  <div class="h1" style="font-size:20px">ลงทะเบียนรับ PIN</div>
+  <div class="sub">กรอกรหัสพนักงานของคุณ ระบบจะออก PIN ให้</div>
+  <div id="rg-msg" class="msg"></div>
+  <div id="rg-form">
+   <div class="fld"><label>รหัสพนักงาน</label><div class="inp"><i class="ti ti-id-badge-2"></i><input id="rg-code" inputmode="numeric" placeholder="เช่น 1068016"></div></div>
+   <button class="btn" id="rg-btn" onclick="doReg()">รับ PIN <i class="ti ti-key"></i></button>
+   <div style="text-align:center;margin-top:14px"><a class="link" onclick="go('s-login')">← กลับไปหน้าเข้าสู่ระบบ</a></div>
+  </div>
+  <div id="rg-done" style="display:none">
+   <div style="text-align:center;color:var(--ok);font-weight:700;margin-bottom:6px"><i class="ti ti-circle-check" style="font-size:22px"></i> ลงทะเบียนสำเร็จ!</div>
+   <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:8px">นี่คือ PIN ของคุณ — <b>จำไว้ให้ดี</b> ใช้ล็อกอินทุกครั้ง</div>
+   <div class="pinbox"><div class="n" id="rg-pin">------</div></div>
+   <button class="btn" onclick="go('s-login')">เข้าสู่ระบบด้วย PIN นี้</button>
+  </div>
+ </div></div>
+</section>
+
+<!-- ===== HOME ===== -->
+<section id="s-home" class="screen">
+ <div class="top">
+  <img src="https://stt-web.github.io/STT-JOBTRACK/Logo%20STT.png" class="lg" alt="STT" onerror="this.style.display='none'">
+  <div class="co">Sutee Tankers<small>NOVA-HR Hub</small></div>
+  <div class="me"><span id="me-name" style="font-weight:700"></span><span id="me-role" style="color:var(--hint)"></span><div class="av" id="me-av"></div><a class="link" onclick="logout()" style="font-size:12px">ออก</a></div>
+ </div>
+ <div class="wrap">
+  <div class="hi">สวัสดี <span id="hi-name"></span> 👋</div>
+  <div class="rl" id="hi-role"></div>
+  <div class="grid" id="tiles"></div>
+ </div>
+</section>
+
+<!-- ===== JOB COST ===== -->
+<section id="s-jobcost" class="screen">
+ <div class="top"><img src="https://stt-web.github.io/STT-JOBTRACK/Logo%20STT.png" class="lg" onerror="this.style.display='none'"><div class="co">Job Cost<small>ต้นทุนค่าแรง</small></div><div class="me"><a class="link" onclick="go('s-home')">← เมนูหลัก</a></div></div>
+ <div class="wrap"><div id="jc-body"><div class="center"><div class="num">กำลังโหลด…</div></div></div></div>
+</section>
+
+<script>
+var ME=null;
+function go(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on')});document.getElementById(id).classList.add('on');window.scrollTo(0,0);}
+function msg(el,t,cls){var e=document.getElementById(el);e.textContent=t;e.className='msg '+cls;}
+function showReg(){go('s-reg');document.getElementById('rg-form').style.display='';document.getElementById('rg-done').style.display='none';document.getElementById('rg-msg').className='msg';}
+
+function doLogin(){
+  var code=document.getElementById('lg-code').value.trim(), pin=document.getElementById('lg-pin').value.trim();
+  if(!code||!pin){msg('lg-msg','กรอกรหัสพนักงานและ PIN','err');return;}
+  var b=document.getElementById('lg-btn');b.disabled=true;b.innerHTML='<span class="spin"></span> กำลังเข้า…';
+  document.getElementById('lg-msg').className='msg';
+  google.script.run.withSuccessHandler(function(r){
+    b.disabled=false;b.innerHTML='เข้าสู่ระบบ';
+    if(!r.ok){ if(r.needRegister){showReg();msg('rg-msg',r.message,'err');} else msg('lg-msg',r.message,'err'); return; }
+    ME=r; enterHub();
+  }).withFailureHandler(function(e){b.disabled=false;b.innerHTML='เข้าสู่ระบบ';msg('lg-msg','เชื่อมต่อไม่ได้ ลองใหม่','err');}).hubLogin(code,pin);
+}
+function doReg(){
+  var code=document.getElementById('rg-code').value.trim();
+  if(!code){msg('rg-msg','กรอกรหัสพนักงาน','err');return;}
+  var b=document.getElementById('rg-btn');b.disabled=true;b.innerHTML='<span class="spin"></span> กำลังออก PIN…';
+  google.script.run.withSuccessHandler(function(r){
+    b.disabled=false;b.innerHTML='รับ PIN';
+    if(!r.ok){msg('rg-msg',r.message,'err');return;}
+    document.getElementById('rg-pin').textContent=r.pin;
+    document.getElementById('rg-form').style.display='none';document.getElementById('rg-done').style.display='';
+  }).withFailureHandler(function(e){b.disabled=false;b.innerHTML='รับ PIN';msg('rg-msg','เชื่อมต่อไม่ได้ ลองใหม่','err');}).hubRegister(code);
+}
+function logout(){ME=null;document.getElementById('lg-pin').value='';go('s-login');}
+
+var MODULES=[
+ {id:'jobcost',name:'Payroll · Job Cost',ic:'ti-cash',sub:'ต้นทุน + Reconcile',c:'var(--brand)',mgr:true},
+ {id:'recruit',name:'Recruit · สรรหา',ic:'ti-user-plus',sub:'ตำแหน่ง · ผู้สมัคร',c:'var(--blue)',mgr:true,soon:true},
+ {id:'activity',name:'กิจกรรม · ประกาศ',ic:'ti-speakerphone',sub:'Memo · ปฏิทิน',c:'var(--warn)',mgr:false,soon:true},
+ {id:'skill',name:'Skill Matrix',ic:'ti-stars',sub:'ทักษะพนักงาน',c:'var(--ok)',mgr:true,soon:true},
+ {id:'employee',name:'ฐานข้อมูลพนักงาน',ic:'ti-users',sub:'กองกลาง',c:'var(--navy)',mgr:true,soon:true}
+];
+function isMgr(role){role=role||'';return role.indexOf('บริหาร')>=0||role.indexOf('HR')>=0||role.toUpperCase().indexOf('ADMIN')>=0;}
+function enterHub(){
+  var initials=(ME.name||'').replace(/^(นาย|นาง|นางสาว|คุณ)/,'').trim().slice(0,2)||'ผู้';
+  document.getElementById('me-name').textContent=ME.name||ME.code;
+  document.getElementById('me-role').textContent='· '+(ME.role||'พนักงาน');
+  document.getElementById('me-av').textContent=initials;
+  document.getElementById('hi-name').textContent=ME.name||ME.code;
+  document.getElementById('hi-role').textContent= isMgr(ME.role)?('มุมมอง '+ME.role+' · เห็นทุกเมนู'):'มุมมองพนักงาน · เห็นกิจกรรม/ประกาศ';
+  var mgr=isMgr(ME.role);
+  var vis=MODULES.filter(function(m){return mgr?true:!m.mgr;});
+  document.getElementById('tiles').innerHTML=vis.map(function(m){
+    return '<div class="tile" style="--ac:'+m.c+'" onclick="'+(m.soon?"alert('เมนูนี้กำลังทำต่อ')":"openMod('"+m.id+"')")+'">'+(m.soon?'<span class="soon">เร็วๆนี้</span>':'')+
+    '<div class="ic" style="background:'+m.c+'"><i class="ti '+m.ic+'"></i></div><h3>'+m.name+'</h3><p>'+m.sub+'</p></div>';
+  }).join('');
+  go('s-home');
+}
+function openMod(id){ if(id==='jobcost'){ go('s-jobcost'); loadJobCost(); } }
+
+function fmt(n){return Math.round(n).toLocaleString();}
+function loadJobCost(){
+  document.getElementById('jc-body').innerHTML='<div class="center"><div class="num">กำลังโหลดข้อมูลต้นทุน…</div></div>';
+  google.script.run.withSuccessHandler(function(d){
+    if(!d||!d.jobs){document.getElementById('jc-body').innerHTML='<div class="center">ยังไม่มีข้อมูล (รัน rebuild ก่อน)</div>';return;}
+    var withData=d.months.filter(function(x){return x>0}).length;
+    var h='<div class="kpis">'+
+      '<div class="kpi" style="--kc:var(--brand)"><div class="l">ต้นทุน Direct รวม</div><div class="v num">฿'+(d.total>=1e6?(d.total/1e6).toFixed(2)+'M':fmt(d.total))+'</div></div>'+
+      '<div class="kpi" style="--kc:var(--blue)"><div class="l">จ๊อบที่มีต้นทุน</div><div class="v num">'+d.jobs.length+'</div></div>'+
+      '<div class="kpi" style="--kc:var(--ok)"><div class="l">เดือนที่มีข้อมูล</div><div class="v num">'+withData+'</div></div></div>';
+    h+='<div class="panel"><div style="overflow:auto;max-height:460px"><table><thead><tr><th>ประเภท</th><th>Job Code</th><th>ชื่องาน</th><th style="text-align:right">ต้นทุนรวม</th></tr></thead><tbody>';
+    d.jobs.slice(0,300).sort(function(a,b){return b.stt-a.stt}).forEach(function(j){h+='<tr><td>'+j.type+'</td><td class="num">'+j.code+'</td><td>'+j.name+'</td><td style="text-align:right;font-weight:600" class="num">'+fmt(j.stt)+'</td></tr>';});
+    h+='</tbody></table></div></div>';
+    document.getElementById('jc-body').innerHTML=h;
+  }).withFailureHandler(function(e){document.getElementById('jc-body').innerHTML='<div class="center">โหลดไม่สำเร็จ: '+e.message+'</div>';}).getMasterData();
+}
+document.getElementById('lg-pin').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+</script>
+</body>
+</html>

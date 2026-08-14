@@ -736,19 +736,10 @@ function registerEmployeeByCode(lineId, empId, lineName) {
   var data=empSheet.getDataRange().getValues(); var today=new Date().toLocaleDateString('th-TH');
   for (var i=1;i<data.length;i++) {
     if (String(data[i][0]).trim()===String(empId).trim()) {
-      var rowN=i+1;
-      empSheet.getRange(rowN,4).setValue(lineId).setBackground('#E8F5E9').setFontColor('#1B5E20').setFontWeight('bold'); // D LINE ID
-      empSheet.getRange(rowN,8).setValue(String(lineName||'')).setFontColor('#1565C0');                                 // H LINE Name
-      empSheet.getRange(rowN,9).setValue(today);                                                                        // I วันที่ลงทะเบียน
-      // ── ตอน register ครั้งแรก: ออก PIN 6 หลัก + set Role/บริษัท/สถานะ (ถ้ายังไม่มี) ──
-      var pin=String(data[i][10]||'').trim();   // K PIN
-      if(!pin){ pin=('00000'+Math.floor(Math.random()*1000000)).slice(-6); empSheet.getRange(rowN,11).setNumberFormat('@STRING@').setValue(pin); }
-      var role=String(data[i][11]||'').trim();  // L Role
-      if(!role){ role='พนักงาน'; empSheet.getRange(rowN,12).setValue(role); }
-      if(!String(data[i][12]||'').trim()) empSheet.getRange(rowN,13).setValue('STT');    // M บริษัท (STT ก่อน)
-      empSheet.getRange(rowN,14).setNumberFormat('@STRING@').setValue(String(lineId));   // N Device ID (ผูกเครื่อง = LINE ID)
-      empSheet.getRange(rowN,15).setValue('Active');                                     // O สถานะ
-      return {ok:true,empId:String(data[i][0]).trim(),empName:String(data[i][1]).trim(),empDept:String(data[i][2]).trim(),empRole:String(data[i][4]).trim(),empDeptMain:String(data[i][9]||'').trim(),pin:pin,role:role,company:String(data[i][12]||'STT').trim()};
+      empSheet.getRange(i+1,4).setValue(lineId).setBackground('#E8F5E9').setFontColor('#1B5E20').setFontWeight('bold');
+      empSheet.getRange(i+1,8).setValue(String(lineName||'')).setFontColor('#1565C0');
+      empSheet.getRange(i+1,9).setValue(today);
+      return {ok:true,empId:String(data[i][0]).trim(),empName:String(data[i][1]).trim(),empDept:String(data[i][2]).trim(),empRole:String(data[i][4]).trim(),empDeptMain:String(data[i][9]||'').trim()};
     }
   }
   return {ok:false,message:'ไม่พบรหัสพนักงาน '+empId};
@@ -785,21 +776,6 @@ function importEmployeeData() {
     for (var j=0;j<rows.length;j++) { if (j%2===0) empSheet.getRange(j+2,1,1,headers.length).setBackground('#F8F9FA'); if (rows[j][3]) empSheet.getRange(j+2,4).setBackground('#E8F5E9').setFontColor('#1B5E20').setFontWeight('bold'); } }
   Logger.log('Sync: '+rows.length+' คน (เก็บ LINE/PIN/Role/Department ไว้)');
   try { SpreadsheetApp.getUi().alert('Sync พนักงานสำเร็จ! '+rows.length+' คน'); } catch(e) { Logger.log('Sync สำเร็จ '+rows.length+' คน (standalone)'); }
-}
-
-/** ออก PIN 6 หลักให้พนักงานทุกคนที่ยังไม่มี + set Role/สถานะ default (รันครั้งเดียวตอนเริ่มใช้ Login) */
-function generatePinsForAll() {
-  var sheet=SpreadsheetApp.openById(DATA_SHEET_ID).getSheetByName(EMP_LIST_SHEET);
-  if(!sheet) { Logger.log('ไม่พบ Employee_List'); return; }
-  var data=sheet.getDataRange().getValues(); var n=0;
-  for(var i=1;i<data.length;i++){
-    var eid=String(data[i][0]).trim(); if(!eid) continue;
-    if(!String(data[i][10]||'').trim()){ var pin=('00000'+Math.floor(Math.random()*1000000)).slice(-6); sheet.getRange(i+1,11).setNumberFormat('@STRING@').setValue(pin); n++; }
-    if(!String(data[i][11]||'').trim()) sheet.getRange(i+1,12).setValue('พนักงาน');
-    if(!String(data[i][14]||'').trim()) sheet.getRange(i+1,15).setValue('Active');
-  }
-  Logger.log('ออก PIN ใหม่ '+n+' คน');
-  try{ SpreadsheetApp.getUi().alert('ออก PIN ให้ '+n+' คน'); }catch(e){}
 }
 
 // ============================================================
