@@ -145,7 +145,7 @@ tfoot td{padding:10px 11px}
 </style>
 </head>
 <body>
-<style>.sidetoggle{background:none;border:none;font-size:21px;cursor:pointer;color:var(--ink2);padding:2px 8px;margin-right:2px;border-radius:8px}.sidetoggle:hover{background:#F0F1F4}.app.narrow .side{display:none}</style><div id="ver" style="position:fixed;bottom:9px;right:11px;font-size:10.5px;color:#6E7887;background:#fff;padding:3px 10px;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:99;font-weight:600">v…</div>
+<style>.sidetoggle{background:none;border:none;font-size:21px;cursor:pointer;color:var(--ink2);padding:2px 8px;margin-right:2px;border-radius:8px}.sidetoggle:hover{background:#F0F1F4}.app.narrow .side{display:none}.dt{width:100%;border-collapse:collapse;font-size:12px}.dt thead th{position:sticky;top:0;background:#EEF2F7;z-index:3;text-align:left;padding:9px 12px;font-weight:700;color:var(--ink2);border-bottom:2px solid #D6DEE8;white-space:nowrap}.dt td{padding:7px 12px;border-bottom:1px solid var(--line);white-space:nowrap}.dt tbody tr:nth-child(even){background:#FAFBFD}.dt tbody tr:hover{background:#EAF1FD}.ttable{overflow:auto;max-height:64vh;border:1px solid var(--line2);border-radius:12px;box-shadow:var(--sh)}.tbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}.tsrch{display:flex;align-items:center;gap:7px;border:1.5px solid var(--line2);border-radius:10px;padding:8px 13px;background:#fff;min-width:260px}.tsrch i{color:var(--hint)}.tsrch input{border:none;outline:none;font-family:inherit;font-size:13.5px;width:100%}.btnref{border:1px solid var(--line2);background:#fff;border-radius:10px;padding:8px 11px;cursor:pointer;color:var(--ink2);font-size:16px}.btnref:hover{background:#F0F1F4}</style><div id="ver" style="position:fixed;bottom:9px;right:11px;font-size:10.5px;color:#6E7887;background:#fff;padding:3px 10px;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:99;font-weight:600">v…</div>
 
 <!-- LOGIN -->
 <section id="login" class="screen active">
@@ -390,24 +390,36 @@ function mRow(c,n,emp,sub,tot,est,dif,pe,sale,ps){var col=v=>v<85?'var(--ok)':v<
 function mini(ic,l,v,c){return '<div style="flex:1;min-width:150px;background:#fff;border:1px solid var(--line);border-left:4px solid '+c+';border-radius:11px;padding:11px 13px"><div style="font-size:11.5px;color:var(--muted)"><i class="ti '+ic+'"></i> '+l+'</div><div style="font-weight:800;font-size:15px;margin-top:3px">'+v+'</div></div>';}
 function lg(c,n,p,d){return '<div class="li"><span class="sw" style="background:'+c+'"></span><div><b>'+n+' · '+p+'</b><div style="font-size:11.5px;color:var(--muted)">'+d+'</div></div></div>';}
 
-/* ===== REAL DATA OVERRIDES (ดึงจากไฟล์ Cal รายเดือนจริง) ===== */
+/* ===== REAL DATA (ตาราง: หัวติดหน้า + ค้นหา/กรอง + cache ไม่ดึงซ้ำ + รีเฟรช) ===== */
+var CALCACHE={}, CALPARAMS={};
 function MOPT(sel){return [1,2,3,4,5,6,7].map(function(m){return '<option value="'+m+'"'+(m==sel?' selected':'')+'>เดือน '+m+'</option>';}).join('');}
-function loadCalTab(month,tabName,targetId,title){var t=document.getElementById(targetId);if(!t)return;t.innerHTML='<div class="center">กำลังโหลด '+title+' เดือน '+month+'…</div>';
- google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){t.innerHTML='<div class="center">'+((r&&r.message)||'โหลดไม่ได้')+'</div>';return;}
-  var head=r.headers.map(function(hh){return '<th>'+(hh||'')+'</th>';}).join('');
-  var body=r.rows.map(function(row){return '<tr>'+row.map(function(c){return '<td>'+((c===''||c==null)?'':c)+'</td>';}).join('')+'</tr>';}).join('');
-  t.innerHTML='<div class="note"><i class="ti ti-database"></i> '+r.file+' &middot; แท็บ '+r.tab+' &middot; '+r.total+' แถว'+(r.total>1500?' (แสดง 1500 แรก)':'')+'</div><div style="overflow:auto;max-height:600px;border:1px solid var(--line);border-radius:10px"><table style="font-size:11px;white-space:nowrap"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
- }).withFailureHandler(function(e){t.innerHTML='<div class="center">โหลดไม่ได้: '+e.message+'</div>';}).getCalTab(month,tabName);}
 var MOSEL='style="padding:6px 10px;border:1px solid var(--line2);border-radius:8px;font-family:inherit;margin-left:6px"';
+function ckey(targetId,month,tab,fn){return targetId+'|'+month+'|'+tab+'|'+(fn||'c');}
+function loadCalTab(month,tab,targetId,title,fn){CALPARAMS[targetId]={m:month,tab:tab,title:title,fn:fn||''};
+ var key=ckey(targetId,month,tab,fn);if(CALCACHE[key]){buildTable(key,targetId);return;}
+ var t=document.getElementById(targetId);if(t)t.innerHTML='<div class="center">กำลังโหลด '+title+' เดือน '+month+'…</div>';
+ var run=google.script.run.withSuccessHandler(function(r){CALCACHE[key]=r;buildTable(key,targetId);}).withFailureHandler(function(e){if(t)t.innerHTML='<div class="center">โหลดไม่ได้: '+e.message+'</div>';});
+ if(fn==='getPayrollActual')run.getPayrollActual(month);else run.getCalTab(month,tab);}
+function refreshTab(targetId){var pr=CALPARAMS[targetId];if(!pr)return;delete CALCACHE[ckey(targetId,pr.m,pr.tab,pr.fn)];loadCalTab(pr.m,pr.tab,targetId,pr.title,pr.fn);}
+function buildTable(key,targetId){var r=CALCACHE[key],t=document.getElementById(targetId);if(!t)return;
+ if(!r||!r.ok){t.innerHTML='<div class="center">'+((r&&r.message)||'ไม่มีข้อมูล')+'</div>';return;}
+ t.innerHTML='<div class="tbar"><div class="tsrch"><i class="ti ti-search"></i><input placeholder="ค้นหา/กรองทุกคอลัมน์…" oninput="CALCACHE[\''+key+'\'].__q=this.value;fillBody(\''+key+'\',\''+targetId+'\')"></div><button class="btnref" onclick="refreshTab(\''+targetId+'\')" title="ดึงข้อมูลใหม่"><i class="ti ti-refresh"></i></button><span class="note" style="margin:0" id="'+targetId+'_cnt"></span><span style="margin-left:auto;font-size:11px;color:var(--hint)">'+r.file+' · '+r.tab+'</span></div><div class="ttable" id="'+targetId+'_tb"></div>';
+ fillBody(key,targetId);}
+function fillBody(key,targetId){var r=CALCACHE[key];if(!r)return;var q=(r.__q||'').toLowerCase();
+ var rows=q?r.rows.filter(function(row){return row.some(function(c){return String(c).toLowerCase().indexOf(q)>=0;});}):r.rows;
+ var head=r.headers.map(function(x){return '<th>'+(x||'')+'</th>';}).join('');
+ var body=rows.slice(0,1200).map(function(row){return '<tr>'+row.map(function(c){return '<td>'+((c===''||c==null)?'':c)+'</td>';}).join('')+'</tr>';}).join('');
+ var tb=document.getElementById(targetId+'_tb');if(tb)tb.innerHTML='<table class="dt"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table>';
+ var cnt=document.getElementById(targetId+'_cnt');if(cnt)cnt.textContent=rows.length+' / '+r.total+' แถว';}
 function ptCal(){window.__after=function(){loadCalTab(document.getElementById('calmo').value,'JOB_COST_DIRECT','calbody','Cal');};
- return '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--brandbg);color:var(--brand)"><i class="ti ti-calculator"></i></span> Cal Jobcost &mdash; รายละเอียดการคำนวณ (เหมือนไฟล์ Excel) เดือน <select id="calmo" onchange="loadCalTab(this.value,\'JOB_COST_DIRECT\',\'calbody\',\'Cal\')" '+MOSEL+'>'+MOPT(7)+'</select></div><div id="calbody"><div class="center">กำลังโหลด…</div></div></div>';}
+ return '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--brandbg);color:var(--brand)"><i class="ti ti-calculator"></i></span> Cal Jobcost — รายละเอียดการคำนวณ เดือน <select id="calmo" onchange="loadCalTab(this.value,\'JOB_COST_DIRECT\',\'calbody\',\'Cal\')" '+MOSEL+'>'+MOPT(7)+'</select></div><div id="calbody"><div class="center">กำลังโหลด…</div></div></div>';}
 function ptJT(){window.__after=function(){loadCalTab(document.getElementById('jtmo').value,'IMPORT_TIMESHEET','jtbody','Time');};
- return '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--bluebg);color:var(--blue)"><i class="ti ti-clipboard-data"></i></span> Time JOBTRACK &mdash; ชั่วโมงทำงานรายบรรทัด เดือน <select id="jtmo" onchange="loadCalTab(this.value,\'IMPORT_TIMESHEET\',\'jtbody\',\'Time\')" '+MOSEL+'>'+MOPT(7)+'</select></div><div id="jtbody"><div class="center">กำลังโหลด…</div></div></div>';}
-function ptPay(){if(!window.ME||mapRole(ME.role)==='staff')return '<div class="panel"><div class="center" style="padding:40px"><i class="ti ti-lock" style="font-size:32px;color:var(--brand)"></i><div style="margin-top:10px;font-weight:700">ข้อมูลลับ &mdash; เฉพาะ HR/ผู้บริหาร</div></div></div>';
- window.__after=function(){loadCalTab(document.getElementById('paymo').value,'PAYROLL_SUMMARY','paybody','Payroll');};
- return '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--brandbg);color:var(--brand)"><i class="ti ti-cash"></i></span> Data Payroll (เงินเดือนจริง) เดือน <select id="paymo" onchange="loadCalTab(this.value,\'PAYROLL_SUMMARY\',\'paybody\',\'Payroll\')" '+MOSEL+'>'+MOPT(7)+'</select> <span class="tag" style="background:var(--dangbg);color:var(--dang)">ลับ</span></div><div id="paybody"><div class="center">กำลังโหลด…</div></div></div>';}
+ return '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--bluebg);color:var(--blue)"><i class="ti ti-clipboard-data"></i></span> Time JOBTRACK — ชั่วโมงทำงาน เดือน <select id="jtmo" onchange="loadCalTab(this.value,\'IMPORT_TIMESHEET\',\'jtbody\',\'Time\')" '+MOSEL+'>'+MOPT(7)+'</select></div><div id="jtbody"><div class="center">กำลังโหลด…</div></div></div>';}
+function ptPay(){if(!window.ME||mapRole(ME.role)==='staff')return '<div class="panel"><div class="center" style="padding:40px"><i class="ti ti-lock" style="font-size:32px;color:var(--brand)"></i><div style="margin-top:10px;font-weight:700">ข้อมูลลับ — เฉพาะ HR/ผู้บริหาร</div></div></div>';
+ window.__after=function(){loadCalTab(document.getElementById('paymo').value,'','paybody','Payroll','getPayrollActual');};
+ return '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--brandbg);color:var(--brand)"><i class="ti ti-cash"></i></span> Data Payroll — เงินเดือนจ่ายจริง (Payroll Actual) เดือน <select id="paymo" onchange="loadCalTab(this.value,\'\',\'paybody\',\'Payroll\',\'getPayrollActual\')" '+MOSEL+'>'+MOPT(7)+'</select> <span class="tag" style="background:var(--dangbg);color:var(--dang)">ลับ</span></div><div id="paybody"><div class="center">กำลังโหลด…</div></div></div>';}
 function dPerf(){window.__after=function(){loadCalTab(document.getElementById('perfmo').value,'PERFORMANCE','perfbody','Performance');};
- return '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--okbg);color:var(--ok)"><i class="ti ti-user-star"></i></span> Performance พนักงาน (เทียบเวลาจริงกับมาตรฐาน) เดือน <select id="perfmo" onchange="loadCalTab(this.value,\'PERFORMANCE\',\'perfbody\',\'Performance\')" '+MOSEL+'>'+MOPT(7)+'</select></div><div id="perfbody"><div class="center">กำลังโหลด…</div></div></div>';}
+ return '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--okbg);color:var(--ok)"><i class="ti ti-user-star"></i></span> Performance พนักงาน เดือน <select id="perfmo" onchange="loadCalTab(this.value,\'PERFORMANCE\',\'perfbody\',\'Performance\')" '+MOSEL+'>'+MOPT(7)+'</select></div><div id="perfbody"><div class="center">กำลังโหลด…</div></div></div>';}
 
 google.script.run.withSuccessHandler(function(v){var e=document.getElementById('ver');if(e)e.textContent=v;var e2=document.getElementById('ver2');if(e2)e2.textContent=v;}).getVersion();
 </script>
