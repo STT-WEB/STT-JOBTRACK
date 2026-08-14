@@ -145,7 +145,7 @@ tfoot td{padding:10px 11px}
 </style>
 </head>
 <body>
-<div id="ver" style="position:fixed;bottom:9px;right:11px;font-size:10.5px;color:#6E7887;background:#fff;padding:3px 10px;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:99;font-weight:600">v…</div>
+<style>.sidetoggle{background:none;border:none;font-size:21px;cursor:pointer;color:var(--ink2);padding:2px 8px;margin-right:2px;border-radius:8px}.sidetoggle:hover{background:#F0F1F4}.app.narrow .side{display:none}</style><div id="ver" style="position:fixed;bottom:9px;right:11px;font-size:10.5px;color:#6E7887;background:#fff;padding:3px 10px;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:99;font-weight:600">v…</div>
 
 <!-- LOGIN -->
 <section id="login" class="screen active">
@@ -198,7 +198,7 @@ tfoot td{padding:10px 11px}
    <div class="foot"><div class="avatar" id="favatar">บร</div><div style="font-size:12.5px"><b id="fname">คุณเบียร์</b><br><span style="color:var(--hint);font-size:11px" id="frole">ผู้บริหาร</span></div></div>
   </aside>
   <div class="main">
-   <div class="topbar">
+   <div class="topbar"><button class="sidetoggle" onclick="document.querySelector('.app').classList.toggle('narrow')"><i class="ti ti-menu-2"></i></button>
     <div class="tt" id="pgtitle">ภาพรวม<small id="pgsub">หน้าแรก</small></div>
     <div class="searchb"><i class="ti ti-search"></i> ค้นหา…</div>
     <div class="cochip"><span class="dot"></span> STT</div>
@@ -249,7 +249,7 @@ function renderNav(){var r=role();
 function setRole(){renderNav();nav(role()==='staff'?'activity':'home');}
 function nav(id){renderNav();var m=MODULES.find(x=>x.id===id);var li=document.getElementById('nav-'+id);if(li)li.classList.add('on');
  document.getElementById('pgtitle').firstChild.textContent=m.name;document.getElementById('pgsub').textContent=m.sub;
- document.getElementById('content').innerHTML=VIEWS[id]();window.scrollTo(0,0);}
+ document.getElementById('content').innerHTML=VIEWS[id]();window.scrollTo(0,0);if(window.__after){var __f=window.__after;window.__after=null;__f();}}
 function kpi(ic,c,l,v,x,xc){return '<div class="kpi" style="--kc:'+c+'"><div class="top"><div class="l">'+l+'</div><div class="ic" style="background:'+c+'22;color:'+c+'"><i class="ti '+ic+'"></i></div></div><div class="v num">'+v+'</div><div class="x '+(xc||'')+'">'+x+'</div></div>';}
 function tag(c,t){return '<span class="tag '+c+'">'+t+'</span>';}
 function bar(m,h,v,col){return '<div class="c"><div class="vv">'+v+'</div><div class="b" style="height:'+h+'px;background:linear-gradient(180deg,'+col+',#ffffff44)"></div><div class="m">'+m+'</div></div>';}
@@ -287,10 +287,10 @@ function emprow(n,c,d,t,p,rl){var i=n.split(' ')[1]?n.split(' ')[1].slice(0,2):n
 /* ===== PAYROLL 6 TABS ===== */
 var PTAB=0, DTAB=0;
 function openTrace(h){document.getElementById('tracebody').innerHTML='<div class="pt"><span class="iconchip" style="background:var(--bluebg);color:var(--blue)"><i class="ti ti-route"></i></span> ที่มาของตัวเลขนี้</div><div style="font-size:13px;color:var(--ink2);line-height:1.6">'+h+'</div><div style="text-align:right;margin-top:14px"><button class="btn sm ghost" onclick="document.getElementById(\'tracemodal\').style.display=\'none\'">ปิด</button></div>';document.getElementById('tracemodal').style.display='flex';}
-function payroll(){var tabs=[['ti-upload','อัปโหลด Bplus'],['ti-clipboard-data','Time JOBTRACK'],['ti-arrows-diff','Reconcile'],['ti-lock','Data Payroll'],['ti-calculator','Cal Jobcost'],['ti-table','Dashboard']];
- var t='<div class="pageh">Payroll · Job Cost</div><div class="pagesub">อัปโหลด Bplus → ดึง JOBTRACK → Reconcile (ด่าน) → คำนวณ → Dashboard · สมมติ</div>';
- t+='<div class="tabs">'+tabs.map((x,i)=>'<button class="tab '+(i===PTAB?'on':'')+'" onclick="PTAB='+i+';nav(\'payroll\')"><span class="n">'+(i+1)+'</span><i class="ti '+x[0]+'"></i> '+x[1]+'</button>').join('')+'</div>';
- return t+[ptBplus,ptJT,ptRecon,ptPay,ptCal,ptDash][PTAB]();}
+function payroll(){var tabs=[['ti-clipboard-data','Time JOBTRACK'],['ti-arrows-diff','Reconcile'],['ti-lock','Data Payroll'],['ti-calculator','Cal Jobcost'],['ti-table','Dashboard']];
+ var t='<div class="pageh">Payroll &middot; Job Cost</div><div class="pagesub">ดึง JOBTRACK &rarr; Reconcile (ด่าน) &rarr; คำนวณ &rarr; Dashboard</div>';
+ t+='<div class="tabs">'+tabs.map(function(x,i){return '<button class="tab '+(i===PTAB?'on':'')+'" onclick="PTAB='+i+';nav(\'payroll\')"><span class="n">'+(i+1)+'</span><i class="ti '+x[0]+'"></i> '+x[1]+'</button>';}).join('')+'</div>';
+ return t+[ptJT,ptRecon,ptPay,ptCal,ptDash][PTAB]();}
 
 function ptBplus(){return '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--brandbg);color:var(--brand)"><i class="ti ti-clipboard-text"></i></span> เวลา Bplus — HR วางข้อมูลลงชีต Template รายเดือน</div>'+
  '<div class="drop" style="border-color:var(--blue);background:linear-gradient(180deg,#F3F7FE,#fff)"><i class="ti ti-table-plus" style="color:var(--blue)"></i><div style="margin-top:8px;font-weight:600;color:var(--ink2)">เปิดชีต Template เดือน สิงหาคม แล้ว Paste ข้อมูลเวลา Bplus ลงไป</div><div class="note" style="justify-content:center">ระบบอ่านจากชีตนี้เข้า <b>BPLUS_TIME_2026</b> (แยก tab เดือน) เอง · ปีหน้าเปิดไฟล์ใหม่อัตโนมัติ</div><div style="margin-top:12px"><button class="btn sm" style="background:var(--blue)"><i class="ti ti-external-link"></i> เปิดชีต Template ส.ค.</button></div></div></div>'+
@@ -304,7 +304,7 @@ function ptJT(){return '<div class="panel"><div class="pt"><span class="iconchip
  [['1068016','นายSISAVAT',176,71,28,275,'JOBTRACK'],['1068055','นายวิรัตน์',164,57,24,245,'JOBTRACK'],['6711001','นายยุทธนา',184,20,0,204,'JOBTRACK']].map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+r[1]+'</td><td class="mono">'+r[2]+'</td><td class="mono">'+r[3]+'</td><td class="mono">'+r[4]+'</td><td class="mono"><b>'+r[5]+'</b></td><td><span class="src"><i class="ti ti-database"></i> '+r[6]+'</span></td></tr>').join('')+
  '</tbody></table><div class="note"><i class="ti ti-refresh"></i> เดือนใหม่ = JOBTRACK สด · เดือนเก่า (ยังไม่มี JOBTRACK) = ดึง timesheet เดิมจากไฟล์ Cal มาเป็นประวัติ</div></div>';}
 
-function ptRecon(){return '<div class="panel" style="border:none;background:linear-gradient(135deg,#B7791F,#94610F);color:#fff"><div class="pt" style="color:#fff"><span class="iconchip" style="background:#ffffff33;color:#fff"><i class="ti ti-shield-check"></i></span> ด่านตรวจ — ต้องผ่านก่อนคำนวณต้นทุน/ทำเงินเดือน</div>'+
+function ptRecon(){return '<div class="panel" style="border:1.5px dashed var(--warn);background:var(--warnbg)"><div class="pt" style="color:var(--warn)"><i class="ti ti-tools"></i> Reconcile กำลังพัฒนา &mdash; เดือน 7 ยังไม่ต้องใช้ (ด้านล่างเป็นตัวอย่าง)</div></div>'+'<div class="panel" style="border:none;background:linear-gradient(135deg,#B7791F,#94610F);color:#fff"><div class="pt" style="color:#fff"><span class="iconchip" style="background:#ffffff33;color:#fff"><i class="ti ti-shield-check"></i></span> ด่านตรวจ — ต้องผ่านก่อนคำนวณต้นทุน/ทำเงินเดือน</div>'+
  '<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center"><div><div class="num" style="font-size:30px;font-weight:800">53<span style="font-size:16px;opacity:.8">/54</span></div><div style="font-size:12px;opacity:.85">ผ่าน</div></div><div style="height:38px;width:1px;background:#ffffff44"></div><div><div class="num" style="font-size:30px;font-weight:800">1</div><div style="font-size:12px;opacity:.85">ต้องตรวจ</div></div><button class="btn ghost" style="margin-left:auto;color:var(--ink2)" disabled>ปิดงวด (รอเคลียร์ 1)</button></div></div>'+
  '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--brandbg);color:var(--brand)"><i class="ti ti-arrows-diff"></i></span> เทียบ Bplus (สแกน) ↔ JOBTRACK (ลงงาน) — แยกประเภทชั่วโมง</div>'+
  '<div style="overflow-x:auto"><table><thead><tr><th rowspan="2" style="vertical-align:bottom">พนักงาน</th><th colspan="2" style="text-align:center;background:#EAF1FD">ปกติ</th><th colspan="2" style="text-align:center;background:#F0EBFB">OT</th><th colspan="2" style="text-align:center;background:#FEF6E7">วันหยุด</th><th rowspan="2" style="vertical-align:bottom">ผล</th></tr>'+
@@ -337,17 +337,27 @@ function ptDash(){var it=[['ti-table','Master ต้นทุน'],['ti-user-sta
  var t='<div class="tabs" style="margin-bottom:14px">'+it.map((x,i)=>'<button class="tab '+(i===DTAB?'on':'')+'" onclick="DTAB='+i+';nav(\'payroll\')"><i class="ti '+x[0]+'"></i> '+x[1]+'</button>').join('')+'</div>';
  return t+[dMaster,dPerf,dDrill][DTAB]();}
 
-function dMaster(){var MN=['ม.ค','ก.พ','มี.ค','เม.ย','พ.ค','มิ.ย','ก.ค','ส.ค','ก.ย','ต.ค','พ.ย','ธ.ค'];
- var head='<th>Job</th><th>งาน</th><th>ยกมา</th>'+MN.map(m=>'<th>'+m+'</th>').join('')+'<th>รวมพนง.</th><th>ผรม.</th><th>Total</th><th>Est</th><th>%/Est</th><th>Sale</th><th>%/Sale</th><th>คุม≤90%</th>';
- return '<div class="filterchips"><span class="fchip on">ทั้งหมด</span><span class="fchip">JT</span><span class="fchip">JM</span><span class="fchip">JP</span><span class="fchip">อื่นๆ</span></div>'+
- '<div class="kpis">'+kpi('ti-briefcase','var(--brand)','จ๊อบใน WIP','149','')+kpi('ti-cash','var(--blue)','ต้นทุนสะสม','฿6.72M','7 เดือน','')+kpi('ti-arrow-forward','var(--warn)','ยกมาข้ามปี','฿0.41M','','')+kpi('ti-flag','var(--dang)','ส่งมอบแล้วมี Cost','1','ต้องอนุมัติ','down')+'</div>'+
- '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--bluebg);color:var(--blue)"><i class="ti ti-table"></i></span> Master ต้นทุนต่อจ๊อบ · 12 เดือน + งบ + กำไร<span class="badge" style="background:var(--bluebg);color:var(--blue)">→ GGS</span></div>'+
- '<div style="overflow-x:auto"><table style="font-size:11.5px;white-space:nowrap"><thead><tr>'+head+'</tr></thead><tbody>'+
- mMon('JT-69/0007','แท็งค์ เข็มเหล็ก',120400,[0,0,0,60,90,120,150,0,0,0,0,0],180,800,1050)+
- mMon('JM-69/0021','ซ่อม S1',0,[0,0,0,0,63,67,68.54,0,0,0,0,0],0,240,300)+
- mMon('JP-69/0007','เข็มเหล็ก',0,[0,0,0,0,80,85,80.18,0,0,0,0,0],60,320,400)+
- '</tbody></table></div><div class="note"><i class="ti ti-info-circle"></i> หน่วยพันบาท(สมมติ) · Total = รวมพนง.+ผรม. · %/Est,%/Sale = Total÷งบ · คุม≤90% เขียว/เกินแดง · ยกมา = จ๊อบข้ามปี</div></div>'+
- dRedFlag();}
+function fmt(n){return Math.round(Number(n)||0).toLocaleString();}
+var JCF='', RMDATA=null;
+function dMaster(){window.__after=loadRealMaster;
+ return '<div class="filterchips"><span class="fchip'+(JCF===''?' on':'')+'" onclick="JCF=\'\';loadRealMaster()">ทั้งหมด</span><span class="fchip'+(JCF==='JT'?' on':'')+'" onclick="JCF=\'JT\';loadRealMaster()">JT</span><span class="fchip'+(JCF==='JM'?' on':'')+'" onclick="JCF=\'JM\';loadRealMaster()">JM</span><span class="fchip'+(JCF==='JP'?' on':'')+'" onclick="JCF=\'JP\';loadRealMaster()">JP</span><span class="fchip'+(JCF==='OTHER'?' on':'')+'" onclick="JCF=\'OTHER\';loadRealMaster()">อื่นๆ</span></div>'+
+ '<div class="kpis" id="rmkpi"><div class="kpi"><div class="l">กำลังโหลด…</div></div></div>'+
+ '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--bluebg);color:var(--blue)"><i class="ti ti-table"></i></span> Master ต้นทุนต่อจ๊อบ &middot; ทุกจ๊อบ &middot; 12 เดือน <span class="badge" style="background:var(--okbg);color:var(--ok)">ข้อมูลจริง</span></div>'+
+ '<div id="rmwrap" style="overflow:auto;max-height:600px"><div class="center">กำลังโหลดข้อมูลจริง…</div></div></div>'+dRedFlag();}
+function loadRealMaster(){ if(RMDATA){renderRM();return;}
+ google.script.run.withSuccessHandler(function(d){RMDATA=d;renderRM();}).withFailureHandler(function(e){var w=document.getElementById('rmwrap');if(w)w.innerHTML='<div class="center">โหลดไม่ได้: '+e.message+'</div>';}).getMasterData();}
+function renderRM(){var d=RMDATA;if(!d)return;var MN=['ม.ค','ก.พ','มี.ค','เม.ย','พ.ค','มิ.ย','ก.ค','ส.ค','ก.ย','ต.ค','พ.ย','ธ.ค'];
+ var main=['JT','JM','JP'];
+ var jobs=d.jobs.filter(function(j){ if(!JCF)return true; if(JCF==='OTHER')return main.indexOf(j.type)<0; return j.type===JCF; });
+ jobs=jobs.slice().sort(function(a,b){return a.type===b.type?String(a.code).localeCompare(String(b.code)):String(a.type).localeCompare(String(b.type));});
+ var withData=d.months.filter(function(x){return x>0;}).length;
+ var kh=document.getElementById('rmkpi');
+ if(kh)kh.innerHTML=kpi('ti-briefcase','var(--brand)','จ๊อบทั้งหมด',d.jobs.length,'','')+kpi('ti-cash','var(--blue)','ต้นทุนสะสม','฿'+(d.total>=1e6?(d.total/1e6).toFixed(2)+'M':fmt(d.total)),withData+' เดือน','')+kpi('ti-filter','var(--ok)','กำลังแสดง',jobs.length,(JCF||'ทั้งหมด'),'');
+ var head='<th>ประเภท</th><th>Job Code</th><th>งาน</th>'+MN.map(function(m){return '<th style="text-align:right">'+m+'</th>';}).join('')+'<th style="text-align:right">รวม</th>';
+ var body=jobs.map(function(j){var cells=j.months.map(function(v){return '<td class="mono" style="text-align:right">'+(v>0?fmt(v):'-')+'</td>';}).join('');
+   return '<tr><td><span class="tag" style="background:var(--bluebg);color:var(--blue)">'+j.type+'</span></td><td class="mono">'+j.code+'</td><td>'+j.name+'</td>'+cells+'<td class="mono" style="text-align:right;font-weight:700">'+fmt(j.stt)+'</td></tr>';}).join('');
+ var tot='<tr style="background:var(--brandbg);font-weight:700"><td colspan="3">รวม '+jobs.length+' จ๊อบ</td>'+MN.map(function(m,i){return '<td class="mono" style="text-align:right">'+fmt(jobs.reduce(function(s,j){return s+(j.months[i]||0);},0))+'</td>';}).join('')+'<td class="mono" style="text-align:right">'+fmt(jobs.reduce(function(s,j){return s+j.stt;},0))+'</td></tr>';
+ var w=document.getElementById('rmwrap');if(w)w.innerHTML='<table style="font-size:11px;white-space:nowrap"><thead><tr>'+head+'</tr></thead><tbody>'+body+tot+'</tbody></table>';}
 
 function dPerf(){return '<div class="kpis">'+kpi('ti-award','var(--ok)','Performance เฉลี่ย','82%','','')+kpi('ti-user-x','var(--dang)','ขาด/ลาเยอะสุด','นายPHANNOLA','136 ชม','down')+kpi('ti-checklist','var(--blue)','เกรด A ขึ้นไป','61 คน','จาก 95','')+'</div>'+
  '<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--okbg);color:var(--ok)"><i class="ti ti-user-star"></i></span> Performance พนักงาน — เทียบเวลาจริงกับมาตรฐาน<span class="badge" style="background:var(--okbg);color:var(--ok)">แท็บ PERFORMANCE</span></div>'+
