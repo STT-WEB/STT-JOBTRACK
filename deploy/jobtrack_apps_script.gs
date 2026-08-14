@@ -736,10 +736,19 @@ function registerEmployeeByCode(lineId, empId, lineName) {
   var data=empSheet.getDataRange().getValues(); var today=new Date().toLocaleDateString('th-TH');
   for (var i=1;i<data.length;i++) {
     if (String(data[i][0]).trim()===String(empId).trim()) {
-      empSheet.getRange(i+1,4).setValue(lineId).setBackground('#E8F5E9').setFontColor('#1B5E20').setFontWeight('bold');
-      empSheet.getRange(i+1,8).setValue(String(lineName||'')).setFontColor('#1565C0');
-      empSheet.getRange(i+1,9).setValue(today);
-      return {ok:true,empId:String(data[i][0]).trim(),empName:String(data[i][1]).trim(),empDept:String(data[i][2]).trim(),empRole:String(data[i][4]).trim(),empDeptMain:String(data[i][9]||'').trim()};
+      var rowN=i+1;
+      empSheet.getRange(rowN,4).setValue(lineId).setBackground('#E8F5E9').setFontColor('#1B5E20').setFontWeight('bold'); // D LINE ID
+      empSheet.getRange(rowN,8).setValue(String(lineName||'')).setFontColor('#1565C0');                                 // H LINE Name
+      empSheet.getRange(rowN,9).setValue(today);                                                                        // I วันที่ลงทะเบียน
+      // ── ตอน register ครั้งแรก: ออก PIN 6 หลัก + set Role/บริษัท/สถานะ (ถ้ายังไม่มี) ──
+      var pin=String(data[i][10]||'').trim();   // K PIN
+      if(!pin){ pin=('00000'+Math.floor(Math.random()*1000000)).slice(-6); empSheet.getRange(rowN,11).setNumberFormat('@STRING@').setValue(pin); }
+      var role=String(data[i][11]||'').trim();  // L Role
+      if(!role){ role='พนักงาน'; empSheet.getRange(rowN,12).setValue(role); }
+      if(!String(data[i][12]||'').trim()) empSheet.getRange(rowN,13).setValue('STT');    // M บริษัท (STT ก่อน)
+      empSheet.getRange(rowN,14).setNumberFormat('@STRING@').setValue(String(lineId));   // N Device ID (ผูกเครื่อง = LINE ID)
+      empSheet.getRange(rowN,15).setValue('Active');                                     // O สถานะ
+      return {ok:true,empId:String(data[i][0]).trim(),empName:String(data[i][1]).trim(),empDept:String(data[i][2]).trim(),empRole:String(data[i][4]).trim(),empDeptMain:String(data[i][9]||'').trim(),pin:pin,role:role,company:String(data[i][12]||'STT').trim()};
     }
   }
   return {ok:false,message:'ไม่พบรหัสพนักงาน '+empId};
@@ -752,21 +761,45 @@ function importEmployeeData() {
   var ss=SpreadsheetApp.openById(DATA_SHEET_ID); var srcSheet=ss.getSheetByName(DATA_EMP_SHEET);
   if (!srcSheet) { Logger.log('ไม่พบ: '+DATA_EMP_SHEET); return; }
   var empSheet=ss.getSheetByName(EMP_LIST_SHEET)||ss.insertSheet(EMP_LIST_SHEET);
-  var existingLineIds={};
-  if (empSheet.getLastRow()>1) { var ed=empSheet.getDataRange().getValues(); for (var e=1;e<ed.length;e++) { var eid=String(ed[e][0]).trim(); var lid=String(ed[e][3]).trim(); if (eid&&lid) existingLineIds[eid]=lid; } }
+  // เก็บค่ารันไทม์เดิม (LINE/Department/PIN/Role/บริษัท/Device/สถานะ) keyed by รหัส — กัน sync แล้วข้อมูล login หาย
+  var keep={};
+  if (empSheet.getLastRow()>1) { var ed=empSheet.getDataRange().getValues();
+    for (var e=1;e<ed.length;e++) { var eid=String(ed[e][0]).trim(); if (!eid) continue;
+      keep[eid]={line:ed[e][3]||'',lname:ed[e][7]||'',reg:ed[e][8]||'',dept:ed[e][9]||'',pin:ed[e][10]||'',role:ed[e][11]||'',co:ed[e][12]||'',dev:ed[e][13]||'',st:ed[e][14]||''};
+    } }
   empSheet.clear(); empSheet.clearFormats();
-  var headers=['รหัสพนักงาน','ชื่อพนักงาน','แผนก','LINE ID','ตำแหน่ง','ประเภทพนักงาน','Direct/Indirect','LINE Name','วันที่ลงทะเบียน'];
+  var headers=['รหัสพนักงาน','ชื่อพนักงาน','แผนก','LINE ID','ตำแหน่ง','ประเภทพนักงาน','Direct/Indirect','LINE Name','วันที่ลงทะเบียน','Department','PIN','Role','บริษัท','Device ID','สถานะ'];
   empSheet.appendRow(headers);
   empSheet.getRange(1,1,1,headers.length).setBackground('#0F1117').setFontColor('#00E187').setFontWeight('bold').setFontSize(11);
   empSheet.setFrozenRows(1);
-  [100,180,150,150,160,140,120,150,110].forEach(function(w,i){empSheet.setColumnWidth(i+1,w);});
+  empSheet.getRange(1,11,empSheet.getMaxRows(),1).setNumberFormat('@STRING@'); // PIN เป็น text กัน 0 นำหน้าหาย
+  empSheet.getRange(1,14,empSheet.getMaxRows(),1).setNumberFormat('@STRING@'); // Device ID เป็น text
   var srcData=srcSheet.getDataRange().getValues(); var headerRow=2;
   for (var i=0;i<srcData.length;i++) { if (String(srcData[i][3]).indexOf('รหัสพนักงาน')>=0||String(srcData[i][2]).indexOf('รหัสพนักงาน')>=0) { headerRow=i; break; } }
   var rows=[];
-  for (var r=headerRow+1;r<srcData.length;r++) { var row=srcData[r]; var empId=String(row[3]).trim(); var empName=String(row[4]).trim(); if (!empId||isNaN(Number(empId))||!empName) continue; rows.push([empId,empName,String(row[2]).trim(),existingLineIds[empId]||'',String(row[7]).trim(),String(row[8]).trim(),String(row[10]).trim(),'','']); }
-  if (rows.length>0) { empSheet.getRange(2,1,rows.length,9).setValues(rows); for (var j=0;j<rows.length;j++) { if (j%2===0) empSheet.getRange(j+2,1,1,9).setBackground('#F8F9FA'); if (rows[j][3]) empSheet.getRange(j+2,4).setBackground('#E8F5E9').setFontColor('#1B5E20').setFontWeight('bold'); } }
-  Logger.log('Import: '+rows.length+' คน');
-  try { SpreadsheetApp.getUi().alert('Import สำเร็จ! '+rows.length+' คน'); } catch(e) { Logger.log('Import สำเร็จ! '+rows.length+' คน (standalone)'); }
+  for (var r=headerRow+1;r<srcData.length;r++) { var row=srcData[r]; var empId=String(row[3]).trim(); var empName=String(row[4]).trim(); if (!empId||isNaN(Number(empId))||!empName) continue;
+    var k=keep[empId]||{}; var dept=String(row[2]).trim();
+    rows.push([empId,empName,dept,k.line||'',String(row[7]).trim(),String(row[8]).trim(),String(row[10]).trim(),k.lname||'',k.reg||'',k.dept||dept,k.pin||'',k.role||'',k.co||'',k.dev||'',k.st||'']);
+  }
+  if (rows.length>0) { empSheet.getRange(2,1,rows.length,headers.length).setValues(rows);
+    for (var j=0;j<rows.length;j++) { if (j%2===0) empSheet.getRange(j+2,1,1,headers.length).setBackground('#F8F9FA'); if (rows[j][3]) empSheet.getRange(j+2,4).setBackground('#E8F5E9').setFontColor('#1B5E20').setFontWeight('bold'); } }
+  Logger.log('Sync: '+rows.length+' คน (เก็บ LINE/PIN/Role/Department ไว้)');
+  try { SpreadsheetApp.getUi().alert('Sync พนักงานสำเร็จ! '+rows.length+' คน'); } catch(e) { Logger.log('Sync สำเร็จ '+rows.length+' คน (standalone)'); }
+}
+
+/** ออก PIN 6 หลักให้พนักงานทุกคนที่ยังไม่มี + set Role/สถานะ default (รันครั้งเดียวตอนเริ่มใช้ Login) */
+function generatePinsForAll() {
+  var sheet=SpreadsheetApp.openById(DATA_SHEET_ID).getSheetByName(EMP_LIST_SHEET);
+  if(!sheet) { Logger.log('ไม่พบ Employee_List'); return; }
+  var data=sheet.getDataRange().getValues(); var n=0;
+  for(var i=1;i<data.length;i++){
+    var eid=String(data[i][0]).trim(); if(!eid) continue;
+    if(!String(data[i][10]||'').trim()){ var pin=('00000'+Math.floor(Math.random()*1000000)).slice(-6); sheet.getRange(i+1,11).setNumberFormat('@STRING@').setValue(pin); n++; }
+    if(!String(data[i][11]||'').trim()) sheet.getRange(i+1,12).setValue('พนักงาน');
+    if(!String(data[i][14]||'').trim()) sheet.getRange(i+1,15).setValue('Active');
+  }
+  Logger.log('ออก PIN ใหม่ '+n+' คน');
+  try{ SpreadsheetApp.getUi().alert('ออก PIN ให้ '+n+' คน'); }catch(e){}
 }
 
 // ============================================================
