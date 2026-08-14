@@ -12,8 +12,6 @@ var EMP_SHEET = 'Employee_List';
 
 /** โหลด map พนักงาน (cache) → { code: {name,dept,line,deptMain,pin,role,company,status} } */
 function getEmpMap_(force) {
-  var cache = CacheService.getScriptCache();
-  if (!force) { var c = cache.get('empmap'); if (c) return JSON.parse(c); }
   var sh = SpreadsheetApp.openById(DB_ID).getSheetByName(EMP_SHEET);
   if (!sh) throw new Error('ไม่พบแท็บ ' + EMP_SHEET);
   var v = sh.getDataRange().getValues(), map = {};
@@ -26,8 +24,7 @@ function getEmpMap_(force) {
       status: String(v[i][14] || '').trim()
     };
   }
-  try { cache.put('empmap', JSON.stringify(map), 21600); } catch (e) {}   // 6 ชม. (ถ้าใหญ่เกิน 100KB จะข้าม — ยังทำงานได้แค่ช้าลงนิด)
-  return map;
+  return map;   // อ่านสดทุกครั้ง — เปลี่ยน role ในชีตแล้วเห็นทันทีตอน login ใหม่ ไม่ต้อง clear cache
 }
 
 /** ล้าง cache (เรียกหลังแก้ข้อมูลพนักงาน / sync) */

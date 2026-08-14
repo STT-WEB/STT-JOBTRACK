@@ -131,6 +131,23 @@ td{padding:8px 10px;border-bottom:1px solid var(--line)}
  </div>
 </section>
 
+<!-- ===== WELCOME ===== -->
+<section id="s-welcome" class="screen">
+ <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px;background:radial-gradient(900px 500px at 0% 0%,#FFE9E7 0,transparent 55%),radial-gradient(800px 500px at 100% 100%,#E7ECFB 0,transparent 55%)">
+  <div style="background:#fff;border-radius:20px;box-shadow:var(--sh2);width:100%;max-width:410px;padding:34px 28px;text-align:center">
+   <div style="font-size:46px;line-height:1">👋</div>
+   <div style="font-size:23px;font-weight:800;margin-top:8px">สวัสดี <span style="color:var(--brand)" id="wc-name"></span></div>
+   <div style="color:var(--muted);font-size:14px;margin:10px 0 4px">ยินดีต้อนรับเข้าสู่ระบบ</div>
+   <div style="font-weight:800;font-size:16px;color:var(--navy);margin-bottom:16px">STT NOVA-HR HUB</div>
+   <div style="background:#F7F9FC;border:1px solid var(--line);border-radius:13px;padding:6px 16px;text-align:left;font-size:14px;margin-bottom:18px">
+     <div style="display:flex;justify-content:space-between;padding:9px 0"><span style="color:var(--muted)">รหัสพนักงาน</span><b class="num" id="wc-code"></b></div>
+     <div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)"><span style="color:var(--muted)">ตำแหน่งในระบบ (Role)</span><b id="wc-role" style="color:var(--brand)"></b></div>
+   </div>
+   <button class="btn" onclick="go('s-company')">เข้าสู่ระบบ <i class="ti ti-arrow-right"></i></button>
+  </div>
+ </div>
+</section>
+
 <!-- ===== COMPANY ===== -->
 <section id="s-company" class="screen">
  <div class="copick">
@@ -179,8 +196,11 @@ function doLogin(){
     b.disabled=false;b.innerHTML='เข้าสู่ระบบ';
     if(!r.ok){ if(r.needRegister){showReg();msg('rg-msg',r.message,'err');} else msg('lg-msg',r.message,'err'); return; }
     ME=r;
+    document.getElementById('wc-name').textContent=ME.name||ME.code;
+    document.getElementById('wc-code').textContent=ME.code;
+    document.getElementById('wc-role').textContent=ME.role||'พนักงาน';
     document.getElementById('co-sub').textContent = isMgr(ME.role)?'HR/ผู้บริหารเข้าได้ทั้ง 2 บริษัท':'พนักงานเห็นเฉพาะบริษัทตัวเอง';
-    go('s-company');
+    go('s-welcome');
   }).withFailureHandler(function(e){b.disabled=false;b.innerHTML='เข้าสู่ระบบ';msg('lg-msg','เชื่อมต่อไม่ได้ ลองใหม่','err');}).hubLogin(code,pin);
 }
 function doReg(){
