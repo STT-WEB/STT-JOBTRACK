@@ -12,6 +12,15 @@ function doGet() {
 }
 
 /** อ่านสรุปต่อจ๊อบจากแท็บ MASTER ของ JOBCOST 2026 (เร็ว: อ่านผลที่คำนวณไว้แล้ว) */
+/** ทดสอบว่า backend เห็นข้อมูล Master ไหม — รันแล้วดู Log */
+function testMaster() {
+  var d = getMasterData();
+  Logger.log('📊 MASTER: ' + d.jobs.length + ' จ๊อบ | รวม ' + Math.round(d.total).toLocaleString() + ' บาท');
+  Logger.log('   อ่านจากไฟล์: ' + JOBCOST_FILE_ID);
+  Logger.log('   รายเดือน: ' + d.months.map(function(x){return Math.round(x/1000)+'K';}).join(' '));
+  return d;
+}
+
 function getMasterData() {
   var sh = SpreadsheetApp.openById(JOBCOST_FILE_ID).getSheetByName('MASTER');
   if (!sh) return { jobs: [], months: [0,0,0,0,0,0,0,0,0,0,0,0], total: 0, generated: new Date().toLocaleString('th-TH'), note: 'ยังไม่มีแท็บ MASTER — รัน setupMasterFile ก่อน' };
