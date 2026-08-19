@@ -128,6 +128,8 @@ function getBplus(month) {
 function num_(v) { if (v == null || v === '') return 0; var n = Number(String(v).replace(/[,\s]/g, '')); return isNaN(n) ? 0 : n; }
 function exactCol_(H, name) { for (var c = 0; c < H.length; c++) if (H[c] === name) return c; return -1; }
 function findCol_(H, cands) { for (var c = 0; c < H.length; c++) { for (var k = 0; k < cands.length; k++) if (H[c].indexOf(cands[k]) >= 0) return c; } return -1; }
+var MAJOR_ORDER = ['HR','Account','Design','After Sale Service','Production','Purchase','QC','Sale','Safety','Estimate','Dcc & Admin','(อื่นๆ)'];
+function majorFromCode_(code){var s=String(code||'').trim();var m2={'11':'Estimate','12':'Dcc & Admin'};if(m2[s.substring(0,2)])return m2[s.substring(0,2)];var m1={'1':'HR','2':'Account','3':'Design','4':'After Sale Service','5':'Production','6':'Purchase','7':'QC','8':'Sale','9':'Safety'};return m1[s.charAt(0)]||'(อื่นๆ)';}
 
 function getSalarySummary(scope) {
   try {
@@ -170,20 +172,19 @@ function getSalarySummary(scope) {
       }
     }
     var TH = ['', 'ม.ค', 'ก.พ', 'มี.ค', 'เม.ย', 'พ.ค', 'มิ.ย', 'ก.ค', 'ส.ค', 'ก.ย', 'ต.ค', 'พ.ย', 'ธ.ค'];
-    var months = [], totals = { salary: 0, ot: 0, welfare: 0, labor: 0, chk1: 0, chk2: 0 }, maxDiff = 0;
+    var months = [], totals = { salary: 0, ot: 0, welfare: 0, other: 0, labor: 0, chk1: 0, chk2: 0 };
     for (var mm = 1; mm <= 12; mm++) {
       var b = M[mm]; if (b.rows === 0) continue;
-      var calc = b.salary + b.ot + b.welfare, diff = Math.round((b.labor - calc) * 100) / 100;
-      if (Math.abs(diff) > Math.abs(maxDiff)) maxDiff = diff;
-      months.push({ m: mm, name: TH[mm], salary: b.salary, ot: b.ot, welfare: b.welfare, labor: b.labor,
-        otPct: b.labor ? Math.round(b.ot / b.labor * 1000) / 10 : 0, diff: diff, chk1: b.chk1, chk2: b.chk2, rows: b.rows });
-      totals.salary += b.salary; totals.ot += b.ot; totals.welfare += b.welfare; totals.labor += b.labor; totals.chk1 += b.chk1; totals.chk2 += b.chk2;
+      var other = Math.round((b.labor - b.salary - b.ot - b.welfare) * 100) / 100;
+      months.push({ m: mm, name: TH[mm], salary: b.salary, ot: b.ot, welfare: b.welfare, other: other, labor: b.labor,
+        otPct: b.labor ? Math.round(b.ot / b.labor * 1000) / 10 : 0, chk1: b.chk1, chk2: b.chk2, rows: b.rows });
+      totals.salary += b.salary; totals.ot += b.ot; totals.welfare += b.welfare; totals.other += other; totals.labor += b.labor; totals.chk1 += b.chk1; totals.chk2 += b.chk2;
     }
     totals.otPct = totals.labor ? Math.round(totals.ot / totals.labor * 1000) / 10 : 0;
-    var pass = Math.abs(maxDiff) <= 1 && Math.abs(totals.chk1) <= 1 && Math.abs(totals.chk2) <= 1;
+    var chkPass = Math.abs(totals.chk1) <= 1 && Math.abs(totals.chk2) <= 1;
     return { ok: true, scope: scope, source: srcNames.join(' + '), file: ss.getName(),
       months: months, totals: totals,
-      verify: { maxDiff: maxDiff, chk1: Math.round(totals.chk1 * 100) / 100, chk2: Math.round(totals.chk2 * 100) / 100, pass: pass } };
+      verify: { chk1: Math.round(totals.chk1 * 100) / 100, chk2: Math.round(totals.chk2 * 100) / 100, chkPass: chkPass, otherTotal: Math.round(totals.other * 100) / 100 } };
   } catch (e) { return { ok: false, message: String(e) }; }
 }
 
@@ -193,11 +194,11 @@ function testSalarySummary() {
   if (!d.ok) { Logger.log('❌ ' + d.message); return; }
   Logger.log('📊 STT ' + d.file + ' (' + d.source + ')');
   d.months.forEach(function (r) { Logger.log(r.name + ': เงินเดือน ' + Math.round(r.salary).toLocaleString() + ' | OT ' + Math.round(r.ot).toLocaleString() + ' | สวัสดิการ ' + Math.round(r.welfare).toLocaleString() + ' | ค่าแรงรวม ' + Math.round(r.labor).toLocaleString() + ' | %OT ' + r.otPct + ' | diff ' + r.diff); });
-  Logger.log('รวมทั้งปี: ค่าแรงรวม ' + Math.round(d.totals.labor).toLocaleString() + ' | ตรวจ: ' + (d.verify.pass ? '✔ ผ่าน' : '⚠ ต่างสุด ' + d.verify.maxDiff + ' / chk ' + d.verify.chk1 + ',' + d.verify.chk2));
+  Logger.log('รวมทั้งปี: ค่าแรงรวม ' + Math.round(d.totals.labor).toLocaleString() + ' | ตรวจ: ' + (d.verify.chkPass ? '✔ เช็คยอดไฟล์=0' : '⚠ เช็คยอดไฟล์ ' + d.verify.chk1 + ',' + d.verify.chk2));
   return d;
 }
 
-/** เจาะดูรายเดือน (รายคน) + สรุปตามแผนก — scope STT/KEMREX/ALL, month 1..12 */
+/** เจาะดูรายเดือน (รายคน) + สรุปตามแผนกใหญ่(หน่วยงาน)→แผนกย่อย — scope STT/KEMREX/ALL, month 1..12 */
 function getSalaryMonth(scope, month) {
   try {
     scope = scope || 'STT'; month = Math.round(Number(month)) || 0;
@@ -209,28 +210,42 @@ function getSalaryMonth(scope, month) {
     var tabs = scope === 'STT' ? [pick(false)] : scope === 'KEMREX' ? [pick(true)] : [pick(false), pick(true)];
     tabs = tabs.filter(function (x) { return x; });
     if (!tabs.length) return { ok: false, message: 'ไม่พบแท็บ DATA BASE' };
-    var HEAD = ['รหัส', 'ชื่อพนักงาน', 'แผนก', 'ประเภท', 'เงินเดือน', 'OT', 'สวัสดิการ', 'ค่าแรงรวม'];
-    var rows = [], dept = {}, tot = { salary: 0, ot: 0, welfare: 0, labor: 0 };
+    var HEAD = ['รหัส', 'ชื่อพนักงาน', 'แผนก', 'แผนกใหญ่', 'ประเภท', 'เงินเดือน', 'OT', 'สวัสดิการ', 'อื่นๆ', 'ค่าแรงรวม'];
+    var rows = [], majors = {}, tot = { salary: 0, ot: 0, welfare: 0, other: 0, labor: 0 };
     for (var t = 0; t < tabs.length; t++) {
       var sh = tabs[t], v = sh.getDataRange().getValues(), hr = -1;
       for (var r = 0; r < Math.min(15, v.length); r++) { if (v[r].map(function (x) { return String(x).trim(); }).indexOf('เลขเดือน') >= 0) { hr = r; break; } }
       if (hr < 0) continue;
       var H = v[hr].map(function (x) { return String(x).trim(); });
       var iMon = findCol_(H, ['เลขเดือน']), iCode = findCol_(H, ['รหัสพนักงาน']), iName = findCol_(H, ['ชื่อพนักงาน']),
-        iDep = findCol_(H, ['แผนก']), iDI = findCol_(H, ['ประเภท พนักงาน Direct', 'Direct / Indirect', 'Direct/Indirect']),
+        iDepC = findCol_(H, ['รหัสแผนก']), iDepN = exactCol_(H, 'แผนก'),
+        iUnitC = findCol_(H, ['รหัสหน่วยงาน']), iUnitN = exactCol_(H, 'ชื่อหน่วยงาน'),
+        iDI = findCol_(H, ['ประเภท พนักงาน Direct', 'Direct / Indirect', 'Direct/Indirect']),
         iSal = exactCol_(H, 'เงินเดือน'), iOt = findCol_(H, ['Total OT']), iWf = findCol_(H, ['สวัสดิการพนักงาน']), iLb = findCol_(H, ['ต้นทุนแรงงานบริษัท (เงินเดือน+OT']);
       if (iSal < 0) iSal = findCol_(H, ['เงินเดือน']);
+      if (iDepN < 0) iDepN = findCol_(H, ['แผนก']);
+      if (iUnitN < 0) iUnitN = findCol_(H, ['ชื่อหน่วยงาน']);
       for (var r2 = hr + 1; r2 < v.length; r2++) {
         var row = v[r2]; if (Math.round(num_(row[iMon])) !== month) continue;
-        var s = num_(row[iSal]), o = num_(row[iOt]), w = num_(row[iWf]), l = num_(row[iLb]), dp = String(row[iDep] || '').trim() || '(ไม่ระบุ)';
-        rows.push([String(row[iCode] || '').trim(), String(row[iName] || '').trim(), dp, String(row[iDI] || '').trim(), Math.round(s), Math.round(o), Math.round(w), Math.round(l)]);
-        tot.salary += s; tot.ot += o; tot.welfare += w; tot.labor += l;
-        if (!dept[dp]) dept[dp] = { salary: 0, ot: 0, welfare: 0, labor: 0, n: 0 };
-        dept[dp].salary += s; dept[dp].ot += o; dept[dp].welfare += w; dept[dp].labor += l; dept[dp].n++;
+        var s = num_(row[iSal]), o = num_(row[iOt]), w = num_(row[iWf]), l = num_(row[iLb]), oth = Math.round((l - s - o - w) * 100) / 100;
+        var depC = String(iDepC >= 0 ? row[iDepC] : '').trim(), depN = String(iDepN >= 0 ? row[iDepN] : '').trim();
+        var unitC = String(iUnitC >= 0 ? row[iUnitC] : '').trim(), unitN = String(iUnitN >= 0 ? row[iUnitN] : '').trim();
+        var majKey = majorFromCode_(depC);
+        rows.push([String(row[iCode] || '').trim(), String(row[iName] || '').trim(), (depN || depC || '(ไม่ระบุ)'), majKey, String(row[iDI] || '').trim(), Math.round(s), Math.round(o), Math.round(w), Math.round(oth), Math.round(l)]);
+        tot.salary += s; tot.ot += o; tot.welfare += w; tot.other += oth; tot.labor += l;
+        if (!majors[majKey]) majors[majKey] = { name: majKey, code: unitC, n: 0, salary: 0, ot: 0, welfare: 0, other: 0, labor: 0, subs: {} };
+        var mj = majors[majKey]; mj.n++; mj.salary += s; mj.ot += o; mj.welfare += w; mj.other += oth; mj.labor += l;
+        var subKey = depC + '|' + depN;
+        if (!mj.subs[subKey]) mj.subs[subKey] = { code: depC, name: depN || '(ไม่ระบุ)', n: 0, salary: 0, ot: 0, welfare: 0, other: 0, labor: 0 };
+        var sb = mj.subs[subKey]; sb.n++; sb.salary += s; sb.ot += o; sb.welfare += w; sb.other += oth; sb.labor += l;
       }
     }
-    var depts = Object.keys(dept).sort().map(function (k) { var b = dept[k]; return { dept: k, n: b.n, salary: Math.round(b.salary), ot: Math.round(b.ot), welfare: Math.round(b.welfare), labor: Math.round(b.labor) }; });
-    return { ok: true, scope: scope, month: month, headers: HEAD, rows: rows, total: rows.length, depts: depts,
-      totals: { salary: Math.round(tot.salary), ot: Math.round(tot.ot), welfare: Math.round(tot.welfare), labor: Math.round(tot.labor) } };
+    var mArr = Object.keys(majors).sort(function(a,b){var ia=MAJOR_ORDER.indexOf(a),ib=MAJOR_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);}).map(function (k) {
+      var m = majors[k];
+      var subs = Object.keys(m.subs).sort().map(function (sk) { var s = m.subs[sk]; return { code: s.code, name: s.name, n: s.n, salary: Math.round(s.salary), ot: Math.round(s.ot), welfare: Math.round(s.welfare), other: Math.round(s.other), labor: Math.round(s.labor) }; });
+      return { name: m.name, code: m.code, n: m.n, salary: Math.round(m.salary), ot: Math.round(m.ot), welfare: Math.round(m.welfare), other: Math.round(m.other), labor: Math.round(m.labor), subs: subs };
+    });
+    return { ok: true, scope: scope, month: month, headers: HEAD, rows: rows, total: rows.length, majors: mArr,
+      totals: { salary: Math.round(tot.salary), ot: Math.round(tot.ot), welfare: Math.round(tot.welfare), other: Math.round(tot.other), labor: Math.round(tot.labor) } };
   } catch (e) { return { ok: false, message: String(e) }; }
 }
