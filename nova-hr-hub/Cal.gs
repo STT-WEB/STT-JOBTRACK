@@ -146,7 +146,13 @@ function getSalarySummary(scope) {
     for (var t = 0; t < tabs.length; t++) {
       var sh = tabs[t]; srcNames.push(sh.getName());
       var v = sh.getDataRange().getValues();
-      var hr = 0; for (var r = 0; r < Math.min(12, v.length); r++) { if (isHeaderRow_(v[r])) { hr = r; break; } }
+      // หาแถวหัวตารางจริง = แถวที่มีคำว่า "เลขเดือน" (กันแถวหัวกลุ่มด้านบน เช่น Oth.Income/Benefit)
+      var hr = -1;
+      for (var r = 0; r < Math.min(15, v.length); r++) {
+        var rj = v[r].map(function (x) { return String(x).trim(); });
+        if (rj.indexOf('เลขเดือน') >= 0) { hr = r; break; }
+      }
+      if (hr < 0) return { ok: false, message: 'หาแถวหัวตาราง (เลขเดือน) ไม่เจอในแท็บ ' + sh.getName() };
       var H = v[hr].map(function (x) { return String(x).trim(); });
       var iMon = findCol_(H, ['เลขเดือน']);
       var iSal = exactCol_(H, 'เงินเดือน'); if (iSal < 0) iSal = findCol_(H, ['เงินเดือน']);
@@ -189,4 +195,42 @@ function testSalarySummary() {
   d.months.forEach(function (r) { Logger.log(r.name + ': เงินเดือน ' + Math.round(r.salary).toLocaleString() + ' | OT ' + Math.round(r.ot).toLocaleString() + ' | สวัสดิการ ' + Math.round(r.welfare).toLocaleString() + ' | ค่าแรงรวม ' + Math.round(r.labor).toLocaleString() + ' | %OT ' + r.otPct + ' | diff ' + r.diff); });
   Logger.log('รวมทั้งปี: ค่าแรงรวม ' + Math.round(d.totals.labor).toLocaleString() + ' | ตรวจ: ' + (d.verify.pass ? '✔ ผ่าน' : '⚠ ต่างสุด ' + d.verify.maxDiff + ' / chk ' + d.verify.chk1 + ',' + d.verify.chk2));
   return d;
+}
+
+/** เจาะดูรายเดือน (รายคน) + สรุปตามแผนก — scope STT/KEMREX/ALL, month 1..12 */
+function getSalaryMonth(scope, month) {
+  try {
+    scope = scope || 'STT'; month = Math.round(Number(month)) || 0;
+    if (!(month >= 1 && month <= 12)) return { ok: false, message: 'เดือนไม่ถูกต้อง' };
+    var reg = getRegistry_(2026);
+    if (!reg.payrollActual) return { ok: false, message: 'ไม่พบไฟล์ Payroll Actual' };
+    var ss = SpreadsheetApp.openById(reg.payrollActual), shs = ss.getSheets();
+    function pick(k) { for (var i = 0; i < shs.length; i++) { var n = shs[i].getName(); if (n.indexOf('DATA BASE') >= 0) { var isK = n.toUpperCase().indexOf('KEMREX') >= 0; if (k === isK) return shs[i]; } } return null; }
+    var tabs = scope === 'STT' ? [pick(false)] : scope === 'KEMREX' ? [pick(true)] : [pick(false), pick(true)];
+    tabs = tabs.filter(function (x) { return x; });
+    if (!tabs.length) return { ok: false, message: 'ไม่พบแท็บ DATA BASE' };
+    var HEAD = ['รหัส', 'ชื่อพนักงาน', 'แผนก', 'ประเภท', 'เงินเดือน', 'OT', 'สวัสดิการ', 'ค่าแรงรวม'];
+    var rows = [], dept = {}, tot = { salary: 0, ot: 0, welfare: 0, labor: 0 };
+    for (var t = 0; t < tabs.length; t++) {
+      var sh = tabs[t], v = sh.getDataRange().getValues(), hr = -1;
+      for (var r = 0; r < Math.min(15, v.length); r++) { if (v[r].map(function (x) { return String(x).trim(); }).indexOf('เลขเดือน') >= 0) { hr = r; break; } }
+      if (hr < 0) continue;
+      var H = v[hr].map(function (x) { return String(x).trim(); });
+      var iMon = findCol_(H, ['เลขเดือน']), iCode = findCol_(H, ['รหัสพนักงาน']), iName = findCol_(H, ['ชื่อพนักงาน']),
+        iDep = findCol_(H, ['แผนก']), iDI = findCol_(H, ['ประเภท พนักงาน Direct', 'Direct / Indirect', 'Direct/Indirect']),
+        iSal = exactCol_(H, 'เงินเดือน'), iOt = findCol_(H, ['Total OT']), iWf = findCol_(H, ['สวัสดิการพนักงาน']), iLb = findCol_(H, ['ต้นทุนแรงงานบริษัท (เงินเดือน+OT']);
+      if (iSal < 0) iSal = findCol_(H, ['เงินเดือน']);
+      for (var r2 = hr + 1; r2 < v.length; r2++) {
+        var row = v[r2]; if (Math.round(num_(row[iMon])) !== month) continue;
+        var s = num_(row[iSal]), o = num_(row[iOt]), w = num_(row[iWf]), l = num_(row[iLb]), dp = String(row[iDep] || '').trim() || '(ไม่ระบุ)';
+        rows.push([String(row[iCode] || '').trim(), String(row[iName] || '').trim(), dp, String(row[iDI] || '').trim(), Math.round(s), Math.round(o), Math.round(w), Math.round(l)]);
+        tot.salary += s; tot.ot += o; tot.welfare += w; tot.labor += l;
+        if (!dept[dp]) dept[dp] = { salary: 0, ot: 0, welfare: 0, labor: 0, n: 0 };
+        dept[dp].salary += s; dept[dp].ot += o; dept[dp].welfare += w; dept[dp].labor += l; dept[dp].n++;
+      }
+    }
+    var depts = Object.keys(dept).sort().map(function (k) { var b = dept[k]; return { dept: k, n: b.n, salary: Math.round(b.salary), ot: Math.round(b.ot), welfare: Math.round(b.welfare), labor: Math.round(b.labor) }; });
+    return { ok: true, scope: scope, month: month, headers: HEAD, rows: rows, total: rows.length, depts: depts,
+      totals: { salary: Math.round(tot.salary), ot: Math.round(tot.ot), welfare: Math.round(tot.welfare), labor: Math.round(tot.labor) } };
+  } catch (e) { return { ok: false, message: String(e) }; }
 }
