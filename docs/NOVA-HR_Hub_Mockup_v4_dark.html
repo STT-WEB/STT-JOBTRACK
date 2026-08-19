@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STT NOVA-HR Hub — Mockup v4 (Dark Premium)</title>
+<style>
+:root{
+  --bg:#0B0E14; --bg2:#0E121B; --card:#151A24; --card2:#1A2029; --line:#232B38; --line2:#313A4A;
+  --ink:#EAEDF3; --ink2:#C4CBD8; --muted:#8B93A3; --hint:#69707E;
+  --brand:#E2231A; --brandbg:#2A1416; --brand2:#FF5A4D;
+  --blue:#4C8DFF; --bluebg:#132038; --teal:#22C7A9; --tealbg:#0F2A26;
+  --gold:#E7B54A; --goldbg:#2A2110; --purple:#9B7BFF; --purplebg:#1C1730;
+  --ok:#2FD08A; --okbg:#0F2A1E; --warn:#E7B54A; --warnbg:#2A2110; --dang:#FF5C57; --dangbg:#2A1416;
+  --sh:0 8px 30px rgba(0,0,0,.45); --shsm:0 2px 10px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:radial-gradient(1200px 600px at 80% -10%,#141A2A 0%,var(--bg) 55%);color:var(--ink);
+  font-family:"Sarabun","Noto Sans Thai","Segoe UI",system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+.app{display:flex;min-height:100vh}
+/* ===== Sidebar ===== */
+.side{width:264px;flex:none;background:linear-gradient(180deg,#0F1420 0%,#0A0D14 100%);
+  border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:11px;padding:6px 8px 16px}
+.blogo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--brand),#9E1610);
+  display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:17px;box-shadow:0 6px 18px rgba(226,35,26,.4)}
+.btxt b{font-size:15px;letter-spacing:.3px;display:block;line-height:1.1}
+.btxt span{font-size:11px;color:var(--muted)}
+.slabel{font-size:10.5px;letter-spacing:1.5px;color:var(--hint);font-weight:700;text-transform:uppercase;padding:14px 10px 7px}
+.nav{display:flex;flex-direction:column;gap:3px}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:11px;color:var(--ink2);
+  text-decoration:none;font-size:13.5px;font-weight:500;cursor:pointer;transition:.15s;position:relative}
+.nav a .ic{width:19px;text-align:center;font-size:16px;opacity:.9}
+.nav a:hover{background:#161C28;color:var(--ink)}
+.nav a.on{background:linear-gradient(90deg,rgba(226,35,26,.16),rgba(226,35,26,.04));color:#fff}
+.nav a.on::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--brand);box-shadow:0 0 10px var(--brand)}
+.nav a .tag{margin-left:auto;font-size:10.5px;background:#202634;color:var(--muted);padding:2px 7px;border-radius:20px;font-weight:700}
+.nav a.on .tag{background:var(--brand);color:#fff}
+.sfoot{margin-top:auto;border-top:1px solid var(--line);padding-top:12px}
+.usr{display:flex;align-items:center;gap:10px;padding:8px;border-radius:11px}
+.uav{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3A445A,#232B3A);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff}
+.usr .un{font-size:13px;font-weight:600}.usr .ur{font-size:11px;color:var(--muted)}
+/* ===== Main ===== */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:14px;padding:16px 28px;border-bottom:1px solid var(--line);
+  position:sticky;top:0;background:rgba(11,14,20,.85);backdrop-filter:blur(10px);z-index:20}
+.crumb{font-size:12.5px;color:var(--muted)}
+.crumb b{color:var(--ink);font-weight:700}
+.crumb i{font-style:normal;margin:0 7px;color:var(--hint)}
+.spacer{flex:1}
+.cswitch{display:flex;background:#121826;border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.cswitch button{border:none;background:none;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:700;
+  padding:6px 13px;border-radius:8px;cursor:pointer}
+.cswitch button.on{background:var(--brand);color:#fff;box-shadow:0 2px 8px rgba(226,35,26,.4)}
+.searchbox{display:flex;align-items:center;gap:8px;background:#121826;border:1px solid var(--line);border-radius:10px;padding:8px 13px;width:230px;color:var(--muted)}
+.searchbox input{background:none;border:none;outline:none;color:var(--ink);font-family:inherit;font-size:13px;width:100%}
+.content{padding:26px 28px 60px;max-width:1280px;width:100%}
+.pageh{font-size:23px;font-weight:800;letter-spacing:.2px}
+.psub{color:var(--muted);font-size:13.5px;margin-top:3px}
+.screen{display:none}.screen.on{display:block}
+/* ===== Module cards (Hub home) ===== */
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:22px}
+.mcard{background:linear-gradient(160deg,var(--card),#11151E);border:1px solid var(--line);border-radius:18px;
+  padding:22px;cursor:pointer;transition:.18s;position:relative;overflow:hidden}
+.mcard:hover{transform:translateY(-3px);border-color:#3C4658;box-shadow:var(--sh)}
+.mcard .mi{width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:23px;margin-bottom:16px}
+.mcard h3{margin:0;font-size:16.5px;font-weight:800}
+.mcard p{margin:6px 0 16px;color:var(--muted);font-size:12.5px;line-height:1.55;min-height:36px}
+.mcard .mstat{display:flex;align-items:baseline;gap:6px}
+.mcard .mstat b{font-size:20px;font-weight:800}
+.mcard .mstat span{font-size:11.5px;color:var(--hint)}
+.mcard .go{position:absolute;right:20px;bottom:20px;color:var(--hint);font-size:18px;transition:.18s}
+.mcard:hover .go{color:var(--brand);transform:translateX(3px)}
+.mcard .glow{position:absolute;right:-40px;top:-40px;width:130px;height:130px;border-radius:50%;filter:blur(40px);opacity:.25}
+/* ===== KPI ===== */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:22px 0}
+.kpi{background:linear-gradient(160deg,var(--card),#11151E);border:1px solid var(--line);border-radius:16px;padding:17px 18px;position:relative}
+.kpi .kl{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.kpi .kv{font-size:26px;font-weight:800;margin-top:8px;letter-spacing:.3px}
+.kpi .kd{font-size:11.5px;margin-top:4px;color:var(--hint)}
+.kpi .kchip{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.up{color:var(--ok)}.down{color:var(--dang)}
+/* ===== Panels ===== */
+.panel{background:linear-gradient(160deg,var(--card),#11151E);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+.pt{display:flex;align-items:center;gap:11px;font-weight:800;font-size:15px;margin-bottom:16px}
+.pchip{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.row2{display:grid;grid-template-columns:1.5fr 1fr;gap:18px}
+@media(max-width:1000px){.row2{grid-template-columns:1fr}.mgrid{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}}
+/* stacked bar chart */
+.chart{display:flex;align-items:stretch;gap:14px;height:230px;padding:10px 4px 0}
+.bar{width:100%;display:flex;flex-direction:column-reverse;border-radius:8px 8px 0 0;overflow:hidden;position:relative;min-width:0}
+.seg{width:100%}
+.bwrap{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:8px;min-width:0;height:100%}
+.bmon{font-size:11.5px;color:var(--muted);font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px}
+.lg{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink2)}
+.lg .sw{width:12px;height:12px;border-radius:4px}
+/* reconcile strip */
+.recon{display:flex;align-items:center;gap:20px;flex-wrap:wrap;background:linear-gradient(135deg,#0F2A1E,#0C1F17);border:1px solid #1C4A36;border-radius:14px;padding:18px 22px}
+.recon .big{font-size:27px;font-weight:800}
+.recon .sep{width:1px;height:40px;background:#1C4A36}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:12px;font-weight:700}
+/* red-flag list */
+.rf{display:flex;align-items:center;gap:14px;padding:13px 15px;border-radius:12px;background:#1A1216;border:1px solid #3A1E22;margin-bottom:10px}
+.rf .code{font-weight:800;color:var(--brand2)}
+.rf .meta{color:var(--muted);font-size:12px}
+.rf .amt{margin-left:auto;font-weight:800;color:var(--dang);font-size:16px}
+/* tabs */
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:6px 0 20px;background:#0F1420;border:1px solid var(--line);padding:5px;border-radius:13px}
+.tab{border:none;background:none;color:var(--muted);font-family:inherit;font-size:13px;font-weight:700;
+  padding:9px 15px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px}
+.tab .n{width:19px;height:19px;border-radius:50%;background:#202634;color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:800}
+.tab.on{background:var(--brand);color:#fff}.tab.on .n{background:#fff;color:var(--brand)}
+/* premium data table (dark) */
+.tbar{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-bottom:14px}
+.tsel{background:#121826;border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:inherit;font-size:13px;padding:8px 12px}
+.tsrch{display:flex;align-items:center;gap:8px;background:#121826;border:1px solid var(--line);border-radius:10px;padding:8px 13px;min-width:220px;color:var(--muted)}
+.tsrch input{background:none;border:none;outline:none;color:var(--ink);font-family:inherit;font-size:13px;width:100%}
+.tbtn{background:#121826;border:1px solid var(--line);border-radius:10px;color:var(--ink2);font-family:inherit;font-size:13px;padding:8px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.tbtn:hover{background:#1A2130;border-color:#3C4658}
+.tcnt{font-size:12px;color:var(--muted);font-weight:600}
+.tsrc{margin-left:auto;font-size:11px;color:var(--hint)}
+.dtscroll{overflow:auto;max-height:60vh;border:1px solid var(--line);border-radius:14px}
+table.dtt{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+.dtt thead th{position:sticky;top:0;background:#1B2230;z-index:6;text-align:left;padding:0;font-weight:700;color:var(--ink2);
+  white-space:nowrap;border-bottom:1px solid #313A4A}
+.dtt thead th .thc{display:flex;align-items:center;gap:6px;padding:11px 14px}
+.dtt thead th .fb{margin-left:auto;width:20px;height:20px;border-radius:6px;border:none;background:#2A3242;color:var(--muted);cursor:pointer;font-size:10px}
+.dtt thead th.stickL{left:0;z-index:7;background:#1B2230}
+.dtt tbody td{padding:9px 14px;border-bottom:1px solid #1B212C;white-space:nowrap;color:var(--ink2)}
+.dtt tbody td.stickL{position:sticky;left:0;background:#141922;z-index:2;font-weight:600;color:var(--ink)}
+.dtt tbody tr:hover td{background:#171E2A}.dtt tbody tr:hover td.stickL{background:#1B2230}
+.mono{font-variant-numeric:tabular-nums}
+.tg{display:inline-block;padding:2px 9px;border-radius:7px;font-size:11px;font-weight:700}
+.right{text-align:right}
+.hint{color:var(--hint);font-size:12px}
+.note{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted);background:#0F1420;border:1px solid var(--line);border-radius:11px;padding:11px 14px;margin-top:12px}
+.subtabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.stab{border:1px solid var(--line);background:#0F1420;color:var(--muted);font-family:inherit;font-weight:700;font-size:12.5px;padding:9px 15px;border-radius:10px;cursor:pointer}
+.stab.on{background:var(--purple);color:#fff;border-color:var(--purple);box-shadow:0 2px 10px rgba(155,123,255,.35)}
+svg{display:block}
+.thc.right{justify-content:flex-end}
+.btot{font-size:10.5px;color:var(--ink2);font-weight:800;margin-bottom:3px}
+.dtt tbody tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand"><div class="blogo">S</div><div class="btxt"><b>NOVA-HR</b><span>Sutee Group · เข็มเหล็ก</span></div></div>
+    <div class="slabel">ภาพรวม</div>
+    <nav class="nav">
+      <a class="on" onclick="go('home',this)"><span class="ic">◆</span> หน้าแรก (Hub)</a>
+    </nav>
+    <div class="slabel">โมดูลงาน</div>
+    <nav class="nav">
+      <a onclick="go('payroll',this)"><span class="ic">₿</span> Payroll · Job Cost <span class="tag">6</span></a>
+      <a onclick="go('home',this)"><span class="ic">◎</span> Recruit (สรรหา)</a>
+      <a onclick="go('home',this)"><span class="ic">◈</span> Activity (กิจกรรม)</a>
+      <a onclick="go('home',this)"><span class="ic">★</span> Skill · ประเมินผล</a>
+      <a onclick="go('home',this)"><span class="ic">▤</span> Employee (ทะเบียน)</a>
+    </nav>
+    <div class="slabel">ระบบ</div>
+    <nav class="nav">
+      <a onclick="go('home',this)"><span class="ic">◇</span> ตั้งค่า / สิทธิ์</a>
+    </nav>
+    <div class="sfoot"><div class="usr"><div class="uav">B</div><div><div class="un">เบียร์ · ศศิภา</div><div class="ur">ผู้บริหาร · STT</div></div></div></div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb" id="crumb"><b>หน้าแรก</b></div>
+      <div class="spacer"></div>
+      <div class="cswitch"><button class="on">STT</button><button>S1</button></div>
+      <div class="searchbox"><span>⌕</span><input placeholder="ค้นหาทั้งระบบ…"></div>
+    </div>
+    <div class="content">
+
+      <!-- ========== HOME ========== -->
+      <section class="screen on" id="s_home">
+        <div class="pageh">สวัสดีค่ะเบียร์</div>
+        <div class="psub">STT NOVA-HR Hub — ระบบร่มของงาน HR ทั้งเครือ แยกเป็นโมดูล ทำงาน/พรีเซนต์แยกกันได้ · เลือกกล่องที่จะเข้าใช้งาน</div>
+        <div class="mgrid">
+          <div class="mcard" onclick="go('payroll')">
+            <div class="glow" style="background:var(--brand)"></div>
+            <div class="mi" style="background:var(--brandbg);color:var(--brand2)">₿</div>
+            <h3>Payroll · Job Cost</h3><p>เวลา Bplus/JOBTRACK → Reconcile → เงินเดือน → ต้นทุนต่อจ๊อบ → Dashboard</p>
+            <div class="mstat"><b>฿6.73M</b><span>ต้นทุนสะสม · 813 จ๊อบ</span></div><div class="go">→</div>
+          </div>
+          <div class="mcard">
+            <div class="glow" style="background:var(--blue)"></div>
+            <div class="mi" style="background:var(--bluebg);color:var(--blue)">◎</div>
+            <h3>Recruit (สรรหา)</h3><p>ประกาศงาน · ผู้สมัคร · สัมภาษณ์ · รับเข้า เชื่อมทะเบียนพนักงานอัตโนมัติ</p>
+            <div class="mstat"><b>12</b><span>ตำแหน่งเปิดรับ</span></div><div class="go">→</div>
+          </div>
+          <div class="mcard">
+            <div class="glow" style="background:var(--purple)"></div>
+            <div class="mi" style="background:var(--purplebg);color:var(--purple)">◈</div>
+            <h3>Activity (กิจกรรม)</h3><p>กิจกรรมองค์กร · อบรม · ลงเวลาเข้าร่วม · แจ้งข่าวสารพนักงาน</p>
+            <div class="mstat"><b>3</b><span>กิจกรรมเดือนนี้</span></div><div class="go">→</div>
+          </div>
+          <div class="mcard">
+            <div class="glow" style="background:var(--gold)"></div>
+            <div class="mi" style="background:var(--goldbg);color:var(--gold)">★</div>
+            <h3>Skill · ประเมินผล</h3><p>ทักษะรายคน · KPI · เกรดการทำงาน เชื่อมกับเวลาจริงจาก JOBTRACK</p>
+            <div class="mstat"><b>82%</b><span>Performance เฉลี่ย</span></div><div class="go">→</div>
+          </div>
+          <div class="mcard">
+            <div class="glow" style="background:var(--teal)"></div>
+            <div class="mi" style="background:var(--tealbg);color:var(--teal)">▤</div>
+            <h3>Employee (ทะเบียน)</h3><p>ข้อมูลพนักงานกลาง · แผนก · สิทธิ์ · PIN เข้าเว็บ (ฐานเดียวทั้งเครือ)</p>
+            <div class="mstat"><b>95</b><span>คน · STT</span></div><div class="go">→</div>
+          </div>
+          <div class="mcard">
+            <div class="glow" style="background:#5A6478"></div>
+            <div class="mi" style="background:#1A2030;color:#9AA4B6">◇</div>
+            <h3>ตั้งค่า / สิทธิ์</h3><p>บทบาทผู้ใช้ · บริษัท (STT/S1) · ปฏิทินปี · ทะเบียนไฟล์ (File Registry)</p>
+            <div class="mstat"><b>2</b><span>บริษัท</span></div><div class="go">→</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== PAYROLL MODULE ========== -->
+      <section class="screen" id="s_payroll">
+        <div class="pageh">Payroll · Job Cost</div>
+        <div class="psub">เวลา → Reconcile (ด่านตรวจ) → เงินเดือนจ่ายจริง → คำนวณต้นทุน → Dashboard · เดือนกรกฎาคม 2026</div>
+        <div class="tabs">
+          <button class="tab" onclick="ptab(this,'bplus')"><span class="n">1</span>Time Bplus</button>
+          <button class="tab" onclick="ptab(this,'jt')"><span class="n">2</span>Time JOBTRACK</button>
+          <button class="tab" onclick="ptab(this,'rec')"><span class="n">3</span>Reconcile</button>
+          <button class="tab" onclick="ptab(this,'pay')"><span class="n">4</span>Data Payroll</button>
+          <button class="tab" onclick="ptab(this,'cal')"><span class="n">5</span>Cal Jobcost</button>
+          <button class="tab on" onclick="ptab(this,'dash')"><span class="n">6</span>Dashboard</button>
+          <button class="tab" onclick="ptab(this,'sum')"><span class="n">7</span>สรุปค่าแรง</button>
+        </div>
+
+        <!-- Dashboard subview -->
+        <div id="pv_dash">
+          <div class="kpis">
+            <div class="kpi"><div class="kchip" style="background:var(--brandbg);color:var(--brand2)">₿</div><div class="kl">ต้นทุนสะสม (ทั้งปี)</div><div class="kv">฿6.73M</div><div class="kd up">▲ 813 จ๊อบ · 7 เดือน</div></div>
+            <div class="kpi"><div class="kchip" style="background:var(--okbg);color:var(--ok)">✓</div><div class="kl">เงินเดือน = ต้นทุน (ก.ค.)</div><div class="kv">ต่าง ฿0.06</div><div class="kd up">✔ ตรง (รับได้ ≤ ฿1)</div></div>
+            <div class="kpi"><div class="kchip" style="background:var(--bluebg);color:var(--blue)">▤</div><div class="kl">พนักงานลงงาน (ก.ค.)</div><div class="kv">54 คน</div><div class="kd">9,240 ชม. รวม</div></div>
+            <div class="kpi"><div class="kchip" style="background:var(--dangbg);color:var(--dang)">⚑</div><div class="kl">จ๊อบแดง (ส่งมอบแล้วมี Cost)</div><div class="kv">1 จ๊อบ</div><div class="kd down">▼ ต้องเคลียร์</div></div>
+          </div>
+
+          <div class="row2">
+            <div class="panel">
+              <div class="pt"><span class="pchip" style="background:var(--purplebg);color:var(--purple)">▤</span> สัดส่วนค่าแรงพนักงาน แยกตามประเภทงาน (รายเดือน)</div>
+              <div class="chart" id="chart"></div>
+              <div class="legend">
+                <div class="lg"><span class="sw" style="background:var(--brand)"></span> JT — แท็งค์ (ผลิตใหม่)</div>
+                <div class="lg"><span class="sw" style="background:var(--blue)"></span> JM — ซ่อม/ดัดแปลง</div>
+                <div class="lg"><span class="sw" style="background:var(--teal)"></span> JP — งานพ่วง/อื่นๆ</div>
+                <div class="lg"><span class="sw" style="background:#4A5568"></span> อื่นๆ</div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="pt"><span class="pchip" style="background:var(--okbg);color:var(--ok)">⇄</span> กฎเหล็ก: เงินเดือน = Job Cost</div>
+              <div class="recon">
+                <div><div class="hint">Direct ลงจ๊อบ</div><div class="big">฿1,026,563</div></div>
+                <div class="sep"></div>
+                <div><div class="hint">เงินเดือนจ่ายจริง</div><div class="big">฿1,026,563</div></div>
+              </div>
+              <div style="text-align:center;margin-top:14px"><span class="badge" style="background:var(--okbg);color:var(--ok)">✔ ต่าง ฿0.06 — เศษสตางค์ รับได้</span></div>
+              <div class="note">ถ้าต่างเกิน ฿1 ระบบจะขึ้น <b style="color:var(--dang)">แดง</b> และชี้ให้เลยว่าวันไหน/พนักงานคนไหนไม่ตรง เพื่อหาสาเหตุก่อนปิดงวด</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="pt"><span class="pchip" style="background:var(--dangbg);color:var(--dang)">⚑</span> ส่งมอบแล้ว แต่มีต้นทุนโผล่ — ต้องเคลียร์ก่อนปล่อยผ่าน</div>
+            <div class="rf"><div><div class="code">JT-68/0102</div><div class="meta">ส่งมอบ 30/06/2026 · งานแก้ไข (rework) เดือน ก.ค.</div></div><div class="amt">฿8,400</div></div>
+            <div class="note">จ๊อบไหนเลยวันส่งมอบแล้วยังมี cost = ขึ้นแดงค้างไว้ · HR ต้องระบุเหตุผล + อนุมัติ ถึงปล่อยผ่าน (โปร่งใส ตรวจย้อนได้)</div>
+          </div>
+
+          <div class="panel">
+            <div class="pt"><span class="pchip" style="background:var(--bluebg);color:var(--blue)">▤</span> ต้นทุนต่อจ๊อบ · รายเดือน (Master) — ทุกจ๊อบทั้งปี</div>
+            <div class="tbar"><div class="tsrch"><span>⌕</span><input placeholder="ค้นหาจ๊อบ / รหัส…"></div><button class="tbtn">▾ กรองประเภทงาน</button><span class="tcnt">813 จ๊อบ · 7 เดือน</span><span class="tsrc">Jobcost Master 2026 · MASTER</span></div>
+            <div class="dtscroll" style="max-height:360px">
+              <table class="dtt"><thead><tr id="mthead"></tr></thead><tbody id="mtbody"></tbody></table>
+            </div>
+            <div class="note">หัวเดือน + คอลัมน์ประเภท/Job Code "ตรึง" เวลาเลื่อน · คลิกเลขดูที่มาต้นทุนได้ · เขียว = อยู่ในช่วงผลิต / แดง = เลยวันส่งมอบแต่มี cost</div>
+          </div>
+        </div>
+
+        <!-- Data table subview (hidden by default) -->
+        <div id="pv_table" style="display:none">
+          <div class="tbar">
+            <select class="tsel"><option>เดือน 7 (กรกฎาคม)</option><option>เดือน 6</option><option>เดือน 5</option></select>
+            <div class="tsrch"><span>⌕</span><input placeholder="ค้นหาทุกคอลัมน์…"></div>
+            <button class="tbtn">⟳ รีเฟรช</button>
+            <button class="tbtn">⛃ ล้างกรอง</button>
+            <span class="tcnt" id="tcnt">240 / 240 แถว</span>
+            <span class="tsrc">5.สรุปตารางเงินเดือน 2569 STT · DATA BASE</span>
+          </div>
+          <div class="dtscroll">
+            <table class="dtt"><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table>
+          </div>
+          <div class="note">คลิก ▾ ที่หัวคอลัมน์ = ตัวกรองแบบ Excel (เลือกได้หลายค่า + ค้นหา) · หัวตาราง + คอลัมน์รหัสพนักงาน "ตรึง" ไว้เสมอเวลาเลื่อน · สีแดง = ข้อมูลต้องตรวจ</div>
+        </div>
+
+        <!-- SALARY SUMMARY subview -->
+        <div id="pv_sum" style="display:none">
+          <div class="subtabs">
+            <button class="stab on" onclick="stab(this,1)">1 · สรุปค่าแรงตามปี (STT)</button>
+            <button class="stab" onclick="stab(this,2)">2 · เทียบรายปี (2569 → ปัจจุบัน)</button>
+            <button class="stab" onclick="stab(this,3)">3 · CEO สรุปรวม (STT + KEMREX)</button>
+          </div>
+
+          <div id="sum1">
+            <div class="kpis">
+              <div class="kpi"><div class="kchip" style="background:var(--brandbg);color:var(--brand2)">฿</div><div class="kl">ค่าแรงรวม (STT · ปี 2569)</div><div class="kv">฿14.32M</div><div class="kd">เงินเดือน + OT + สวัสดิการ</div></div>
+              <div class="kpi"><div class="kchip" style="background:var(--bluebg);color:var(--blue)">▤</div><div class="kl">เงินเดือนรวม</div><div class="kv">฿12.42M</div><div class="kd">86.7% ของค่าแรง</div></div>
+              <div class="kpi"><div class="kchip" style="background:var(--goldbg);color:var(--gold)">◈</div><div class="kl">OT รวม</div><div class="kv">฿1.02M</div><div class="kd up">7.1% ของค่าแรง</div></div>
+              <div class="kpi"><div class="kchip" style="background:var(--purplebg);color:var(--purple)">◎</div><div class="kl">สวัสดิการรวม</div><div class="kv">฿0.88M</div><div class="kd">6.2% ของค่าแรง</div></div>
+            </div>
+            <div class="row2">
+              <div class="panel"><div class="pt"><span class="pchip" style="background:var(--bluebg);color:var(--blue)">▤</span> เงินเดือน vs OT รายเดือน (STT)</div><div id="c_svo1"></div>
+                <div class="legend"><div class="lg"><span class="sw" style="background:var(--blue)"></span> เงินเดือน (฿K)</div><div class="lg"><span class="sw" style="background:var(--gold)"></span> OT (฿K)</div></div></div>
+              <div class="panel"><div class="pt"><span class="pchip" style="background:var(--goldbg);color:var(--gold)">▲</span> เทรน OT (% ของค่าแรง) รายเดือน</div><div id="c_ot1"></div>
+                <div class="note">OT พุ่งเดือน เม.ย (13.6%) — เห็นได้ว่าเดือนไหนงานหนัก/คนไม่พอ</div></div>
+            </div>
+            <div class="panel"><div class="pt"><span class="pchip" style="background:var(--bluebg);color:var(--blue)">▤</span> ตารางสรุปค่าแรงรายเดือน (STT) — ตัวเลขจริงทุกยอด</div><div id="t_sum1"></div></div>
+            <div class="note">ที่มา: แท็บ "สรุปตารางเงินเดือนพนักงาน 2569" คอลัมน์ GZ:HJ · อ่านอัตโนมัติ ไม่ต้องคีย์</div>
+          </div>
+
+          <div id="sum2" style="display:none">
+            <div class="panel"><div class="pt"><span class="pchip" style="background:var(--tealbg);color:var(--teal)">⇄</span> เทียบค่าแรงพนักงานรายปี (เริ่มนับ 2569 เป็นต้นไป)</div>
+              <div class="dtscroll" style="max-height:none">
+                <table class="dtt"><thead><tr><th class="stickL"><div class="thc">ปี</div></th><th><div class="thc">เงินเดือนรวม</div></th><th><div class="thc">OT รวม</div></th><th><div class="thc">สวัสดิการ</div></th><th><div class="thc">ค่าแรงรวม</div></th><th><div class="thc">%OT</div></th><th><div class="thc">เทียบปีก่อน</div></th></tr></thead>
+                <tbody>
+                  <tr><td class="stickL">2569</td><td class="mono">฿12,420,000</td><td class="mono">฿1,020,000</td><td class="mono">฿880,000</td><td class="mono right" style="color:var(--ink);font-weight:700">฿14,320,000</td><td class="mono">7.1%</td><td class="hint">— (ปีฐาน)</td></tr>
+                  <tr style="opacity:.45"><td class="stickL">2570</td><td class="mono">รออัตโนมัติ</td><td class="mono">—</td><td class="mono">—</td><td class="mono">—</td><td class="mono">—</td><td class="hint">ระบบจะดึงไฟล์ปี 70 มาเทียบเอง</td></tr>
+                </tbody></table>
+              </div>
+              <div class="note"><b>Auto ทุกปี:</b> แต่ละปีอยู่คนละไฟล์ · ระบบดึงจาก File Registry มาเทียบให้เอง (2569 ↔ 2570 ↔ 2571 …) — พนักงานไม่ต้องทำ Pivot เอง = ลดพลาด</div>
+            </div>
+            <div class="panel"><div class="pt"><span class="pchip" style="background:var(--purplebg);color:var(--purple)">▲</span> เทรนค่าแรงข้ามปี (฿M)</div><div id="c_yr"></div><div class="note">ตอนนี้มีปีฐาน 2569 · ปีถัดไปจะต่อจุดให้อัตโนมัติ</div></div>
+          </div>
+
+          <div id="sum3" style="display:none">
+            <div class="kpis">
+              <div class="kpi"><div class="kchip" style="background:var(--brandbg);color:var(--brand2)">฿</div><div class="kl">ค่าแรงรวม (STT + KEMREX)</div><div class="kv">฿18.94M</div><div class="kd">รวม 2 ฐานข้อมูล</div></div>
+              <div class="kpi"><div class="kchip" style="background:var(--bluebg);color:var(--blue)">▤</div><div class="kl">เงินเดือนรวม</div><div class="kv">฿16.30M</div><div class="kd">—</div></div>
+              <div class="kpi"><div class="kchip" style="background:var(--goldbg);color:var(--gold)">◈</div><div class="kl">OT รวม</div><div class="kv">฿1.42M</div><div class="kd">7.5% ของค่าแรง</div></div>
+              <div class="kpi"><div class="kchip" style="background:var(--okbg);color:var(--ok)">✓</div><div class="kl">เช็คยอด (ต้องเป็น 0)</div><div class="kv">0.00</div><div class="kd up">✔ ยอดตรง</div></div>
+            </div>
+            <div class="row2">
+              <div class="panel"><div class="pt"><span class="pchip" style="background:var(--bluebg);color:var(--blue)">▤</span> เงินเดือน vs OT รายเดือน (รวม STT + KEMREX)</div><div id="c_svo3"></div>
+                <div class="legend"><div class="lg"><span class="sw" style="background:var(--blue)"></span> เงินเดือน</div><div class="lg"><span class="sw" style="background:var(--gold)"></span> OT</div></div></div>
+              <div class="panel"><div class="pt"><span class="pchip" style="background:var(--goldbg);color:var(--gold)">▲</span> เทรน OT (%) รวม</div><div id="c_ot3"></div>
+                <div class="note">ที่มา: DATA BASE 2569 + DATA BASE 2569 (KEMREX) · คอลัมน์ B:AA · รวมอัตโนมัติ</div></div>
+            </div>
+            <div class="panel"><div class="pt"><span class="pchip" style="background:var(--bluebg);color:var(--blue)">▤</span> ตารางสรุปค่าแรงรายเดือน (STT + KEMREX) — ตัวเลขจริงทุกยอด</div><div id="t_sum3"></div></div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function go(id,el){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById('s_'+id).classList.add('on');
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('on'));
+  if(el)el.classList.add('on');
+  else{var map={home:0,payroll:1};/*best-effort*/}
+  document.getElementById('crumb').innerHTML = id==='home'
+    ? '<b>หน้าแรก</b>'
+    : 'หน้าแรก <i>/</i> <b>Payroll · Job Cost</b>';
+  window.scrollTo(0,0);
+}
+function ptab(el,v){
+  document.querySelectorAll('#s_payroll .tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('pv_dash').style.display = v==='dash'?'':'none';
+  document.getElementById('pv_table').style.display = (v==='pay'||v==='cal'||v==='jt')?'':'none';
+  document.getElementById('pv_sum').style.display = v==='sum'?'':'none';
+  if(v==='pay'||v==='cal'||v==='jt') buildTable();
+}
+
+/* stacked bar chart (offline SVG-free, pure divs) */
+(function(){
+  var mons=['ม.ค','ก.พ','มี.ค','เม.ย','พ.ค','มิ.ย','ก.ค'];
+  var data=[ [58,22,12,8],[46,30,16,8],[62,20,10,8],[50,26,16,8],[54,28,10,8],[60,24,10,6],[52,30,12,6] ];
+  var cols=['var(--brand)','var(--blue)','var(--teal)','#4A5568'];
+  var tot=[820,910,760,880,940,1010,1026];
+  var max=Math.max.apply(null,tot);
+  var html=mons.map(function(m,i){
+    var h=Math.round(tot[i]/max*100);
+    var segs=data[i].map(function(p,k){return '<div class="seg" style="height:'+p+'%;background:'+cols[k]+'"></div>';}).join('');
+    return '<div class="bwrap"><div class="btot">'+tot[i]+'</div><div class="bar" style="height:'+h+'%">'+segs+'</div><div class="bmon">'+m+'</div></div>';
+  }).join('');
+  var c=document.getElementById('chart'); if(c)c.innerHTML=html;
+})();
+
+/* premium data table with sticky header + sticky first-data column + filter buttons */
+function buildTable(){
+  var headers=['วันที่ทำงาน','ประเภทวันทำงาน','รหัสพนักงาน','ชื่อพนักงาน','แผนก','Direct/Indirect','ปกติ','OT','วันหยุด','เรตฐาน','ต้นทุน'];
+  var deps=['F1 FABICATION','F2 FABICATION','F0 PART & MARKCUT','QC','ADMIN'];
+  var nm=['นายสมปอง พิลาสันต์','นายจิรวัฒน์ บุญมาลี','นายเอกรัตน์ ถึงพร้อม','นายพันธกานต์ อภิวัฒน์','นายธัชพล เปลี่ยนศรี','นายPHANNOLA C.'];
+  var rows='';var n=0;
+  for(var i=0;i<160;i++){
+    var d=deps[i%deps.length], di=(i%7===0)?'Indirect':'Direct';
+    var normal=(8+(i%3)).toFixed(1), ot=((i%4)*1.5).toFixed(1), hol=(i%9===0?'8.0':'-');
+    var rate=(60+(i%20)).toFixed(2), cost=(Math.round((parseFloat(normal)*parseFloat(rate)+parseFloat(ot)*56*1.5))).toLocaleString();
+    var dcol=di==='Direct'?'background:var(--tealbg);color:var(--teal)':'background:#202634;color:var(--muted)';
+    rows+='<tr>'
+      +'<td class="mono">'+ (10+(i%20)) +'/07/2026</td>'
+      +'<td>'+(i%9===0?'<span class="tg" style="background:var(--goldbg);color:var(--gold)">วันหยุด</span>':'วันทำงานปกติ')+'</td>'
+      +'<td class="stickL mono">10'+(6800+i)+'</td>'
+      +'<td>'+nm[i%nm.length]+'</td>'
+      +'<td>'+d+'</td>'
+      +'<td><span class="tg" style="'+dcol+'">'+di+'</span></td>'
+      +'<td class="mono">'+normal+'</td>'
+      +'<td class="mono">'+ot+'</td>'
+      +'<td class="mono">'+hol+'</td>'
+      +'<td class="mono">'+rate+'</td>'
+      +'<td class="mono right" style="color:var(--ink);font-weight:700">'+cost+'</td>'
+      +'</tr>';
+    n++;
+  }
+  var th=headers.map(function(h,k){
+    var sl=k===2?' stickL':'';
+    return '<th class="'+sl.trim()+'"><div class="thc">'+h+'<button class="fb">▾</button></div></th>';
+  }).join('');
+  document.getElementById('thead').innerHTML=th;
+  document.getElementById('tbody').innerHTML=rows;
+  document.getElementById('tcnt').textContent=n+' / '+n+' แถว';
+}
+
+function stab(el,n){document.querySelectorAll('#pv_sum .stab').forEach(function(t){t.classList.remove('on');});el.classList.add('on');[1,2,3].forEach(function(i){document.getElementById('sum'+i).style.display=i===n?'':'none';});}
+function svgGB(id,mons,a,b,ca,cb){var mx=Math.max.apply(null,a.concat(b))*1.15,W=680,H=210,pad=20,n=mons.length,gw=(W-pad*2)/n,s='';for(var i=0;i<n;i++){var x=pad+i*gw,bw=gw*0.24,h1=a[i]/mx*(H-40),h2=b[i]/mx*(H-40);s+='<rect x="'+(x+gw/2-bw-3)+'" y="'+(H-22-h1)+'" width="'+bw+'" height="'+h1+'" rx="3" fill="'+ca+'"/>'+'<rect x="'+(x+gw/2+3)+'" y="'+(H-22-h2)+'" width="'+bw+'" height="'+h2+'" rx="3" fill="'+cb+'"/>'+'<text x="'+(x+gw/2-bw/2-3)+'" y="'+(H-25-h1)+'" fill="#9FBEF9" font-size="9.5" text-anchor="middle">'+a[i]+'</text>'+'<text x="'+(x+gw/2+bw/2+3)+'" y="'+(H-25-h2)+'" fill="#E7B54A" font-size="9.5" text-anchor="middle">'+b[i]+'</text>'+'<text x="'+(x+gw/2)+'" y="'+(H-6)+'" fill="#8B93A3" font-size="11" text-anchor="middle">'+mons[i]+'</text>';}var e=document.getElementById(id);if(e)e.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%">'+s+'</svg>';}
+function svgLN(id,labs,data,col){var mx=Math.max.apply(null,data)*1.25,mn=Math.min.apply(null,data)*0.7;if(mx<=mn)mx=mn+1;var W=680,H=200,pad=26,n=labs.length,xs=function(i){return pad+i*((W-pad*2)/Math.max(1,n-1));},ys=function(v){return H-24-((v-mn)/(mx-mn))*(H-52);};var pts=data.map(function(v,i){return xs(i)+','+ys(v);}).join(' ');var dot=data.map(function(v,i){return '<circle cx="'+xs(i)+'" cy="'+ys(v)+'" r="3.5" fill="'+col+'"/><text x="'+xs(i)+'" y="'+(ys(v)-9)+'" fill="#C4CBD8" font-size="10.5" text-anchor="middle">'+v+'</text>';}).join('');var lb=labs.map(function(l,i){return '<text x="'+xs(i)+'" y="'+(H-6)+'" fill="#8B93A3" font-size="11" text-anchor="middle">'+l+'</text>';}).join('');var e=document.getElementById(id);if(e)e.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%"><polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2.5"/>'+dot+lb+'</svg>';}
+function buildSumTable(id,mons,sal,ot){var head='<th class="stickL"><div class="thc">เดือน</div></th><th><div class="thc right">เงินเดือน</div></th><th><div class="thc right">OT</div></th><th><div class="thc right">สวัสดิการ</div></th><th><div class="thc right">ค่าแรงรวม</div></th><th><div class="thc right">%OT</div></th>';var tsal=0,tot=0,twf=0,ttot=0,rows='';for(var i=0;i<mons.length;i++){var s=sal[i]*1000,o=ot[i]*1000,w=Math.round(s*0.088),t=s+o+w;tsal+=s;tot+=o;twf+=w;ttot+=t;rows+='<tr><td class="stickL">'+mons[i]+'</td><td class="mono right">'+s.toLocaleString()+'</td><td class="mono right" style="color:var(--gold)">'+o.toLocaleString()+'</td><td class="mono right">'+w.toLocaleString()+'</td><td class="mono right" style="color:var(--ink);font-weight:700">'+t.toLocaleString()+'</td><td class="mono right">'+(o/t*100).toFixed(1)+'%</td></tr>';}rows+='<tr style="background:#12202E;font-weight:800"><td class="stickL">รวมทั้งปี</td><td class="mono right">'+tsal.toLocaleString()+'</td><td class="mono right" style="color:var(--gold)">'+tot.toLocaleString()+'</td><td class="mono right">'+twf.toLocaleString()+'</td><td class="mono right" style="color:var(--ok)">'+ttot.toLocaleString()+'</td><td class="mono right">'+(tot/ttot*100).toFixed(1)+'%</td></tr>';var e=document.getElementById(id);if(e)e.innerHTML='<div class="dtscroll" style="max-height:none"><table class="dtt"><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div>';}
+function buildMonthly(){var mons=['ม.ค','ก.พ','มี.ค','เม.ย','พ.ค','มิ.ย','ก.ค'];var types=[['JT','var(--brand)','var(--brandbg)'],['JM','var(--blue)','var(--bluebg)'],['JP','var(--teal)','var(--tealbg)']];var names=['บ.บัวสวรรค์เอนเนอจี','บ.กู๊ดทีม เอ็นเตอร์ไพรส์','บ.เอ็มเจ อินเตอร์','เข็มเหล็ก แท็งค์','ซ่อม S1 พ่วง','งานดัดแปลง KEMREX'];var head='<th class="stickL"><div class="thc">ประเภท</div></th><th><div class="thc">Job Code</div></th><th><div class="thc">งาน</div></th>'+mons.map(function(m){return '<th><div class="thc right">'+m+'</div></th>';}).join('')+'<th><div class="thc">รวม</div></th>';document.getElementById('mthead').innerHTML=head;var rows='';for(var i=0;i<16;i++){var t=types[i%3],cells='',tot=0;for(var m=0;m<7;m++){var has=(i+m)%3!==0;var v=has?(120+((i*7+m*13)%900)):0;tot+=v;cells+='<td class="mono right">'+(v?v.toLocaleString():'<span class="hint">-</span>')+'</td>';}rows+='<tr><td class="stickL"><span class="tg" style="background:'+t[2]+';color:'+t[1]+'">'+t[0]+'</span></td><td class="mono">'+t[0]+'-68/'+(1000+i*7)+'</td><td>'+names[i%names.length]+'</td>'+cells+'<td class="mono right" style="color:var(--ink);font-weight:700">'+tot.toLocaleString()+'</td></tr>';}document.getElementById('mtbody').innerHTML=rows;}
+(function(){var mons=['ม.ค','ก.พ','มี.ค','เม.ย','พ.ค','มิ.ย','ก.ค'];
+ var sal=[980,1020,760,880,940,1010,1026],ot=[52,88,60,120,95,110,102];
+ var otp=ot.map(function(v,i){return Math.round(v/sal[i]*1000)/10;});
+ svgGB('c_svo1',mons,sal,ot,'#4C8DFF','#E7B54A');svgLN('c_ot1',mons,otp,'#E7B54A');
+ var salC=[1240,1290,980,1120,1190,1280,1300],otC=[70,120,82,160,128,150,140];
+ var otpC=otC.map(function(v,i){return Math.round(v/salC[i]*1000)/10;});
+ svgGB('c_svo3',mons,salC,otC,'#4C8DFF','#E7B54A');svgLN('c_ot3',mons,otpC,'#E7B54A');
+ svgLN('c_yr',['2569'],[14.3],'#9B7BFF');
+ buildMonthly();buildSumTable('t_sum1',mons,sal,ot);buildSumTable('t_sum3',mons,salC,otC);})();
+</script>
+</body>
+</html>

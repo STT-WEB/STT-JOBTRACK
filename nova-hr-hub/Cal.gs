@@ -1,36 +1,59 @@
 /***********************************************************
- * STT NOVA-HR Hub — Cal / Payroll reader (ตัวอ่านกลาง)
+ * STT NOVA-HR Hub — Cal / Payroll / Bplus reader (ตัวอ่านกลาง)
  * ▶ getCalTab(month, tabName)   = อ่านแท็บใดก็ได้จากไฟล์ Cal เดือนนั้น
- * ▶ getPayrollActual(month)     = อ่านเงินเดือนจ่ายจริง จากไฟล์ Payroll Actual (สรุปตารางเงินเดือน)
+ * ▶ getPayrollActual(month)     = อ่านเงินเดือนจ่ายจริง (กรองเฉพาะเดือนที่เลือก)
+ * ▶ getBplus(month)             = อ่านเวลาสแกนนิ้ว Bplus ของเดือนนั้น จากโฟลเดอร์ Time Bplus
  * คืน {ok, headers[], rows[][], total, tab, file} — ไม่ต้องเปิด Google Sheets
  ***********************************************************/
 
 /** แถวนี้เป็นหัวตารางไหม? (>=3 ช่องไม่ว่าง และมีตัวหนังสือ(ไม่ใช่เลขล้วน) >=2) — กันจับแถวเลข 1,2,3 ผิด */
 function isHeaderRow_(row) {
   var nonEmpty = 0, text = 0;
-  for (var k = 0; k < Math.min(row.length, 45); k++) {
+  for (var k = 0; k < Math.min(row.length, 60); k++) {
     var s = String(row[k]).trim();
     if (s) { nonEmpty++; if (isNaN(Number(s))) text++; }
   }
   return nonEmpty >= 3 && text >= 2;
 }
 
-/** อ่านช่วงข้อมูลจาก sheet ที่ให้มา → {headers, rows, total} (หาหัวตารางเอง + แปลงวันที่) */
+/** เทียบค่าตัวกรองแบบยืดหยุ่น (เลข/ข้อความ) — '7' == 7 == '7.0' */
+function eqVal_(a, b) {
+  var sa = String(a).trim(), sb = String(b).trim();
+  if (sa === sb) return true;
+  var na = Number(sa), nb = Number(sb);
+  return !isNaN(na) && !isNaN(nb) && na === nb;
+}
+
+/** อ่านช่วงข้อมูลจาก sheet → {headers, rows, total}
+ *  - หาแถวหัวตารางเองใน 12 แถวแรก
+ *  - ดึงคอลัมน์ให้ "ครบ" (นับจากหัวตาราง + ตัวอย่างข้อมูล ไม่ตัดคอลัมน์ที่มีข้อมูลทิ้ง)
+ *  - filterCol/filterVal = กรองเฉพาะแถวที่คอลัมน์นั้นตรงค่า (เช่น เลขเดือน = 7) */
 function readSheet_(sh, filterCol, filterVal, maxRows) {
   var v = sh.getDataRange().getValues();
   if (!v.length) return { headers: [], rows: [], total: 0 };
   var hr = 0;
-  for (var r = 0; r < Math.min(10, v.length); r++) { if (isHeaderRow_(v[r])) { hr = r; break; } }
-  var headers = v[hr].map(function (x) { return String(x).trim(); });
-  var lastCol = 0; for (var k = 0; k < headers.length; k++) if (headers[k]) lastCol = k;
-  headers = headers.slice(0, lastCol + 1);
+  for (var r = 0; r < Math.min(12, v.length); r++) { if (isHeaderRow_(v[r])) { hr = r; break; } }
+
+  var width = 0; for (var i = 0; i < v.length; i++) if (v[i].length > width) width = v[i].length;
+  var sampleEnd = Math.min(v.length, hr + 80);
+  var lastCol = 0;
+  for (var c = 0; c < width; c++) {
+    var has = String(v[hr][c] || '').trim() !== '';
+    if (!has) for (var rr = hr + 1; rr < sampleEnd; rr++) { if (String(v[rr][c] || '').trim() !== '') { has = true; break; } }
+    if (has) lastCol = c;
+  }
+
+  var headers = [];
+  for (var c2 = 0; c2 <= lastCol; c2++) { var h = String(v[hr][c2] || '').trim(); headers.push(h || ('คอลัมน์ ' + (c2 + 1))); }
+
   var mc = -1;
-  if (filterCol) for (var c = 0; c < headers.length; c++) if (headers[c].indexOf(filterCol) >= 0) { mc = c; break; }
+  if (filterCol) for (var c3 = 0; c3 < headers.length; c3++) if (headers[c3].indexOf(filterCol) >= 0) { mc = c3; break; }
+
   var rows = [], cap = maxRows || 1500;
   for (var r2 = hr + 1; r2 < v.length; r2++) {
     var row = v[r2].slice(0, lastCol + 1);
     if (row.every(function (x) { return String(x).trim() === ''; })) continue;
-    if (mc >= 0 && String(row[mc]).trim() !== String(filterVal)) continue;
+    if (mc >= 0 && !eqVal_(row[mc], filterVal)) continue;
     rows.push(row.map(function (x) { return (x instanceof Date) ? Utilities.formatDate(x, 'Asia/Bangkok', 'dd/MM/yyyy') : x; }));
     if (rows.length >= cap) break;
   }
@@ -60,7 +83,7 @@ function getCalTab(month, tabName) {
   } catch (e) { return { ok: false, message: String(e) }; }
 }
 
-/** อ่านเงินเดือนจ่ายจริง (Payroll Actual) ของเดือน month จากไฟล์ในทะเบียน (payrollActual = สรุปตารางเงินเดือน) */
+/** อ่านเงินเดือนจ่ายจริง (Payroll Actual) ของเดือน month — กรองเฉพาะเดือนที่เลือก */
 function getPayrollActual(month) {
   try {
     var reg = getRegistry_(2026);
@@ -68,7 +91,102 @@ function getPayrollActual(month) {
     var ss = SpreadsheetApp.openById(reg.payrollActual), shs = ss.getSheets(), sh = null;
     for (var i = 0; i < shs.length; i++) if (shs[i].getName().indexOf('DATA BASE') >= 0) { sh = shs[i]; break; }
     if (!sh) sh = shs[0];
-    var d = readSheet_(sh, 'เลขเดือน', month, 2000);
+    var d = readSheet_(sh, 'เลขเดือน', month, 3000);
     return { ok: true, headers: d.headers, rows: d.rows, total: d.total, tab: sh.getName(), file: ss.getName() };
   } catch (e) { return { ok: false, message: String(e) }; }
+}
+
+/** อ่านเวลา Bplus (สแกนนิ้ว) ของเดือน month จากโฟลเดอร์ Time Bplus (เฉพาะไฟล์ Google Sheets) */
+function getBplus(month) {
+  try {
+    var reg = getRegistry_(2026);
+    if (!reg.timeBplusFolder) return { ok: false, message: 'ไม่พบโฟลเดอร์ Time Bplus ใน Registry' };
+    var THMON = ['', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    var it = DriveApp.getFolderById(reg.timeBplusFolder).getFiles();
+    var pfx = String(month) + '.', thm = THMON[month] || '###', found = null, foundNew = null, seen = [];
+    while (it.hasNext()) {
+      var f = it.next(), n = f.getName(); seen.push(n);
+      var match = (n.indexOf(pfx) === 0) || (n.indexOf(thm) >= 0) || (n.indexOf('เดือน ' + month) >= 0) || (n.indexOf('เดือน' + month) >= 0);
+      if (!match) continue;
+      var mt = ''; try { mt = f.getMimeType(); } catch (e) {}
+      if (mt !== MimeType.GOOGLE_SHEETS) continue;
+      if (n.toUpperCase().indexOf('NEW') >= 0) foundNew = f.getId(); else if (!found) found = f.getId();
+    }
+    var fid = foundNew || found;
+    if (!fid) return { ok: false, message: 'ไม่พบไฟล์ Bplus เดือน ' + month + ' (Google Sheets) ในโฟลเดอร์ Time Bplus\nไฟล์ที่เจอ: ' + (seen.slice(0, 12).join(', ') || '(ว่าง)') };
+    var ss = SpreadsheetApp.openById(fid), sh = ss.getSheets()[0];
+    var d = readSheet_(sh, null, null, 4000);
+    return { ok: true, headers: d.headers, rows: d.rows, total: d.total, tab: sh.getName(), file: ss.getName() };
+  } catch (e) { return { ok: false, message: String(e) }; }
+}
+
+/* ============================================================
+ * สรุปค่าแรงพนักงาน (Sub 1 STT / Sub 3 STT+KEMREX) — อ่านจากไฟล์เงินเดือน 1U6Zt
+ *  scope = 'STT' | 'KEMREX' | 'ALL'
+ *  รวมยอดรายเดือน: เงินเดือน / Total OT / สวัสดิการ / ค่าแรงรวม(ต้นทุนแรงงาน) + ด่านตรวจยอด(ต้องเป็น 0)
+ * ============================================================ */
+function num_(v) { if (v == null || v === '') return 0; var n = Number(String(v).replace(/[,\s]/g, '')); return isNaN(n) ? 0 : n; }
+function exactCol_(H, name) { for (var c = 0; c < H.length; c++) if (H[c] === name) return c; return -1; }
+function findCol_(H, cands) { for (var c = 0; c < H.length; c++) { for (var k = 0; k < cands.length; k++) if (H[c].indexOf(cands[k]) >= 0) return c; } return -1; }
+
+function getSalarySummary(scope) {
+  try {
+    scope = scope || 'STT';
+    var reg = getRegistry_(2026);
+    if (!reg.payrollActual) return { ok: false, message: 'ไม่พบไฟล์ Payroll Actual ใน Registry' };
+    var ss = SpreadsheetApp.openById(reg.payrollActual), shs = ss.getSheets();
+    function pick(kemrex) { for (var i = 0; i < shs.length; i++) { var n = shs[i].getName(); if (n.indexOf('DATA BASE') >= 0) { var isKem = n.toUpperCase().indexOf('KEMREX') >= 0; if (kemrex === isKem) return shs[i]; } } return null; }
+    var sttSh = pick(false), kemSh = pick(true), tabs = [];
+    if (scope === 'STT') tabs = [sttSh]; else if (scope === 'KEMREX') tabs = [kemSh]; else tabs = [sttSh, kemSh];
+    tabs = tabs.filter(function (x) { return x; });
+    if (!tabs.length) return { ok: false, message: 'ไม่พบแท็บ DATA BASE (scope=' + scope + ')' };
+
+    var M = {}; for (var m = 1; m <= 12; m++) M[m] = { salary: 0, ot: 0, welfare: 0, labor: 0, chk1: 0, chk2: 0, rows: 0 };
+    var srcNames = [];
+    for (var t = 0; t < tabs.length; t++) {
+      var sh = tabs[t]; srcNames.push(sh.getName());
+      var v = sh.getDataRange().getValues();
+      var hr = 0; for (var r = 0; r < Math.min(12, v.length); r++) { if (isHeaderRow_(v[r])) { hr = r; break; } }
+      var H = v[hr].map(function (x) { return String(x).trim(); });
+      var iMon = findCol_(H, ['เลขเดือน']);
+      var iSal = exactCol_(H, 'เงินเดือน'); if (iSal < 0) iSal = findCol_(H, ['เงินเดือน']);
+      var iOt = findCol_(H, ['Total OT']);
+      var iWf = findCol_(H, ['สวัสดิการพนักงาน']);
+      var iLb = findCol_(H, ['ต้นทุนแรงงานบริษัท (เงินเดือน+OT']);
+      var iC1 = findCol_(H, ['กระทบ Oth.Income']);
+      var iC2 = findCol_(H, ['กระทบ รวมรายได้']);
+      for (var r2 = hr + 1; r2 < v.length; r2++) {
+        var row = v[r2]; var mo = Math.round(num_(row[iMon]));
+        if (!(mo >= 1 && mo <= 12)) continue;
+        M[mo].salary += num_(row[iSal]); M[mo].ot += num_(row[iOt]); M[mo].welfare += num_(row[iWf]);
+        M[mo].labor += num_(row[iLb]); if (iC1 >= 0) M[mo].chk1 += num_(row[iC1]); if (iC2 >= 0) M[mo].chk2 += num_(row[iC2]);
+        M[mo].rows++;
+      }
+    }
+    var TH = ['', 'ม.ค', 'ก.พ', 'มี.ค', 'เม.ย', 'พ.ค', 'มิ.ย', 'ก.ค', 'ส.ค', 'ก.ย', 'ต.ค', 'พ.ย', 'ธ.ค'];
+    var months = [], totals = { salary: 0, ot: 0, welfare: 0, labor: 0, chk1: 0, chk2: 0 }, maxDiff = 0;
+    for (var mm = 1; mm <= 12; mm++) {
+      var b = M[mm]; if (b.rows === 0) continue;
+      var calc = b.salary + b.ot + b.welfare, diff = Math.round((b.labor - calc) * 100) / 100;
+      if (Math.abs(diff) > Math.abs(maxDiff)) maxDiff = diff;
+      months.push({ m: mm, name: TH[mm], salary: b.salary, ot: b.ot, welfare: b.welfare, labor: b.labor,
+        otPct: b.labor ? Math.round(b.ot / b.labor * 1000) / 10 : 0, diff: diff, chk1: b.chk1, chk2: b.chk2, rows: b.rows });
+      totals.salary += b.salary; totals.ot += b.ot; totals.welfare += b.welfare; totals.labor += b.labor; totals.chk1 += b.chk1; totals.chk2 += b.chk2;
+    }
+    totals.otPct = totals.labor ? Math.round(totals.ot / totals.labor * 1000) / 10 : 0;
+    var pass = Math.abs(maxDiff) <= 1 && Math.abs(totals.chk1) <= 1 && Math.abs(totals.chk2) <= 1;
+    return { ok: true, scope: scope, source: srcNames.join(' + '), file: ss.getName(),
+      months: months, totals: totals,
+      verify: { maxDiff: maxDiff, chk1: Math.round(totals.chk1 * 100) / 100, chk2: Math.round(totals.chk2 * 100) / 100, pass: pass } };
+  } catch (e) { return { ok: false, message: String(e) }; }
+}
+
+/** ทดสอบใน Apps Script: รันแล้วดู Log ว่ายอดรวม/ด่านตรวจผ่านไหม */
+function testSalarySummary() {
+  var d = getSalarySummary('STT');
+  if (!d.ok) { Logger.log('❌ ' + d.message); return; }
+  Logger.log('📊 STT ' + d.file + ' (' + d.source + ')');
+  d.months.forEach(function (r) { Logger.log(r.name + ': เงินเดือน ' + Math.round(r.salary).toLocaleString() + ' | OT ' + Math.round(r.ot).toLocaleString() + ' | สวัสดิการ ' + Math.round(r.welfare).toLocaleString() + ' | ค่าแรงรวม ' + Math.round(r.labor).toLocaleString() + ' | %OT ' + r.otPct + ' | diff ' + r.diff); });
+  Logger.log('รวมทั้งปี: ค่าแรงรวม ' + Math.round(d.totals.labor).toLocaleString() + ' | ตรวจ: ' + (d.verify.pass ? '✔ ผ่าน' : '⚠ ต่างสุด ' + d.verify.maxDiff + ' / chk ' + d.verify.chk1 + ',' + d.verify.chk2));
+  return d;
 }
