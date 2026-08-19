@@ -4,7 +4,7 @@
  * (ชั้น 5 อ่านจากชั้น 4 "ผลสำเร็จรูป" — ไม่คำนวณซ้ำ = เร็ว)
  ***********************************************************/
 
-var HUB_VERSION = 'STT NOVA-HR HUB · version 25';   // ★ บวก +1 ทุกครั้งที่แก้โค้ด — ดูบนหน้า Login ว่าตรงไหม = deploy ล่าสุดหรือยัง
+var HUB_VERSION = 'STT NOVA-HR HUB · version 26';   // ★ บวก +1 ทุกครั้งที่แก้โค้ด — ดูบนหน้า Login ว่าตรงไหม = deploy ล่าสุดหรือยัง
 function getVersion() { return HUB_VERSION; }
 
 function doGet() {

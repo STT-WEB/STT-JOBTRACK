@@ -154,6 +154,7 @@ function getSalarySummary(scope) {
 
     var M = {}; for (var m = 1; m <= 12; m++) M[m] = { salary: 0, ot: 0, welfare: 0, labor: 0, chk1: 0, chk2: 0, rows: 0 };
     var di = { Direct: { salary:0,ot:0,welfare:0,other:0,labor:0,n:0 }, Indirect: { salary:0,ot:0,welfare:0,other:0,labor:0,n:0 } };
+    var majAgg = {};
     var srcNames = [];
     for (var t = 0; t < tabs.length; t++) {
       var sh = tabs[t]; srcNames.push(sh.getName());
@@ -176,6 +177,7 @@ function getSalarySummary(scope) {
       var iDI = findCol_(H, ['Direct/Indirect (จำนวนคน)']);
       if (iDI < 0) iDI = findCol_(H, ['Direct/Indirect (%)']);
       if (iDI < 0) iDI = findCol_(H, ['ประเภท พนักงาน Direct / Indirect', 'Direct/Indirect']);
+      var iDepC = findCol_(H, ['รหัสแผนก']);
       for (var r2 = hr + 1; r2 < v.length; r2++) {
         var row = v[r2]; var mo = Math.round(num_(row[iMon]));
         if (!(mo >= 1 && mo <= 12)) continue;
@@ -185,6 +187,9 @@ function getSalarySummary(scope) {
         M[mo].rows++;
         var _dt = String(iDI >= 0 ? row[iDI] : '').toLowerCase().indexOf('indirect') >= 0 ? 'Indirect' : 'Direct';
         var _db = di[_dt]; _db.salary += _s; _db.ot += _o; _db.welfare += _w; _db.other += (_l - _s - _o - _w); _db.labor += _l; _db.n++;
+        var _mk = majorFromCode_(String(iDepC >= 0 ? row[iDepC] : '').trim());
+        if (!majAgg[_mk]) majAgg[_mk] = { name: _mk, salary: 0, ot: 0, welfare: 0, labor: 0, n: 0 };
+        var _mb = majAgg[_mk]; _mb.salary += _s; _mb.ot += _o; _mb.welfare += _w; _mb.labor += _l; _mb.n++;
       }
     }
     var TH = ['', 'ม.ค', 'ก.พ', 'มี.ค', 'เม.ย', 'พ.ค', 'มิ.ย', 'ก.ค', 'ส.ค', 'ก.ย', 'ต.ค', 'พ.ย', 'ธ.ค'];
@@ -200,6 +205,7 @@ function getSalarySummary(scope) {
     var chkPass = Math.abs(totals.chk1) <= 1 && Math.abs(totals.chk2) <= 1;
     var OUT = { ok: true, scope: scope, source: srcNames.join(' + '), file: ss.getName(),
       months: months, totals: totals,
+      majors: (function(){var a=Object.keys(majAgg).sort(function(x,y){var ix=MAJOR_ORDER.indexOf(x),iy=MAJOR_ORDER.indexOf(y);return (ix<0?99:ix)-(iy<0?99:iy);}).map(function(k){var b=majAgg[k];return {name:b.name,n:b.n,salary:r2_(b.salary),ot:r2_(b.ot),welfare:r2_(b.welfare),labor:r2_(b.labor),pct:0};});var tot=a.reduce(function(s,x){return s+x.labor;},0);a.forEach(function(x){x.pct=tot?Math.round(x.labor/tot*1000)/10:0;});return a;})(),
       di: (function(){var o={};['Direct','Indirect'].forEach(function(k){var b=di[k];o[k]={salary:r2_(b.salary),ot:r2_(b.ot),welfare:r2_(b.welfare),other:r2_(b.other),labor:r2_(b.labor),n:b.n,pct:totals.labor?Math.round(b.labor/totals.labor*1000)/10:0};});return o;})(),
       verify: { chk1: Math.round(totals.chk1 * 100) / 100, chk2: Math.round(totals.chk2 * 100) / 100, chkPass: chkPass, otherTotal: Math.round(totals.other * 100) / 100 } };
     cachePut_(CK, OUT); return OUT;
