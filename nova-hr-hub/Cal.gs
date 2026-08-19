@@ -142,7 +142,7 @@ function majorFromCode_(code){var s=String(code||'').trim();var m2={'11':'Estima
 function getSalarySummary(scope) {
   try {
     scope = scope || 'STT';
-    var CK='salsum_2026_'+scope; var cx=cacheGet_(CK); if(cx)return cx;
+    var CK='salsum_v3_2026_'+scope; var cx=cacheGet_(CK); if(cx)return cx;
     var reg = getRegistry_(2026);
     if (!reg.payrollActual) return { ok: false, message: 'ไม่พบไฟล์ Payroll Actual ใน Registry' };
     var ss = SpreadsheetApp.openById(reg.payrollActual), shs = ss.getSheets();
@@ -219,7 +219,7 @@ function getSalaryMonth(scope, month) {
   try {
     scope = scope || 'STT'; month = Math.round(Number(month)) || 0;
     if (!(month >= 1 && month <= 12)) return { ok: false, message: 'เดือนไม่ถูกต้อง' };
-    var CK='salmon_2026_'+scope+'_'+month; var cx=cacheGet_(CK); if(cx)return cx;
+    var CK='salmon_v3_2026_'+scope+'_'+month; var cx=cacheGet_(CK); if(cx)return cx;
     var reg = getRegistry_(2026);
     if (!reg.payrollActual) return { ok: false, message: 'ไม่พบไฟล์ Payroll Actual' };
     var ss = SpreadsheetApp.openById(reg.payrollActual), shs = ss.getSheets();
@@ -265,5 +265,19 @@ function getSalaryMonth(scope, month) {
     var OUTM = { ok: true, scope: scope, month: month, headers: HEAD, rows: rows, total: rows.length, majors: mArr,
       totals: { salary: r2_(tot.salary), ot: r2_(tot.ot), welfare: r2_(tot.welfare), other: r2_(tot.other), labor: r2_(tot.labor) } };
     cachePut_(CK, OUTM); return OUTM;
+  } catch (e) { return { ok: false, message: String(e) }; }
+}
+
+/** เทียบรายปี — อ่านแท็บ HR&ACC จากไฟล์เงินเดือน (HR ใส่ยอดบัญชีรายเดือน/รายปี ไว้ที่นี่) */
+function getYearCompare() {
+  try {
+    var reg = getRegistry_(2026);
+    if (!reg.payrollActual) return { ok: false, message: 'ไม่พบไฟล์ Payroll Actual' };
+    var ss = SpreadsheetApp.openById(reg.payrollActual), shs = ss.getSheets(), sh = null;
+    for (var i = 0; i < shs.length; i++) { var n = shs[i].getName().toUpperCase().replace(/\s/g, ''); if (n.indexOf('HR&ACC') >= 0 || n.indexOf('HR&AC') >= 0) { sh = shs[i]; break; } }
+    if (!sh) for (var j = 0; j < shs.length; j++) { var u = shs[j].getName().toUpperCase(); if (u.indexOf('HR') >= 0 && u.indexOf('ACC') >= 0) { sh = shs[j]; break; } }
+    if (!sh) { var names = shs.map(function (s) { return s.getName(); }); return { ok: false, message: 'ไม่พบแท็บ HR&ACC ในไฟล์เงินเดือน\nแท็บที่มี: ' + names.join(', ') }; }
+    var d = readSheet_(sh, null, null, 3000);
+    return { ok: true, headers: d.headers, rows: d.rows, total: d.total, tab: sh.getName(), file: ss.getName() };
   } catch (e) { return { ok: false, message: String(e) }; }
 }
