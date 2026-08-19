@@ -636,5 +636,19 @@ function filterSalMonth(q){q=(q||'').toLowerCase();var rows=SALMROWS.filter(func
 
 google.script.run.withSuccessHandler(function(v){var e=document.getElementById('ver');if(e)e.textContent=v;var e2=document.getElementById('ver2');if(e2)e2.textContent=v;}).getVersion();
 </script>
+<style id="fixlight">
+.dtt{font-size:14px!important}
+.dtt thead th{background:#242E3D!important;color:#F0F3F8!important;border-bottom:2px solid #384356!important}
+.dtt thead th .thc{padding:11px 14px!important}
+.dtt tbody tr{background:transparent!important}
+.dtt tbody tr:nth-child(even){background:#12161F!important}
+.dtt tbody tr:hover{background:#1B2432!important}
+.dtt tbody td{color:#E6EAF1!important;font-size:14px!important;padding:10px 14px!important;border-bottom:1px solid #1E2634!important;background:transparent!important}
+.dtt tbody td.stickL{background:#141922!important;color:#fff!important}
+.dtscroll,.ttable{border-color:var(--line)!important;background:transparent!important}
+.fpop{background:#151A24!important;color:#EAEDF3!important;border-color:var(--line2)!important}
+.fpi:hover{background:#1B2230!important}
+.dtsearch,.tsrch{background:#121826!important;border-color:var(--line2)!important}.dtsearch input,.tsrch input{color:#EAEDF3!important;background:transparent!important}.dtsearch i,.tsrch i{color:#8B93A3!important}.dtbtn,.btnref,.tbtn,.tsel{background:#121826!important;color:#C4CBD8!important;border-color:var(--line2)!important}.fbtn{background:#2A3242!important;color:#C4CBD8!important}.fbtn.on{background:var(--brand)!important;color:#fff!important}.dtcnt,.tcnt{color:#8B93A3!important}.dtsrc,.tsrc{color:#69707E!important}
+</style>
 </body>
 </html>
