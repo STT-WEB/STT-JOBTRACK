@@ -173,7 +173,9 @@ function getSalarySummary(scope) {
       var iLb = findCol_(H, ['ต้นทุนแรงงานบริษัท (เงินเดือน+OT']);
       var iC1 = findCol_(H, ['กระทบ Oth.Income']);
       var iC2 = findCol_(H, ['กระทบ รวมรายได้']);
-      var iDI = findCol_(H, ['ประเภท พนักงาน Direct', 'Direct / Indirect', 'Direct/Indirect']);
+      var iDI = findCol_(H, ['Direct/Indirect (จำนวนคน)']);
+      if (iDI < 0) iDI = findCol_(H, ['Direct/Indirect (%)']);
+      if (iDI < 0) iDI = findCol_(H, ['ประเภท พนักงาน Direct / Indirect', 'Direct/Indirect']);
       for (var r2 = hr + 1; r2 < v.length; r2++) {
         var row = v[r2]; var mo = Math.round(num_(row[iMon]));
         if (!(mo >= 1 && mo <= 12)) continue;
@@ -237,7 +239,7 @@ function getSalaryMonth(scope, month) {
       var iMon = findCol_(H, ['เลขเดือน']), iCode = findCol_(H, ['รหัสพนักงาน']), iName = findCol_(H, ['ชื่อพนักงาน']),
         iDepC = findCol_(H, ['รหัสแผนก']), iDepN = exactCol_(H, 'แผนก'),
         iUnitC = findCol_(H, ['รหัสหน่วยงาน']), iUnitN = exactCol_(H, 'ชื่อหน่วยงาน'),
-        iDI = findCol_(H, ['ประเภท พนักงาน Direct', 'Direct / Indirect', 'Direct/Indirect']),
+        iDI = (findCol_(H,['Direct/Indirect (จำนวนคน)'])>=0?findCol_(H,['Direct/Indirect (จำนวนคน)']):(findCol_(H,['Direct/Indirect (%)'])>=0?findCol_(H,['Direct/Indirect (%)']):findCol_(H,['ประเภท พนักงาน Direct / Indirect']))),
         iSal = exactCol_(H, 'เงินเดือน'), iOt = findCol_(H, ['Total OT']), iWf = findCol_(H, ['สวัสดิการพนักงาน']), iLb = findCol_(H, ['ต้นทุนแรงงานบริษัท (เงินเดือน+OT']);
       if (iSal < 0) iSal = findCol_(H, ['เงินเดือน']);
       if (iDepN < 0) iDepN = findCol_(H, ['แผนก']);
