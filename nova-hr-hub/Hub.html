@@ -608,12 +608,12 @@ function ptSum(){window.__after=function(){loadSalary();};
   +'<button class="stab2 on" onclick="SALSUB=1;nav(\'payroll\')">1 · สรุปค่าแรงตามปี (STT)</button>'
   +'<button class="stab2" onclick="SALSUB=2;nav(\'payroll\')">2 · เทียบรายปี (HR&ACC)</button><button class="stab2" onclick="SALSUB=3;nav(\'payroll\')">3 · CEO รวม (STT+KEMREX)</button>'
   +'</div><div id="salbody"><div class="center" style="padding:24px">กำลังโหลด…</div></div>';}
-function loadSalary(){var b=document.getElementById('salbody');if(!b)return;
+function loadSalary(force){var b=document.getElementById('salbody');if(!b)return;
   if(SALSUB===2){loadYearCompare(b);return;} var scope=SALSUB===3?'ALL':'STT';CURSCOPE=scope;
- if(SALCACHE[scope]){renderSalary(SALCACHE[scope]);return;}
+ if(!force&&SALCACHE[scope]){renderSalary(SALCACHE[scope]);return;}
  b.innerHTML='<div class="center" style="padding:24px">กำลังโหลดสรุปค่าแรง '+(scope==='ALL'?'STT + KEMREX':'STT')+'… (ครั้งแรกช้านิดนึง แล้วจะจำไว้)</div>';
- google.script.run.withSuccessHandler(function(d){SALCACHE[scope]=d;renderSalary(d);}).withFailureHandler(function(e){b.innerHTML='<div class="center" style="padding:24px;color:var(--dang)">โหลดไม่ได้: '+e.message+'</div>';}).getSalarySummary(scope);}
-function salRefresh(){SALCACHE={};SALMCACHE={};loadSalary();}
+ google.script.run.withSuccessHandler(function(d){SALCACHE[scope]=d;renderSalary(d);}).withFailureHandler(function(e){b.innerHTML='<div class="center" style="padding:24px;color:var(--dang)">โหลดไม่ได้: '+e.message+'</div>';}).getSalarySummary(scope,!!force);}
+function salRefresh(){SALCACHE={};SALMCACHE={};YCCACHE=null;loadSalary(true);}
 var YCCACHE=null;
 function loadYearCompare(b){if(YCCACHE){renderYearCompare(YCCACHE);return;}b.innerHTML='<div class="center" style="padding:24px">กำลังโหลดตารางเทียบรายปี (HR&amp;ACC)…</div>';google.script.run.withSuccessHandler(function(d){YCCACHE=d;renderYearCompare(d);}).withFailureHandler(function(e){b.innerHTML='<div class="center" style="padding:24px;color:var(--dang);white-space:pre-line">โหลดไม่ได้: '+e.message+'</div>';}).getYearCompare();}
 function renderYearCompare(d){var b=document.getElementById('salbody');if(!b)return;if(!d||!d.ok){b.innerHTML='<div class="panel"><div class="center" style="padding:24px;white-space:pre-line;color:var(--hint)">'+((d&&d.message)||'ไม่มีข้อมูล')+'</div></div>';return;}var isNum=function(x){var s=String(x).replace(/[, ]/g,'');return s!==''&&!isNaN(Number(s))&&/[0-9]/.test(s);};var head=d.headers.map(function(x){return '<th'+(isNum(d.rows[0]&&d.rows[0][d.headers.indexOf(x)])?' class="r"':'')+'>'+(x||'')+'</th>';}).join('');var body=d.rows.map(function(row){return '<tr>'+row.map(function(c){var num=isNum(c);return '<td'+(num?' class="r mono"':'')+'>'+(num?fmt(c):(c===''||c==null?'':c))+'</td>';}).join('')+'</tr>';}).join('');b.innerHTML='<div class="panel"><div class="pt"><span class="iconchip" style="background:var(--tealbg);color:var(--teal)"><i class="ti ti-table"></i></span> เทียบยอดค่าแรงรายปี — จากแท็บ '+d.tab+' (HR ใส่ยอดบัญชีรายเดือน)</div><div style="overflow:auto;max-height:70vh"><table class="dt2"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div><div class="note"><i class="ti ti-database"></i> อ่านสดจาก '+d.file+' · แท็บ '+d.tab+' — HR อัปเดตในไฟล์ ระบบดึงมาแสดงอัตโนมัติ</div></div>';}

@@ -135,14 +135,14 @@ function num_(v) { if (v == null || v === '') return 0; var n = Number(String(v)
 function exactCol_(H, name) { for (var c = 0; c < H.length; c++) if (H[c] === name) return c; return -1; }
 function findCol_(H, cands) { for (var c = 0; c < H.length; c++) { for (var k = 0; k < cands.length; k++) if (H[c].indexOf(cands[k]) >= 0) return c; } return -1; }
 function cacheGet_(k){try{var c=CacheService.getScriptCache().get(k);return c?JSON.parse(c):null;}catch(e){return null;}}
-function cachePut_(k,o){try{var s=JSON.stringify(o);if(s.length<95000)CacheService.getScriptCache().put(k,s,21600);}catch(e){}}
+function cachePut_(k,o){try{var s=JSON.stringify(o);if(s.length<95000)CacheService.getScriptCache().put(k,s,120);}catch(e){}}
 var MAJOR_ORDER = ['HR','Account','Design','After Sale Service','Production','Purchase','QC','Sale','Safety','Estimate','Dcc & Admin','(อื่นๆ)'];
 function majorFromCode_(code){var s=String(code||'').trim();var m2={'11':'Estimate','12':'Dcc & Admin'};if(m2[s.substring(0,2)])return m2[s.substring(0,2)];var m1={'1':'HR','2':'Account','3':'Design','4':'After Sale Service','5':'Production','6':'Purchase','7':'QC','8':'Sale','9':'Safety'};return m1[s.charAt(0)]||'(อื่นๆ)';}
 
-function getSalarySummary(scope) {
+function getSalarySummary(scope, force) {
   try {
     scope = scope || 'STT';
-    var CK='salsum_v3_2026_'+scope; var cx=cacheGet_(CK); if(cx)return cx;
+    var CK='salsum_v4_2026_'+scope; if(!force){var cx=cacheGet_(CK); if(cx)return cx;}
     var reg = getRegistry_(2026);
     if (!reg.payrollActual) return { ok: false, message: 'ไม่พบไฟล์ Payroll Actual ใน Registry' };
     var ss = SpreadsheetApp.openById(reg.payrollActual), shs = ss.getSheets();
@@ -223,11 +223,11 @@ function testSalarySummary() {
 }
 
 /** เจาะดูรายเดือน (รายคน) + สรุปตามแผนกใหญ่(หน่วยงาน)→แผนกย่อย — scope STT/KEMREX/ALL, month 1..12 */
-function getSalaryMonth(scope, month) {
+function getSalaryMonth(scope, month, force) {
   try {
     scope = scope || 'STT'; month = Math.round(Number(month)) || 0;
     if (!(month >= 1 && month <= 12)) return { ok: false, message: 'เดือนไม่ถูกต้อง' };
-    var CK='salmon_v3_2026_'+scope+'_'+month; var cx=cacheGet_(CK); if(cx)return cx;
+    var CK='salmon_v4_2026_'+scope+'_'+month; if(!force){var cx=cacheGet_(CK); if(cx)return cx;}
     var reg = getRegistry_(2026);
     if (!reg.payrollActual) return { ok: false, message: 'ไม่พบไฟล์ Payroll Actual' };
     var ss = SpreadsheetApp.openById(reg.payrollActual), shs = ss.getSheets();
