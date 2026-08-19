@@ -106,18 +106,20 @@ function getBplus(month) {
     if (!reg.timeBplusFolder) return { ok: false, message: 'ไม่พบโฟลเดอร์ Time Bplus ใน Registry' };
     var THMON = ['', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
     var it = DriveApp.getFolderById(reg.timeBplusFolder).getFiles();
-    var pfx = String(month) + '.', thm = THMON[month] || '###', found = null, foundNew = null, seen = [];
+    var pfx = String(month) + '.', thm = THMON[month] || '###', foundSheet = null, foundOther = null, seen = [];
     while (it.hasNext()) {
       var f = it.next(), n = f.getName(); seen.push(n);
       var match = (n.indexOf(pfx) === 0) || (n.indexOf(thm) >= 0) || (n.indexOf('เดือน ' + month) >= 0) || (n.indexOf('เดือน' + month) >= 0);
       if (!match) continue;
       var mt = ''; try { mt = f.getMimeType(); } catch (e) {}
-      if (mt !== MimeType.GOOGLE_SHEETS) continue;
-      if (n.toUpperCase().indexOf('NEW') >= 0) foundNew = f.getId(); else if (!found) found = f.getId();
+      if (mt === MimeType.GOOGLE_SHEETS) { if (n.toUpperCase().indexOf('NEW') >= 0) { foundSheet = f.getId(); break; } else if (!foundSheet) foundSheet = f.getId(); }
+      else if (!foundOther) foundOther = { id: f.getId(), name: n, mime: mt };
     }
-    var fid = foundNew || found;
-    if (!fid) return { ok: false, message: 'ไม่พบไฟล์ Bplus เดือน ' + month + ' (Google Sheets) ในโฟลเดอร์ Time Bplus\nไฟล์ที่เจอ: ' + (seen.slice(0, 12).join(', ') || '(ว่าง)') };
-    var ss = SpreadsheetApp.openById(fid), sh = ss.getSheets()[0];
+    if (!foundSheet) {
+      if (foundOther) return { ok: false, message: 'ไฟล์ Bplus เดือน ' + month + ' คือ "' + foundOther.name + '" แต่เป็นไฟล์ Excel (ไม่ใช่ Google Sheets)\nวิธีแก้: เปิดไฟล์นั้นใน Google Sheets แล้ว File → Save as Google Sheets (หรืออัปโหลดแบบแปลงเป็น Sheets) ระบบถึงจะอ่านได้' };
+      return { ok: false, message: 'ไม่พบไฟล์ Bplus เดือน ' + month + '\nไฟล์ที่เจอ: ' + (seen.slice(0, 12).join(', ') || '(ว่าง)') };
+    }
+    var ss = SpreadsheetApp.openById(foundSheet), sh = ss.getSheets()[0];
     var d = readSheet_(sh, null, null, 4000);
     return { ok: true, headers: d.headers, rows: d.rows, total: d.total, tab: sh.getName(), file: ss.getName() };
   } catch (e) { return { ok: false, message: String(e) }; }
@@ -128,6 +130,7 @@ function getBplus(month) {
  *  scope = 'STT' | 'KEMREX' | 'ALL'
  *  รวมยอดรายเดือน: เงินเดือน / Total OT / สวัสดิการ / ค่าแรงรวม(ต้นทุนแรงงาน) + ด่านตรวจยอด(ต้องเป็น 0)
  * ============================================================ */
+function r2_(x){return Math.round((Number(x)||0)*100)/100;}
 function num_(v) { if (v == null || v === '') return 0; var n = Number(String(v).replace(/[,\s]/g, '')); return isNaN(n) ? 0 : n; }
 function exactCol_(H, name) { for (var c = 0; c < H.length; c++) if (H[c] === name) return c; return -1; }
 function findCol_(H, cands) { for (var c = 0; c < H.length; c++) { for (var k = 0; k < cands.length; k++) if (H[c].indexOf(cands[k]) >= 0) return c; } return -1; }
@@ -150,6 +153,7 @@ function getSalarySummary(scope) {
     if (!tabs.length) return { ok: false, message: 'ไม่พบแท็บ DATA BASE (scope=' + scope + ')' };
 
     var M = {}; for (var m = 1; m <= 12; m++) M[m] = { salary: 0, ot: 0, welfare: 0, labor: 0, chk1: 0, chk2: 0, rows: 0 };
+    var di = { Direct: { salary:0,ot:0,welfare:0,other:0,labor:0,n:0 }, Indirect: { salary:0,ot:0,welfare:0,other:0,labor:0,n:0 } };
     var srcNames = [];
     for (var t = 0; t < tabs.length; t++) {
       var sh = tabs[t]; srcNames.push(sh.getName());
@@ -169,12 +173,16 @@ function getSalarySummary(scope) {
       var iLb = findCol_(H, ['ต้นทุนแรงงานบริษัท (เงินเดือน+OT']);
       var iC1 = findCol_(H, ['กระทบ Oth.Income']);
       var iC2 = findCol_(H, ['กระทบ รวมรายได้']);
+      var iDI = findCol_(H, ['ประเภท พนักงาน Direct', 'Direct / Indirect', 'Direct/Indirect']);
       for (var r2 = hr + 1; r2 < v.length; r2++) {
         var row = v[r2]; var mo = Math.round(num_(row[iMon]));
         if (!(mo >= 1 && mo <= 12)) continue;
-        M[mo].salary += num_(row[iSal]); M[mo].ot += num_(row[iOt]); M[mo].welfare += num_(row[iWf]);
-        M[mo].labor += num_(row[iLb]); if (iC1 >= 0) M[mo].chk1 += num_(row[iC1]); if (iC2 >= 0) M[mo].chk2 += num_(row[iC2]);
+        var _s = num_(row[iSal]), _o = num_(row[iOt]), _w = num_(row[iWf]), _l = num_(row[iLb]);
+        M[mo].salary += _s; M[mo].ot += _o; M[mo].welfare += _w; M[mo].labor += _l;
+        if (iC1 >= 0) M[mo].chk1 += num_(row[iC1]); if (iC2 >= 0) M[mo].chk2 += num_(row[iC2]);
         M[mo].rows++;
+        var _dt = String(iDI >= 0 ? row[iDI] : '').toLowerCase().indexOf('indirect') >= 0 ? 'Indirect' : 'Direct';
+        var _db = di[_dt]; _db.salary += _s; _db.ot += _o; _db.welfare += _w; _db.other += (_l - _s - _o - _w); _db.labor += _l; _db.n++;
       }
     }
     var TH = ['', 'ม.ค', 'ก.พ', 'มี.ค', 'เม.ย', 'พ.ค', 'มิ.ย', 'ก.ค', 'ส.ค', 'ก.ย', 'ต.ค', 'พ.ย', 'ธ.ค'];
@@ -190,6 +198,7 @@ function getSalarySummary(scope) {
     var chkPass = Math.abs(totals.chk1) <= 1 && Math.abs(totals.chk2) <= 1;
     var OUT = { ok: true, scope: scope, source: srcNames.join(' + '), file: ss.getName(),
       months: months, totals: totals,
+      di: (function(){var o={};['Direct','Indirect'].forEach(function(k){var b=di[k];o[k]={salary:r2_(b.salary),ot:r2_(b.ot),welfare:r2_(b.welfare),other:r2_(b.other),labor:r2_(b.labor),n:b.n,pct:totals.labor?Math.round(b.labor/totals.labor*1000)/10:0};});return o;})(),
       verify: { chk1: Math.round(totals.chk1 * 100) / 100, chk2: Math.round(totals.chk2 * 100) / 100, chkPass: chkPass, otherTotal: Math.round(totals.other * 100) / 100 } };
     cachePut_(CK, OUT); return OUT;
   } catch (e) { return { ok: false, message: String(e) }; }
@@ -239,7 +248,7 @@ function getSalaryMonth(scope, month) {
         var depC = String(iDepC >= 0 ? row[iDepC] : '').trim(), depN = String(iDepN >= 0 ? row[iDepN] : '').trim();
         var unitC = String(iUnitC >= 0 ? row[iUnitC] : '').trim(), unitN = String(iUnitN >= 0 ? row[iUnitN] : '').trim();
         var majKey = majorFromCode_(depC);
-        rows.push([String(row[iCode] || '').trim(), String(row[iName] || '').trim(), (depN || depC || '(ไม่ระบุ)'), majKey, String(row[iDI] || '').trim(), Math.round(s), Math.round(o), Math.round(w), Math.round(oth), Math.round(l)]);
+        rows.push([String(row[iCode] || '').trim(), String(row[iName] || '').trim(), (depN || depC || '(ไม่ระบุ)'), majKey, String(row[iDI] || '').trim(), r2_(s), r2_(o), r2_(w), r2_(oth), r2_(l), String(row[iDI]||'').trim()]);
         tot.salary += s; tot.ot += o; tot.welfare += w; tot.other += oth; tot.labor += l;
         if (!majors[majKey]) majors[majKey] = { name: majKey, code: unitC, n: 0, salary: 0, ot: 0, welfare: 0, other: 0, labor: 0, subs: {} };
         var mj = majors[majKey]; mj.n++; mj.salary += s; mj.ot += o; mj.welfare += w; mj.other += oth; mj.labor += l;
@@ -250,11 +259,11 @@ function getSalaryMonth(scope, month) {
     }
     var mArr = Object.keys(majors).sort(function(a,b){var ia=MAJOR_ORDER.indexOf(a),ib=MAJOR_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);}).map(function (k) {
       var m = majors[k];
-      var subs = Object.keys(m.subs).sort().map(function (sk) { var s = m.subs[sk]; return { code: s.code, name: s.name, n: s.n, salary: Math.round(s.salary), ot: Math.round(s.ot), welfare: Math.round(s.welfare), other: Math.round(s.other), labor: Math.round(s.labor) }; });
-      return { name: m.name, code: m.code, n: m.n, salary: Math.round(m.salary), ot: Math.round(m.ot), welfare: Math.round(m.welfare), other: Math.round(m.other), labor: Math.round(m.labor), subs: subs };
+      var subs = Object.keys(m.subs).sort().map(function (sk) { var s = m.subs[sk]; return { code: s.code, name: s.name, n: s.n, salary: r2_(s.salary), ot: r2_(s.ot), welfare: r2_(s.welfare), other: r2_(s.other), labor: r2_(s.labor) }; });
+      return { name: m.name, code: m.code, n: m.n, salary: r2_(m.salary), ot: r2_(m.ot), welfare: r2_(m.welfare), other: r2_(m.other), labor: r2_(m.labor), subs: subs };
     });
     var OUTM = { ok: true, scope: scope, month: month, headers: HEAD, rows: rows, total: rows.length, majors: mArr,
-      totals: { salary: Math.round(tot.salary), ot: Math.round(tot.ot), welfare: Math.round(tot.welfare), other: Math.round(tot.other), labor: Math.round(tot.labor) } };
+      totals: { salary: r2_(tot.salary), ot: r2_(tot.ot), welfare: r2_(tot.welfare), other: r2_(tot.other), labor: r2_(tot.labor) } };
     cachePut_(CK, OUTM); return OUTM;
   } catch (e) { return { ok: false, message: String(e) }; }
 }
