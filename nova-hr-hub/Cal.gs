@@ -31,8 +31,11 @@ function eqVal_(a, b) {
 function readSheet_(sh, filterCol, filterVal, maxRows) {
   var v = sh.getDataRange().getValues();
   if (!v.length) return { headers: [], rows: [], total: 0 };
-  var hr = 0;
-  for (var r = 0; r < Math.min(12, v.length); r++) { if (isHeaderRow_(v[r])) { hr = r; break; } }
+  var hr = 0, bestTxt = -1;
+  for (var r = 0; r < Math.min(15, v.length); r++) {
+    var txt = 0; for (var cc = 0; cc < v[r].length; cc++) { var sv = String(v[r][cc]).trim(); if (sv && isNaN(Number(sv))) txt++; }
+    if (txt > bestTxt) { bestTxt = txt; hr = r; }
+  }
 
   var width = 0; for (var i = 0; i < v.length; i++) if (v[i].length > width) width = v[i].length;
   var sampleEnd = Math.min(v.length, hr + 80);
@@ -128,12 +131,15 @@ function getBplus(month) {
 function num_(v) { if (v == null || v === '') return 0; var n = Number(String(v).replace(/[,\s]/g, '')); return isNaN(n) ? 0 : n; }
 function exactCol_(H, name) { for (var c = 0; c < H.length; c++) if (H[c] === name) return c; return -1; }
 function findCol_(H, cands) { for (var c = 0; c < H.length; c++) { for (var k = 0; k < cands.length; k++) if (H[c].indexOf(cands[k]) >= 0) return c; } return -1; }
+function cacheGet_(k){try{var c=CacheService.getScriptCache().get(k);return c?JSON.parse(c):null;}catch(e){return null;}}
+function cachePut_(k,o){try{var s=JSON.stringify(o);if(s.length<95000)CacheService.getScriptCache().put(k,s,21600);}catch(e){}}
 var MAJOR_ORDER = ['HR','Account','Design','After Sale Service','Production','Purchase','QC','Sale','Safety','Estimate','Dcc & Admin','(อื่นๆ)'];
 function majorFromCode_(code){var s=String(code||'').trim();var m2={'11':'Estimate','12':'Dcc & Admin'};if(m2[s.substring(0,2)])return m2[s.substring(0,2)];var m1={'1':'HR','2':'Account','3':'Design','4':'After Sale Service','5':'Production','6':'Purchase','7':'QC','8':'Sale','9':'Safety'};return m1[s.charAt(0)]||'(อื่นๆ)';}
 
 function getSalarySummary(scope) {
   try {
     scope = scope || 'STT';
+    var CK='salsum_2026_'+scope; var cx=cacheGet_(CK); if(cx)return cx;
     var reg = getRegistry_(2026);
     if (!reg.payrollActual) return { ok: false, message: 'ไม่พบไฟล์ Payroll Actual ใน Registry' };
     var ss = SpreadsheetApp.openById(reg.payrollActual), shs = ss.getSheets();
@@ -182,9 +188,10 @@ function getSalarySummary(scope) {
     }
     totals.otPct = totals.labor ? Math.round(totals.ot / totals.labor * 1000) / 10 : 0;
     var chkPass = Math.abs(totals.chk1) <= 1 && Math.abs(totals.chk2) <= 1;
-    return { ok: true, scope: scope, source: srcNames.join(' + '), file: ss.getName(),
+    var OUT = { ok: true, scope: scope, source: srcNames.join(' + '), file: ss.getName(),
       months: months, totals: totals,
       verify: { chk1: Math.round(totals.chk1 * 100) / 100, chk2: Math.round(totals.chk2 * 100) / 100, chkPass: chkPass, otherTotal: Math.round(totals.other * 100) / 100 } };
+    cachePut_(CK, OUT); return OUT;
   } catch (e) { return { ok: false, message: String(e) }; }
 }
 
@@ -203,6 +210,7 @@ function getSalaryMonth(scope, month) {
   try {
     scope = scope || 'STT'; month = Math.round(Number(month)) || 0;
     if (!(month >= 1 && month <= 12)) return { ok: false, message: 'เดือนไม่ถูกต้อง' };
+    var CK='salmon_2026_'+scope+'_'+month; var cx=cacheGet_(CK); if(cx)return cx;
     var reg = getRegistry_(2026);
     if (!reg.payrollActual) return { ok: false, message: 'ไม่พบไฟล์ Payroll Actual' };
     var ss = SpreadsheetApp.openById(reg.payrollActual), shs = ss.getSheets();
@@ -245,7 +253,8 @@ function getSalaryMonth(scope, month) {
       var subs = Object.keys(m.subs).sort().map(function (sk) { var s = m.subs[sk]; return { code: s.code, name: s.name, n: s.n, salary: Math.round(s.salary), ot: Math.round(s.ot), welfare: Math.round(s.welfare), other: Math.round(s.other), labor: Math.round(s.labor) }; });
       return { name: m.name, code: m.code, n: m.n, salary: Math.round(m.salary), ot: Math.round(m.ot), welfare: Math.round(m.welfare), other: Math.round(m.other), labor: Math.round(m.labor), subs: subs };
     });
-    return { ok: true, scope: scope, month: month, headers: HEAD, rows: rows, total: rows.length, majors: mArr,
+    var OUTM = { ok: true, scope: scope, month: month, headers: HEAD, rows: rows, total: rows.length, majors: mArr,
       totals: { salary: Math.round(tot.salary), ot: Math.round(tot.ot), welfare: Math.round(tot.welfare), other: Math.round(tot.other), labor: Math.round(tot.labor) } };
+    cachePut_(CK, OUTM); return OUTM;
   } catch (e) { return { ok: false, message: String(e) }; }
 }
