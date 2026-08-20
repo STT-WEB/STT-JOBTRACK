@@ -156,7 +156,6 @@ function M(co,m){
   return _agg[key]=d;
 }
 const Mall=(co,m)=>{const k=st.inclKem;st.inclKem=true;const r=M(co,m);st.inclKem=k;return r;};
-const MONTHS=[...Array(NM).keys()].map(i=>i+1);
 const isKem = co => D.companies[co].rows.some(r=>E(r.id).dept===KEM);
 const deptOpts = () => D.depts.filter(d=>(st.inclKem||d.code!==KEM)&&D.companies[st.co].rows.some(r=>E(r.id).dept===d.code));
 </script>

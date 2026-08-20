@@ -1,53 +1,198 @@
 <script>
 /* =========================================================================
-   08_boot.js  —  เริ่มทำงาน — ผูกปุ่มบทบาท · คีย์แพด PIN · เข้าแอป
+   08_boot.js  —  เข้าสู่ระบบจริง · คีย์แพด PIN · เริ่มทำงาน
+
+   หลักความปลอดภัย (สำคัญมาก อย่าแก้ให้กลับไปแบบเดิม):
+     1) หน้าเว็บที่เสิร์ฟออกมา "ไม่มีข้อมูลเงินเดือนอยู่เลย" — เปิดดูโค้ดหน้าเว็บก็ไม่เจออะไร
+     2) ข้อมูลถูกดึงจากเซิร์ฟเวอร์ "หลังใส่รหัสพนักงาน + PIN ถูกต้องเท่านั้น"
+     3) เซิร์ฟเวอร์เป็นคนตัดสินสิทธิ์ (role) และ "ตัดข้อมูลให้ตามสิทธิ์" ก่อนส่งมา
+        → ต่อให้แก้ตัวแปรในเบราว์เซอร์ ก็ไม่มีข้อมูลที่ไม่ได้รับอนุญาตให้ดูอยู่ในเครื่องเลย
    ========================================================================= */
-document.getElementById('roleRow').addEventListener('click',e=>{
-  const b=e.target.closest('button');if(!b)return;
-  document.querySelectorAll('#roleRow button').forEach(x=>x.classList.toggle('on',x===b));
-  st.role=b.dataset.role;document.getElementById('roleLabel').textContent=st.role;});
+
+/* Mockup เปิดจากไฟล์ (ไม่มีเซิร์ฟเวอร์) → ใช้ข้อมูลที่ฝังมา · ของจริงบน Apps Script → ต้องล็อกอิน */
+const HAS_SERVER = (typeof google !== 'undefined') && google.script && google.script.run;
+let ME = null;                       // โปรไฟล์ผู้ใช้จากเซิร์ฟเวอร์ (ห้ามเชื่อค่าที่ตั้งเองในเบราว์เซอร์)
+let TOKEN = null;                    // โทเคนเซสชัน อายุ 6 ชม.
+
+/* ---------- ตัวช่วยแสดงข้อความ ---------- */
+function msg(id, text, ok){
+  const el = document.getElementById(id); if(!el) return;
+  if(!text){ el.style.display='none'; return; }
+  el.style.display=''; el.style.color = ok ? 'var(--good)' : 'var(--critical)';
+  el.innerHTML = text;
+}
+function busy(id, on, label){
+  const b = document.getElementById(id); if(!b) return;
+  b.disabled = !!on; b.style.opacity = on ? .6 : 1;
+  if(label !== undefined) b.textContent = label;
+}
+
+/* ---------- ① เข้าสู่ระบบ (รหัสพนักงาน + PIN 6 หลัก) ---------- */
+function doLogin(){
+  const code = (document.getElementById('lgCode').value||'').trim();
+  const pin  = (document.getElementById('lgPin').value||'').trim();
+  if(!code){ msg('lgMsg','กรอกรหัสพนักงานก่อน'); return; }
+  if(pin.length!==6){ msg('lgMsg','PIN ต้องเป็นตัวเลข 6 หลัก'); return; }
+  if(!HAS_SERVER){ msg('lgMsg','ไฟล์ตัวอย่างไม่มีระบบล็อกอิน — เปิดจากลิงก์เว็บจริงเท่านั้น'); return; }
+  msg('lgMsg',''); busy('lgBtn',true,'กำลังตรวจสอบ…');
+  google.script.run
+    .withSuccessHandler(r=>{
+      if(!r || !r.ok){
+        busy('lgBtn',false,'เข้าสู่ระบบ');
+        msg('lgMsg', (r&&r.message) || 'เข้าสู่ระบบไม่สำเร็จ');
+        if(r && r.needRegister) msg('lgMsg', r.message + ' — <b style="cursor:pointer;text-decoration:underline" onclick="go(\'register\')">กดลงทะเบียน</b>');
+        return;
+      }
+      ME = r; TOKEN = r.token;
+      busy('lgBtn',false,'เข้าสู่ระบบ');
+      document.getElementById('lgPin').value='';
+      afterLogin();
+    })
+    .withFailureHandler(e=>{ busy('lgBtn',false,'เข้าสู่ระบบ'); msg('lgMsg','ติดต่อเซิร์ฟเวอร์ไม่ได้ — '+e.message); })
+    .nvLogin(code, pin);
+}
+function doLine(){ msg('lgMsg','ล็อกอินด้วย LINE ยังไม่เปิดใช้ — ใช้รหัสพนักงาน + PIN ไปก่อน'); }
+
+/* ---------- ② ลงทะเบียน (กรอกรหัสพนักงาน → ระบบออก PIN 6 หลักให้) ---------- */
+function doRegister(){
+  const code = (document.getElementById('rgCode').value||'').trim();
+  if(!code){ msg('rgMsg','กรอกรหัสพนักงานก่อน'); return; }
+  if(!HAS_SERVER){ msg('rgMsg','ไฟล์ตัวอย่างไม่มีระบบลงทะเบียน'); return; }
+  busy('rgBtn',true,'กำลังลงทะเบียน…');
+  google.script.run
+    .withSuccessHandler(r=>{
+      busy('rgBtn',false,'ส่งคำขอลงทะเบียน');
+      if(!r || !r.ok){ msg('rgMsg',(r&&r.message)||'ลงทะเบียนไม่สำเร็จ'); return; }
+      document.getElementById('rgName').value = r.name||'';
+      const el=document.getElementById('rgMsg'); el.style.display='';
+      el.innerHTML = `<div class="callout" style="background:rgba(12,163,12,.12);border-color:rgba(12,163,12,.4)">
+        <span class="ic">✅</span><div>ลงทะเบียนสำเร็จ — <b>${esc(r.name||code)}</b><br>
+        PIN ของคุณคือ <b style="font-size:26px;letter-spacing:6px;color:var(--good)">${esc(r.pin)}</b><br>
+        <span class="muted">จดไว้ให้ดี · ลืมแล้วต้องให้ HR รีเซ็ตให้เท่านั้น</span></div></div>`;
+    })
+    .withFailureHandler(e=>{ busy('rgBtn',false,'ส่งคำขอลงทะเบียน'); msg('rgMsg','ติดต่อเซิร์ฟเวอร์ไม่ได้ — '+e.message); })
+    .nvRegister(code);
+}
+
+/* ---------- ③ ล็อกอินผ่านแล้ว → เตรียมหน้าจอตามสิทธิ์จริง ---------- */
+function afterLogin(){
+  st.role = ME.role || 'พนักงาน';
+  document.getElementById('roleLabel').textContent = st.role;
+  const nm = (ME.name||'').replace(/^(นางสาว|นาง|นาย|ว่าที่ ?ร?ต\.?|คุณ)\s*/,'');
+  document.getElementById('userName').textContent = nm || ME.code;
+  document.getElementById('userAvatar').textContent = (nm||'?').charAt(0);
+  document.querySelectorAll('#roleRow button').forEach(b=>b.classList.toggle('on', b.dataset.role===st.role));
+  const both = /ผู้บริหาร|HR/.test(st.role);
+  document.getElementById('coHello').innerHTML =
+    `สวัสดีคุณ <b style="color:var(--ink)">${esc(nm||ME.code)} (${esc(st.role)})</b> — ` +
+    (both ? 'สิทธิ์ของคุณเข้าได้ทั้ง 2 บริษัท' : `สิทธิ์ของคุณเข้าได้เฉพาะ <b>${esc(ME.company||'STT')}</b>`) +
+    ' · ธีมสีจะเปลี่ยนตามแบรนด์';
+  go('company');
+}
+
+/* ---------- ④ เลือกบริษัท → ยืนยัน PIN อีกครั้ง → ดึงข้อมูลตามสิทธิ์ ---------- */
+function loadDataAndEnter(){
+  msg('pinMsg','กำลังโหลดข้อมูล…', true);
+  google.script.run
+    .withSuccessHandler(s=>{
+      let p; try{ p = JSON.parse(s); }catch(e){ msg('pinMsg','ข้อมูลเสียหาย'); return; }
+      if(p.error){ msg('pinMsg', p.error); return; }
+      msg('pinMsg','');
+      initData(p);
+      applyRoleUI();
+      enterApp();
+    })
+    .withFailureHandler(e=>msg('pinMsg','ดึงข้อมูลไม่ได้ — '+e.message))
+    .nvData(TOKEN);
+}
+
+/* ซ่อนโมดูล/แท็บที่สิทธิ์นี้ไม่ควรเห็น (เซิร์ฟเวอร์ตัดข้อมูลมาแล้ว อันนี้แค่ไม่ให้เมนูค้าง) */
+function applyRoleUI(){
+  if(/ผู้บริหาร|HR/.test(st.role)) return;
+  if(st.role==='พนักงาน'){ st.mod='myacc'; }
+}
+
+function doLogout(){
+  if(HAS_SERVER && TOKEN) google.script.run.nvLogout(TOKEN);
+  ME=null; TOKEN=null; D=null;
+  const c=document.getElementById('lgCode'), p=document.getElementById('lgPin');
+  if(c)c.value=''; if(p)p.value='';
+  msg('lgMsg',''); msg('pinMsg','');
+  go('login');
+}
+
+/* ---------- คีย์แพด PIN ---------- */
 (function(){
-  const kp=document.getElementById('keypad');let n=0;
-  const draw=()=>document.querySelectorAll('#pinRow .d').forEach((d,i)=>{d.classList.toggle('filled',i<n);d.textContent=i<n?'●':'';});
+  const kp=document.getElementById('keypad');let n='';
+  const draw=()=>document.querySelectorAll('#pinRow .d').forEach((d,i)=>{d.classList.toggle('filled',i<n.length);d.textContent=i<n.length?'●':'';});
   kp.innerHTML=[1,2,3,4,5,6,7,8,9,'ล้าง',0,'✓'].map(k=>`<button data-k="${k}">${k}</button>`).join('');
   kp.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.k;
-    if(k==='ล้าง'){n=0;draw();return;}
-    if(k==='✓'||n>=6){enterApp();return;}
-    n=Math.min(6,n+1);draw();if(n===6)setTimeout(enterApp,220);});
+    if(k==='ล้าง'){n='';draw();msg('pinMsg','');return;}
+    if(k==='✓'){ submitPin(n); return; }
+    if(n.length>=6) return;
+    n+=k; draw();
+    if(n.length===6) setTimeout(()=>submitPin(n),200);});
+  function submitPin(v){
+    if(!HAS_SERVER){ initData(DATA_EMBEDDED); enterApp(); return; }   /* โหมด Mockup */
+    if(v.length!==6){ msg('pinMsg','ใส่ PIN ให้ครบ 6 หลัก'); return; }
+    if(!ME || !TOKEN){ msg('pinMsg','เซสชันหมดอายุ — กรุณาเข้าสู่ระบบใหม่'); setTimeout(doLogout,1200); return; }
+    msg('pinMsg','กำลังตรวจสอบ…', true);
+    google.script.run
+      .withSuccessHandler(r=>{
+        if(!r || !r.ok){ n=''; draw(); msg('pinMsg',(r&&r.message)||'PIN ไม่ถูกต้อง'); return; }
+        n=''; draw(); loadDataAndEnter();
+      })
+      .withFailureHandler(e=>{ n=''; draw(); msg('pinMsg','ติดต่อเซิร์ฟเวอร์ไม่ได้ — '+e.message); })
+      .nvConfirmPin(TOKEN, v);
+  }
 })();
+
 function enterApp(){
   document.querySelectorAll('#coSwitch button').forEach(x=>x.classList.toggle('on',x.dataset.co===st.co));
   document.body.setAttribute('data-company',st.co);
-  st.mod='hub';renderRail();render();go('app');
+  if(!st.mod) st.mod='hub';
+  renderRail();render();go('app');
+  showVersion();
+  if(typeof showVerifyBar==='function') showVerifyBar();
 }
 let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{
   if(document.getElementById('sc-app').classList.contains('active'))render();},200);});
-renderRail();
 
 /* ---------- ป้ายเวอร์ชัน: หน้า Login + มุมขวาบนของแอป ----------
    เลขนี้มาจาก CFG.VERSION / CFG.BUILD ใน Payload.gs ที่เดียว
    ใช้เช็กว่า deploy ขึ้นแล้วหรือยัง — ถ้าเลขยังเป็นของเก่าให้กด Ctrl+Shift+R */
-(function(){
-  var v = D.meta.ver ? ('NOVA-HR ' + D.meta.ver + ' · build ' + D.meta.build) : 'Mockup v2.0';
-  var tag = document.getElementById('verTag');
-  if (tag) tag.textContent = v + ' · ปีงบ ' + D.meta.year;
-  var lg = document.getElementById('verLogin');
-  if (lg) lg.textContent = v + (D.meta.updatedAt ? ' · ข้อมูล ' + D.meta.updatedAt : '');
-})();
+function showVersion(){
+  const m = (D && D.meta) ? D.meta : (window.APP_VER || {});
+  const v = m.ver ? ('NOVA-HR ' + m.ver + ' · build ' + m.build) : 'Mockup v2.0';
+  const tag = document.getElementById('verTag');
+  if (tag) tag.textContent = v + (m.year ? ' · ปีงบ ' + m.year : '');
+  const lg = document.getElementById('verLogin');
+  if (lg) lg.textContent = v + (m.updatedAt ? ' · ข้อมูล ' + m.updatedAt : '');
+}
 
-/* ---------- แถบล่างสุด: ผลด่านตรวจ 8 ข้อของข้อมูลจริง ---------- */
-(function(){
-  var v = (PAYLOAD.verify)||{pass:0,total:0,fails:[]};
+/* ---------- เริ่มทำงาน ---------- */
+if(!HAS_SERVER){            /* โหมด Mockup: ไม่มีเซิร์ฟเวอร์ → ใช้ข้อมูลที่ฝังมา */
+  initData(DATA_EMBEDDED);
+  renderRail();
+  showVersion();
+}else{                      /* ของจริง: ยังไม่มีข้อมูลจนกว่าจะล็อกอินผ่าน */
+  google.script.run.withSuccessHandler(v=>{ window.APP_VER=v; showVersion(); }).nvVersion();
+}
+
+/* ---------- แถบล่างสุด: ผลด่านตรวจของข้อมูลจริง (โชว์หลังโหลดข้อมูลแล้วเท่านั้น) ---------- */
+function showVerifyBar(){
+  var v = (D && D.verify)||{pass:0,total:0,fails:[]};
   var ok = v.fails.length===0;
   var el = document.getElementById('verifybar');
+  if(!el) return;
   el.style.background = ok ? 'linear-gradient(90deg,rgba(12,163,12,.16),rgba(12,163,12,.07))'
                            : 'linear-gradient(90deg,rgba(208,59,59,.18),rgba(208,59,59,.08))';
   el.style.borderTopColor = ok ? 'rgba(12,163,12,.35)' : 'rgba(208,59,59,.45)';
   el.style.color = ok ? '#8ff0a4' : '#ff9d9d';
-  el.innerHTML = (ok ? '✅ <b>ด่านตรวจผ่านครบ '+v.total+' ข้อ</b> — ข้อมูลจริง ณ '+(PAYLOAD.meta.updatedAt||'')
+  el.innerHTML = (ok ? '✅ <b>ด่านตรวจผ่านครบ '+v.total+' ข้อ</b> — ข้อมูลจริง ณ '+((D&&D.meta&&D.meta.updatedAt)||'')
                      : '⛔ <b>ด่านตรวจไม่ผ่าน '+v.fails.length+' ข้อ</b> — '+v.fails.join(' · '))
     + ' <span class="muted">ข้อมูลจริงจากไฟล์ต้นทาง · ถ้าตัวเลขไม่อัปเดตให้รัน forceRefresh() ใน Apps Script</span>'
     + '<button style="color:inherit;font-weight:800;padding:0 6px" onclick="this.parentElement.style.display=\'none\'">✕</button>';
-})();
+}
 
 </script>

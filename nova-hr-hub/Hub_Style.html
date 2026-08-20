@@ -223,9 +223,9 @@ td.bad{color:#ff9d9d;background:rgba(208,59,59,.12)}
 /* ---------- Login / Welcome ---------- */
 .auth{min-height:100vh;display:grid;grid-template-columns:1.05fr .95fr;position:relative;overflow:hidden}
 .auth::before{content:"";position:absolute;width:900px;height:900px;left:-260px;top:-320px;border-radius:50%;
-  background:radial-gradient(circle,rgba(232,35,46,.20),transparent 62%);filter:blur(10px)}
+  background:radial-gradient(circle,rgba(232,35,46,.20),transparent 62%);filter:blur(10px);pointer-events:none}
 .auth::after{content:"";position:absolute;width:820px;height:820px;right:-280px;bottom:-360px;border-radius:50%;
-  background:radial-gradient(circle,rgba(91,107,232,.20),transparent 62%)}
+  background:radial-gradient(circle,rgba(91,107,232,.20),transparent 62%);pointer-events:none}
 .auth-art{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:36px;gap:16px}
 .auth-art img.people{width:min(74%,430px);filter:drop-shadow(0 30px 60px rgba(0,0,0,.6))}
 .auth-art .tagline{text-align:center;max-width:440px}

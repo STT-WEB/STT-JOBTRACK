@@ -24,7 +24,7 @@ var CFG = {
   /* ⚠ บั๊ม BUILD ทุกครั้งที่แก้โค้ด — เลขนี้จะไปโชว์บนหน้า Login และมุมขวาบนของแอป
      ถ้าเลขบนเว็บยังเป็นของเก่า = deploy ยังไม่ขึ้น (หรือยังไม่ได้กด Ctrl+Shift+R) */
   VERSION   : 'v3.1',
-  BUILD     : 37,
+  BUILD     : 42,
   YEAR      : 2569,
   NMONTH    : 8,                 // เดือนที่มีข้อมูลแล้ว
   KEMREX    : 5018,              // ✅ รหัสแผนก KEMREX (เบียร์ยืนยันแล้ว) — อยู่ใต้หน่วยงาน 5000 PRODUCTION
@@ -38,7 +38,8 @@ var CFG = {
   SHOW_ALL_JOBS: false,          // true = โชว์จ๊อบเก่าที่ไม่มียอดอะไรเลยด้วย
   NPROC     : 7,                 // โชว์ Process 7 อันดับแรกแยกสี ที่เหลือรวมเป็น "อื่นๆ" (จานสีมี 8 ช่อง)
   CACHE_KEY : 'NOVA_PAYLOAD_v3_1_0',   // ⚠️ บั๊มเลขนี้ทุกครั้งที่แก้ logic (กันเว็บโชว์ของเก่า)
-  CACHE_SEC : 300
+  CACHE_SEC : 21600,        // แคชในหน่วยความจำ 6 ชม. (สูงสุดที่ Google ให้)
+  SNAP_MAX_SEC : 86400      // ไฟล์สแนปช็อตเก่าได้ไม่เกิน 24 ชม. (ตัวตั้งเวลาสร้างใหม่ทุก 1 ชม.)
 };
 
 var MONTHS_TH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -67,6 +68,7 @@ function buildPayload() {
       /* เดือนที่ไฟล์ Bplus ถูกแปลงเป็น Google Sheets แล้ว → หน้า ① Time Bplus ใช้ตัวนี้ตัดสิน */
       bplusMonths: Object.keys(bplusFiles_()).map(Number).sort(function (a, b) { return a - b; }),
       legacyTimeUntil: CFG.LEGACY_TIME_UNTIL,
+      kemrex: CFG.KEMREX,
       workdays: cal.workdays, holidays: cal.holidays,
       updatedAt: Utilities.formatDate(new Date(), 'Asia/Bangkok', 'd MMM yyyy HH:mm')
     },
@@ -91,16 +93,119 @@ function buildPayload() {
   return D;
 }
 
-function getPayloadJson() {
+/* ============================================================================
+   แคชแบบ "หั่นเป็นชิ้น"
+   CacheService เก็บได้ชิ้นละ 100KB แต่ข้อมูลจริงใหญ่หลาย MB
+   ของเดิม put() ทั้งก้อนแล้วพัง → แคชไม่ติดสักครั้ง → ทุกครั้งที่เปิดเว็บต้อง
+   ไล่อ่านไฟล์ Cal 7 เดือน + Bplus 7 เดือน + Master + Payroll DB ใหม่หมด (~1 นาที)
+   ตอนนี้หั่นเป็นชิ้นละ 20,000 ตัวอักษร (ภาษาไทยตัวละ 3 ไบต์ → ยังไม่ถึง 60KB ปลอดภัย)
+   ============================================================================ */
+var NV_CHUNK = 20000;
+var NV_MAXCHUNK = 250;
+
+function nvCacheGet_(key) {
   var c = CacheService.getScriptCache();
-  var hit = c.get(CFG.CACHE_KEY);
-  if (hit) return hit;
+  var n = c.get(key + '_N');
+  if (!n) return null;
+  n = Number(n);
+  var keys = [];
+  for (var i = 0; i < n; i++) keys.push(key + '_' + i);
+  var all = c.getAll(keys), out = '';
+  for (var j = 0; j < n; j++) {
+    var part = all[key + '_' + j];
+    if (part === undefined || part === null) return null;   // ชิ้นไหนหมดอายุ = ใช้ไม่ได้ทั้งก้อน
+    out += part;
+  }
+  return out;
+}
+function nvCachePut_(key, s, sec) {
+  var n = Math.ceil(s.length / NV_CHUNK);
+  if (n > NV_MAXCHUNK) return;                              // ใหญ่เกินไปจริงๆ → ยอมไม่แคช
+  var o = {};
+  for (var i = 0; i < n; i++) o[key + '_' + i] = s.substr(i * NV_CHUNK, NV_CHUNK);
+  o[key + '_N'] = String(n);
+  try { CacheService.getScriptCache().putAll(o, sec); } catch (e) { /* แคชไม่ได้ก็ยังทำงานได้ แค่ช้า */ }
+}
+function nvCacheClear_(key) {
+  var c = CacheService.getScriptCache();
+  var n = Number(c.get(key + '_N') || 0), keys = [key + '_N'];
+  for (var i = 0; i < n; i++) keys.push(key + '_' + i);
+  try { c.removeAll(keys); } catch (e) {}
+}
+
+/* ============================================================================
+   ทำไมต้องมี "สแนปช็อต"
+   สร้างข้อมูลรอบหนึ่งต้องเปิดไฟล์ Cal 7 เดือน + Bplus 7 เดือน + Master + Payroll DB
+   ใช้เวลาราว 1 นาที — ถ้าปล่อยให้สร้างตอนคนกดเข้าเว็บ ทุกคนต้องนั่งรอ 1 นาที
+   จึงเปลี่ยนเป็น: ตัวตั้งเวลาสร้างไว้ล่วงหน้าเก็บเป็นไฟล์ JSON ในไดรฟ์
+   คนเข้าเว็บแค่ "หยิบไฟล์ที่ทำไว้แล้ว" → ขึ้นทันที 2-3 วินาที
+   ลำดับการหา:  แคชในหน่วยความจำ → ไฟล์สแนปช็อต → สร้างใหม่ (ช้า ใช้เมื่อจำเป็นจริงๆ)
+   ============================================================================ */
+var NV_SNAP_NAME = 'NOVA_PAYLOAD_SNAPSHOT.json';
+
+function nvSnapFolder_() {
+  var it = DriveApp.getFileById(FILES.MASTER).getParents();
+  return it.hasNext() ? it.next() : DriveApp.getRootFolder();
+}
+function nvSnapFile_() {
+  var it = nvSnapFolder_().getFilesByName(NV_SNAP_NAME);
+  return it.hasNext() ? it.next() : null;
+}
+function nvSnapRead_() {
+  try {
+    var f = nvSnapFile_(); if (!f) return null;
+    var ageSec = (new Date().getTime() - f.getLastUpdated().getTime()) / 1000;
+    if (ageSec > CFG.SNAP_MAX_SEC) return null;          // เก่าเกินไป → สร้างใหม่
+    return f.getBlob().getDataAsString('UTF-8');
+  } catch (e) { return null; }
+}
+function nvSnapWrite_(s) {
+  try {
+    var f = nvSnapFile_();
+    if (f) f.setContent(s);
+    else nvSnapFolder_().createFile(NV_SNAP_NAME, s, 'application/json');
+  } catch (e) { /* เขียนไม่ได้ก็ยังทำงานได้ แค่ช้า */ }
+}
+
+/** ตัวที่หน้าเว็บใช้ — เร็วที่สุดเท่าที่จะเป็นไปได้ */
+function getPayloadJson() {
+  var hit = nvCacheGet_(CFG.CACHE_KEY);
+  if (hit) return hit;                                    // ① แคช (เร็วสุด)
+  var snap = nvSnapRead_();
+  if (snap) { nvCachePut_(CFG.CACHE_KEY, snap, CFG.CACHE_SEC); return snap; }   // ② ไฟล์สแนปช็อต
+  return rebuildSnapshot();                               // ③ สร้างใหม่ (~1 นาที)
+}
+
+/** สร้างข้อมูลใหม่ทั้งก้อน แล้วเก็บทั้งไฟล์และแคช — ตัวตั้งเวลาเรียกตัวนี้ */
+function rebuildSnapshot() {
+  var t0 = new Date().getTime();
   var s = JSON.stringify(buildPayload()).replace(/<\//g, '<\\/');   // กัน '</script>' ที่อาจหลุดมาในชื่องาน
-  try { c.put(CFG.CACHE_KEY, s, CFG.CACHE_SEC); } catch (e) { /* ใหญ่เกิน 100KB → ข้ามแคช */ }
+  nvSnapWrite_(s);
+  nvCachePut_(CFG.CACHE_KEY, s, CFG.CACHE_SEC);
+  Logger.log('สร้างข้อมูลใหม่เสร็จ ' + Math.round(s.length / 1024) + ' KB · ใช้เวลา ' +
+             Math.round((new Date().getTime() - t0) / 1000) + ' วินาที');
   return s;
 }
 
-function forceRefresh() { CacheService.getScriptCache().remove(CFG.CACHE_KEY); }
+/**
+ * ⭐ รันครั้งเดียวหลัง deploy ครั้งแรก — ตั้งให้ระบบสร้างข้อมูลล่วงหน้าทุกชั่วโมง
+ * ผลคือคนเข้าเว็บไม่ต้องรอสร้างข้อมูลอีกเลย
+ */
+function installSnapshotTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'rebuildSnapshot') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('rebuildSnapshot').timeBased().everyHours(1).create();
+  var s = rebuildSnapshot();                              // สร้างรอบแรกให้เลย
+  Logger.log('✅ ตั้งตัวตั้งเวลาแล้ว — ระบบจะสร้างข้อมูลใหม่ทุก 1 ชั่วโมงโดยอัตโนมัติ');
+  return 'ตั้งเวลาเรียบร้อย · ข้อมูลชุดแรก ' + Math.round(s.length / 1024) + ' KB';
+}
+
+function forceRefresh() {
+  nvCacheClear_(CFG.CACHE_KEY);
+  var s = rebuildSnapshot();
+  return 'ดึงข้อมูลสดจากไฟล์ต้นทางใหม่แล้ว (' + Math.round(s.length / 1024) + ' KB)';
+}
 
 /* ============================================================================
    probe() — รันใน Apps Script Editor เพื่อ "ส่องไฟล์จริง" ก่อน deploy
@@ -135,6 +240,14 @@ function probe() {
     L.push(diagBplus_());
     L.push('เติมพนักงานที่ไม่มีในทะเบียนจากไฟล์ Cal: ' + (CFG._added || 0) + ' คน');
     L.push('แผนกใหญ่: ' + D.depts.map(function (d) { return d.code + '=' + d.name; }).join(' · '));
+    var sf = nvSnapFile_();
+    L.push('ไฟล์สแนปช็อต: ' + (sf ? 'มีแล้ว · อัปเดตล่าสุด ' +
+      Utilities.formatDate(sf.getLastUpdated(), 'Asia/Bangkok', 'd MMM yyyy HH:mm') +
+      ' · ' + Math.round(sf.getSize()/1024) + ' KB'
+      : '❌ ยังไม่มี — รัน installSnapshotTrigger() หนึ่งครั้ง ไม่งั้นเข้าเว็บจะรอ ~1 นาทีทุกครั้ง'));
+    L.push('ตัวตั้งเวลาสร้างข้อมูลอัตโนมัติ: ' +
+      (ScriptApp.getProjectTriggers().filter(function(t){return t.getHandlerFunction()==='rebuildSnapshot';}).length
+        ? '✓ ตั้งแล้ว (ทุก 1 ชั่วโมง)' : '❌ ยังไม่ได้ตั้ง — รัน installSnapshotTrigger()'));
     L.push('ด่านตรวจ ผ่าน ' + D.verify.pass + '/' + D.verify.total);
     D.verify.fails.forEach(function (f) { L.push('   ✗ ' + f); });
     var nEst = 0, nSale = 0;
