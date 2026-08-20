@@ -1,0 +1,96 @@
+<script>
+/* =========================================================================
+   02_chart.js  —  กราฟทั้งหมด (วาด SVG เอง ไม่ใช้ไลบรารีนอก)
+   ========================================================================= */
+const tip=document.getElementById('tip'); tip.style.position='fixed';
+const showTip=(h,x,y)=>{tip.innerHTML=h;tip.classList.add('show');tip.style.left=x+'px';tip.style.top=y+'px';};
+const hideTip=()=>tip.classList.remove('show');
+const NS='http://www.w3.org/2000/svg';
+const mk=(t,a={})=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+const niceStep=x=>{const p=Math.pow(10,Math.floor(Math.log10(x||1)));const f=(x||1)/p;return (f<=1?1:f<=2?2:f<=5?5:10)*p;};
+function yTicks(max,n=4){const s=niceStep(max/n),c=Math.max(1,Math.ceil(max/s-1e-9));return Array.from({length:c+1},(_,i)=>i*s);}
+
+function chartStacked(box,{labels,series,footerFn}){
+  if(!box) return; box.innerHTML='';
+  const W=box.clientWidth||900,H=300,mL=76,mR=14,mT=14,mB=30,iw=W-mL-mR,ih=H-mT-mB;
+  const totals=labels.map((_,i)=>series.reduce((s,se)=>s+(se.values[i]||0),0));
+  const t=yTicks(Math.max(...totals)||1),top=t[t.length-1];
+  const svg=mk('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H});
+  t.forEach(v=>{const y=mT+ih-(v/top)*ih;svg.appendChild(mk('line',{x1:mL,x2:W-mR,y1:y,y2:y,class:'gridline'}));
+    const x=mk('text',{x:mL-9,y:y+4,class:'axtxt','text-anchor':'end'});x.textContent=short(v);svg.appendChild(x);});
+  const bw=iw/labels.length,bar=Math.min(46,bw*0.6);
+  labels.forEach((lb,i)=>{
+    const cx=mL+bw*i+bw/2;let acc=0;
+    series.forEach((se,si)=>{const v=se.values[i]||0;if(v<=0)return;
+      const h=(v/top)*ih,y=mT+ih-((acc+v)/top)*ih;
+      const isTop=series.slice(si+1).every(s=>(s.values[i]||0)<=0);
+      svg.appendChild(mk('rect',{x:cx-bar/2,y,width:bar,height:Math.max(1,h-2),fill:se.color,rx:isTop?4:1}));acc+=v;});
+    const x=mk('text',{x:cx,y:H-9,class:'axtxt','text-anchor':'middle'});x.textContent=lb;svg.appendChild(x);
+    const hit=mk('rect',{x:mL+bw*i,y:mT,width:bw,height:ih,fill:'transparent'});
+    hit.addEventListener('mousemove',e=>{
+      const rows=series.filter(se=>(se.values[i]||0)>0).map(se=>`<div class="t-r"><span class="l"><i class="swatch" style="background:${se.color}"></i>${esc(se.name)}</span><span class="v">${money(se.values[i])}</span></div>`).join('');
+      showTip(`<div class="t-h"><span>${lb}</span><span>${money(totals[i])}</span></div>${rows}<div class="t-f">${footerFn?footerFn(i):''}</div>`,e.clientX,e.clientY-12);});
+    hit.addEventListener('mouseleave',hideTip); svg.appendChild(hit);
+  });
+  svg.appendChild(mk('line',{x1:mL,x2:W-mR,y1:mT+ih,y2:mT+ih,class:'axisline'}));
+  box.appendChild(svg);
+}
+
+function chartLines(box,{labels,series,footerFn,zero}){
+  if(!box) return; box.innerHTML='';
+  const W=box.clientWidth||900,H=300,mL=76,mR=14,mT=14,mB=30,iw=W-mL-mR,ih=H-mT-mB;
+  const all=series.flatMap(s=>s.values.filter(v=>v!=null));
+  const max=Math.max(...all)||1,min=zero?0:Math.min(...all);
+  const step=niceStep((max-min)/3||max/4);
+  const lo=Math.max(0,Math.floor((min-step*0.6)/step)*step),hi=Math.ceil((max+step*0.4)/step)*step;
+  const ticks=[];for(let v=lo;v<=hi*1.0001;v+=step)ticks.push(v);
+  const svg=mk('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H});
+  ticks.forEach(v=>{const y=mT+ih-((v-lo)/(hi-lo))*ih;svg.appendChild(mk('line',{x1:mL,x2:W-mR,y1:y,y2:y,class:'gridline'}));
+    const x=mk('text',{x:mL-9,y:y+4,class:'axtxt','text-anchor':'end'});x.textContent=short(v);svg.appendChild(x);});
+  const X=i=>mL+(labels.length>1?iw*i/(labels.length-1):iw/2), Y=v=>mT+ih-((v-lo)/(hi-lo))*ih;
+  series.forEach(se=>{let d='',on=false;
+    se.values.forEach((v,i)=>{if(v==null){on=false;return;}d+=(on?'L':'M')+X(i)+' '+Y(v)+' ';on=true;});
+    svg.appendChild(mk('path',{d,fill:'none',stroke:se.color,'stroke-width':2,'stroke-linejoin':'round','stroke-linecap':'round'}));
+    se.values.forEach((v,i)=>{if(v!=null)svg.appendChild(mk('circle',{cx:X(i),cy:Y(v),r:4,fill:se.color,stroke:'#131620','stroke-width':2}));});});
+  const cross=mk('line',{x1:0,x2:0,y1:mT,y2:mT+ih,stroke:'rgba(255,255,255,.28)','stroke-width':1,opacity:0});svg.appendChild(cross);
+  labels.forEach((lb,i)=>{const x=mk('text',{x:X(i),y:H-9,class:'axtxt','text-anchor':'middle'});x.textContent=lb;svg.appendChild(x);});
+  const hit=mk('rect',{x:mL,y:mT,width:iw,height:ih,fill:'transparent'});
+  hit.addEventListener('mousemove',e=>{
+    const r=svg.getBoundingClientRect(),rel=(e.clientX-r.left)/r.width*W;
+    let i=Math.round((rel-mL)/(iw/(labels.length-1)));i=Math.max(0,Math.min(labels.length-1,i));
+    cross.setAttribute('x1',X(i));cross.setAttribute('x2',X(i));cross.setAttribute('opacity',1);
+    const rows=series.map(se=>`<div class="t-r"><span class="l"><i class="swatch" style="background:${se.color}"></i>${esc(se.name)}</span><span class="v">${se.values[i]==null?'—':money(se.values[i])}</span></div>`).join('');
+    showTip(`<div class="t-h"><span>${labels[i]}</span></div>${rows}<div class="t-f">${footerFn?footerFn(i):''}</div>`,e.clientX,e.clientY-12);});
+  hit.addEventListener('mouseleave',()=>{hideTip();cross.setAttribute('opacity',0);});
+  svg.appendChild(hit);
+  svg.appendChild(mk('line',{x1:mL,x2:W-mR,y1:mT+ih,y2:mT+ih,class:'axisline'}));
+  box.appendChild(svg);
+}
+
+function chartHBar(box,{items,unit='บาท',fmt}){
+  if(!box) return; box.innerHTML='';
+  const W=box.clientWidth||480,rowH=30,H=items.length*rowH+10;
+  const mL=Math.max(64,Math.min(190,W*0.30)),mR=Math.max(72,Math.min(130,W*0.24));
+  const max=Math.max(...items.map(i=>Math.abs(i.value)))||1;
+  const svg=mk('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H});
+  const F=fmt||money;
+  items.forEach((it,i)=>{
+    const y=i*rowH+6,w=(Math.abs(it.value)/max)*(W-mL-mR);
+    const t=mk('text',{x:mL-10,y:y+14,class:'axtxt b','text-anchor':'end'});t.textContent=it.label;svg.appendChild(t);
+    svg.appendChild(mk('rect',{x:mL,y:y+2,width:Math.max(2,w),height:16,rx:4,fill:it.color}));
+    const v=mk('text',{x:mL+w+8,y:y+14,class:'axtxt'});v.textContent=F(it.value);svg.appendChild(v);
+    const hit=mk('rect',{x:0,y,width:W,height:rowH,fill:'transparent'});
+    hit.addEventListener('mousemove',e=>showTip(`<div class="t-h"><span>${esc(it.label)}</span></div><div class="t-r"><span class="l">ยอด</span><span class="v">${F(it.value)} ${unit}</span></div>${it.note?`<div class="t-f">${it.note}</div>`:''}`,e.clientX,e.clientY-12));
+    hit.addEventListener('mouseleave',hideTip);svg.appendChild(hit);});
+  box.appendChild(svg);
+}
+
+const shareBar = parts => {
+  const tot=parts.reduce((s,p)=>s+p.value,0)||1;
+  return `<div style="display:flex;height:22px;border-radius:6px;overflow:hidden">`
+    + parts.map(p=>`<div style="flex:${Math.max(p.value,0.0001)};background:${p.color};height:100%"></div>`).join('<div style="width:2px;background:var(--surface)"></div>')
+    + `</div><div class="legend">`
+    + parts.map(p=>`<span><i class="swatch" style="background:${p.color}"></i>${esc(p.label)} <b class="num">${money(p.value)}</b> <span class="muted">(${pct(p.value/tot*100)})</span></span>`).join('')
+    + `</div>`;
+};
+</script>

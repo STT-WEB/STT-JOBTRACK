@@ -1,0 +1,121 @@
+<script>
+/* =========================================================================
+   04_shell.js  —  เส้นทางหน้าจอ · โครงเมนู · หน้า HUB · นิยาม 2 กลุ่มแท็บ (Payroll / Job Cost)
+   ========================================================================= */
+function go(s){document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));
+  document.getElementById('sc-'+s).classList.add('active');window.scrollTo(0,0);}
+function pickCompany(c){st.co=c;document.body.setAttribute('data-company',c);go('pin');}
+
+const MODULES=[
+  {id:'payroll',name:'ค่าแรง·ต้นทุน',icon:'M3 3v18h18M7 15l4-5 3 3 5-7'},
+  {id:'recruit',name:'สรรหา',icon:'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM19 8v6M22 11h-6'},
+  {id:'activity',name:'กิจกรรม',icon:'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z'},
+  {id:'skill',name:'ทักษะ',icon:'M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z'},
+  {id:'employee',name:'พนักงาน',icon:'M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M10 11a4 4 0 100-8 4 4 0 000 8z'},
+  {id:'myacc',name:'My Acc',icon:'M20 21v-2a4 4 0 00-3-3.87M4 21v-2a4 4 0 013-3.87M12 11a4 4 0 100-8 4 4 0 000 8z'},
+];
+const HUBM={id:'hub',name:'หน้าหลัก',icon:'M3 11l9-8 9 8v9a2 2 0 01-2 2h-4v-6H9v6H5a2 2 0 01-2-2z'};
+function renderRail(){
+  document.getElementById('rail').innerHTML='<div class="rail-logo">HR</div>'+
+    [HUBM,...MODULES].map(m=>`<button class="rail-btn ${st.mod===m.id?'on':''}" onclick="openMod('${m.id}')">
+      <svg viewBox="0 0 24 24"><path d="${m.icon}" stroke-linecap="round" stroke-linejoin="round"/></svg>${m.name}</button>`).join('')
+    +'<div class="rail-spacer"></div>';
+}
+function openMod(id){st.mod=id;st.drill=null;renderRail();render();window.scrollTo(0,0);}
+document.getElementById('coSwitch').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  st.co=b.dataset.co;document.body.setAttribute('data-company',st.co);
+  document.querySelectorAll('#coSwitch button').forEach(x=>x.classList.toggle('on',x===b));render();});
+
+const after=f=>{(window.__after=window.__after||[]).push(f);};
+function render(){
+  const p=document.getElementById('page');
+  document.getElementById('crumbMain').textContent=(st.mod==='hub'?HUBM:MODULES.find(m=>m.id===st.mod)||{}).name||'';
+  const map={hub:pageHub,payroll:pageWork,myacc:pageMyAcc,
+    recruit:()=>pageShell('recruit'),activity:()=>pageShell('activity'),skill:()=>pageShell('skill'),employee:()=>pageShell('employee')};
+  p.innerHTML=(map[st.mod]||pageHub)();
+  (window.__after||[]).forEach(f=>f());window.__after=[];
+  initTables();
+}
+
+/* =========================================================================
+   HUB
+   ========================================================================= */
+function pageHub(){
+  document.getElementById('crumbSub').textContent='ภาพรวมโมดูล';
+  const last=M(st.co,NM),prev=M(st.co,NM-1);
+  const ytd=MONTHS.reduce((s,m)=>s+M(st.co,m).total,0);
+  const mods=[['payroll','ค่าแรง · ต้นทุนงาน','2 กลุ่มงาน: <b>Payroll</b> (เงินเดือน · Dashboard ผู้บริหาร · สรุปค่าแรง · Performance) และ <b>Job Cost</b> (Bplus · JOBTRACK · Reconcile · Cal · Allocate · เทียบงบ · Master · Dashboard)','ready','พร้อมใช้ · 12 แท็บ'],
+    ['recruit','สรรหา (Recruit)','ใบขออัตรากำลัง → ประกาศ → คัดเลือก → สัมภาษณ์ → บรรจุ','soon','โครงหน้า'],
+    ['activity','กิจกรรมพนักงาน','ปฏิทินกิจกรรม · ลงชื่อเข้าร่วม · สรุปผล','soon','โครงหน้า'],
+    ['skill','ทักษะ · ฝึกอบรม','Skill Matrix · วันหมดอายุใบเซอร์ · แผนอบรม','soon','โครงหน้า'],
+    ['employee','ข้อมูลพนักงาน','ทะเบียนประวัติ · สัญญา · การเคลื่อนไหว','soon','โครงหน้า'],
+    ['myacc','My Account','พนักงานดูชั่วโมง/ค่าแรงของตัวเอง','ready','พร้อมใช้']];
+  return `
+  <div class="page-head"><div><h2>ศูนย์รวมระบบงานบุคคล — ${st.co}</h2>
+    <p>โปรแกรมนี้ไม่ได้มีแค่ Dashboard — การนำเข้า การคำนวณ การตรวจสอบ อยู่ในระบบทั้งหมด</p></div></div>
+  <div class="grid g-4" style="margin-bottom:18px">
+    ${kpi('ค่าแรงจ่ายจริงสะสม','฿ '+money(ytd),`ม.ค.–${MTH[NM-1]} ${YEAR}`)}
+    ${kpi('เดือนล่าสุด','฿ '+money(last.total),MTH[NM-1]+' '+YEAR,deltaChip(last.total,prev.total)+' <span class="muted small">vs '+MTH[NM-2]+'</span>')}
+    ${kpi('Direct / Indirect',pct(last.direct/last.total*100)+' / '+pct(last.indirect/last.total*100),`คน ${last.head} · Direct ${MONTHS.length?Object.entries(last.dept).filter(([k])=>isDirect(k)).reduce((s,[,v])=>s+v.head,0):0} คน`)}
+    ${kpi('ชั่วโมงลงจ๊อบเดือนล่าสุด',hours(D.companies[st.co].jobRows.filter(x=>x.m===NM).reduce((s,x)=>s+x.th,0))+' <small>ชม.</small>','จาก JOBTRACK')}
+  </div>
+  <div class="hub-grid">
+    ${mods.map(([id,t,d,s,l])=>`<div class="mod ${s==='soon'?'dim':''}" onclick="openMod('${id}')">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="${(id==='payroll'?MODULES[0]:MODULES.find(m=>m.id===id)||MODULES[0]).icon}" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h4>${t}</h4><p>${d}</p><span class="st ${s}">${l}</span></div>`).join('')}
+  </div>
+  <hr class="sep">
+  <div class="grid g-2">
+    <div class="card"><div class="card-h"><h3>ลำดับการทำงานของระบบ (เหมือนเดิม ไม่เปลี่ยน)</h3></div>
+      <div class="roadmap">${[
+        ['1','Bplus + JOBTRACK','สแกนนิ้วเข้า Bplus (ใช้จ่ายเงินเดือน) · JOBTRACK เก็บว่าใครทำจ๊อบไหน process อะไร กี่ชั่วโมง'],
+        ['2','Reconcile 2 ตัว','เช็คเวลา + เช็คยอดเงิน · ไม่ตรงต้องหาต้นตอให้เจอ'],
+        ['3','Cal Job Cost','คิดต้นทุน Direct รายบรรทัด → ต้องเท่ากับที่ Payroll จ่ายจริง'],
+        ['4','Allocate Indirect','กระจายค่าแรงทางอ้อมเข้าจ๊อบ ตามชั่วโมงแรงงานตรง'],
+        ['5','เทียบงบ + Master','เทียบ Est. Budget / Sale Budget · เริ่ม→ปิดจบกี่วัน · ค่าแรงรายเดือนต่อจ๊อบ']
+      ].map(([n,t,d])=>`<div class="step"><div class="n">${n}</div><div><b>${t}</b><div class="muted small">${d}</div></div></div>`).join('')}</div></div>
+    <div class="card"><div class="card-h"><h3>การ Deploy (คงเดิม)</h3></div>
+      <div class="roadmap">
+        <div class="step"><div class="n">A</div><div><b>Google Apps Script + HTML ไฟล์เดียว</b><div class="muted small">ไม่เปลี่ยน stack</div></div></div>
+        <div class="step"><div class="n">B</div><div><b>อัปเดต-Hub.bat</b><div class="muted small">ดับเบิลคลิกปุ่มเดียว → clasp push + deploy</div></div></div>
+        <div class="step"><div class="n">C</div><div><b>ดึงข้อมูลเข้าระบบ.bat</b><div class="muted small">ดึงไฟล์ต้นทางเข้าฐานข้อมูล</div></div></div>
+        <div class="step"><div class="n">D</div><div><b>บั๊ม cache key ทุกครั้งที่แก้ logic</b><div class="muted small">กันเว็บโชว์ข้อมูลเก่า</div></div></div>
+      </div>
+      <div class="callout i" style="margin-top:12px"><span class="ic">✓</span><div>ทุกตารางในระบบ <b>กรองได้เหมือน Excel</b> — พิมพ์กรองใต้หัวคอลัมน์ · คลิกหัวตารางเพื่อเรียง · มีแถว "รวมที่กรองอยู่"</div></div>
+    </div>
+  </div>`;
+}
+
+/* =========================================================================
+   โมดูล ค่าแรง·ต้นทุน — 2 กลุ่ม
+   ========================================================================= */
+const GROUPS={
+  pay:{name:'Payroll · เงินเดือน',tabs:[['pay','① เงินเดือนจ่ายจริง'],['exec','② Dashboard ผู้บริหาร'],['sum','③ สรุปค่าแรง'],['perf','④ Performance']]},
+  jc: {name:'Job Cost · ต้นทุนงาน',tabs:[['bplus','① Time Bplus'],['jt','② Time JOBTRACK'],['rec','③ Reconcile'],['cal','④ Cal Job Cost'],['alloc','⑤ Allocate Indirect'],['budget','⑥ เทียบงบ'],['master','⑦ Master จ๊อบ'],['dash','⑧ Dashboard จ๊อบ']]},
+};
+function setGrp(g){st.grp=g;st.tab=GROUPS[g].tabs[0][0];render();window.scrollTo(0,0);}
+function setTab(k){st.tab=k;if(k==='sum')st.sub='year';render();window.scrollTo(0,0);}
+function setSub(k){st.sub=k;render();}
+function setMonth(v){st.month=+v;render();}
+function setDept(v){st.dept=v;render();}
+function setKem(v){st.inclKem=v;render();}
+function toggleDept(c){st.open['d'+c]=!st.open['d'+c];render();}
+
+function pageWork(){
+  const g=GROUPS[st.grp];
+  document.getElementById('crumbSub').textContent=g.name+' › '+((g.tabs.find(t=>t[0]===st.tab)||[])[1]||'');
+  const body={pay:tabPay,exec:tabExec,sum:tabSum,perf:tabPerf,bplus:tabBplus,jt:tabJT,rec:tabRec,
+              cal:tabCal,alloc:tabAlloc,budget:tabBudget,master:tabMaster,dash:tabDash}[st.tab]();
+  const kemSw=isKem(st.co)?`<div class="kemsw"><span class="lbl">แผนก KEMREX</span>
+      <button class="${st.inclKem?'on':''}" onclick="setKem(true)">นับรวม</button>
+      <button class="${!st.inclKem?'on':''}" onclick="setKem(false)">ไม่นับ</button></div>`:'';
+  return `<div class="page-head"><div><h2>ค่าแรง · ต้นทุนงาน — ${st.co}</h2>
+      <p>ปีงบ ${YEAR} · ข้อมูลถึง ${MTH[NM-1]} · เงิน 2 ทศนิยม+ลูกน้ำ · ชั่วโมงเลขปกติ · ทุกตารางกรองได้เหมือน Excel</p></div>
+      <div class="grow"></div>${kemSw}</div>
+    <div class="grpsw">${Object.entries(GROUPS).map(([k,v])=>`<button class="${st.grp===k?'on':''}" onclick="setGrp('${k}')">${v.name}</button>`).join('')}</div>
+    ${isKem(st.co)&&!st.inclKem?`<div class="callout q" style="margin-bottom:14px"><span class="ic">!</span><div>กำลังดูแบบ <b>ไม่นับแผนก KEMREX</b> — ตัวเลขทุกหน้าเป็นของพนักงาน STT เท่านั้น</div></div>`:''}
+    <div class="tabs">${g.tabs.map(([k,n])=>`<button class="${st.tab===k?'on':''}" onclick="setTab('${k}')">${n}</button>`).join('')}</div>
+    ${body}`;
+}
+</script>

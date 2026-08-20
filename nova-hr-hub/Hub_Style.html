@@ -1,0 +1,386 @@
+<style>
+/* ==========================================================================
+   STT NOVA-HR Hub — Design System v2 (Dark Premium · ยกเครื่องใหม่)
+   ========================================================================== */
+:root{
+  /* --- พื้นผิว (Surfaces) --- */
+  --bg:#0A0B0E;
+  --bg-grad:radial-gradient(1200px 700px at 12% -10%, rgba(255,255,255,.05), transparent 60%);
+  --surface:#131620;
+  --surface-2:#1A1E2B;
+  --surface-3:#232838;
+  --line:rgba(255,255,255,.09);
+  --line-2:rgba(255,255,255,.16);
+
+  /* --- ตัวอักษร (Ink) --- */
+  --ink:#F2F5FA;
+  --ink-2:#A7B0C3;
+  --ink-3:#6C7590;
+
+  /* --- แบรนด์ --- */
+  --stt:#E8232E;  --stt-2:#FF5A63;
+  --s1:#5B6BE8;   --s1-2:#8B97FF;
+  --kem:#12A594;  --kem-2:#3FD6C2;
+  --accent:var(--stt);
+  --accent-2:var(--stt-2);
+  --accent-soft:rgba(232,35,46,.14);
+
+  /* --- สถานะ (สงวนไว้ ห้ามใช้เป็นสีซีรีส์) --- */
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --good-ink:#3ddc6a;
+
+  /* --- สีชุดข้อมูล (validated: dark surface #12141A · PASS ทั้ง 6 ด่าน) --- */
+  --s-1:#3987e5; --s-2:#d95926; --s-3:#199e70; --s-4:#c98500;
+  --s-5:#d55181; --s-6:#008300; --s-7:#9085e9; --s-8:#e66767;
+
+  /* --- ชั้นสีไล่ (sequential blue) --- */
+  --q1:#0d366b; --q2:#184f95; --q3:#256abf; --q4:#3987e5; --q5:#5598e7; --q6:#86b6ef; --q7:#b7d3f6;
+
+  --grid:rgba(255,255,255,.07);
+  --axis:rgba(255,255,255,.18);
+
+  --radius:14px; --radius-sm:10px; --radius-lg:20px;
+  --shadow:0 10px 30px rgba(0,0,0,.45);
+  --font:"Noto Sans Thai","Leelawadee UI","IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+[data-company="S1"]{ --accent:var(--s1); --accent-2:var(--s1-2); --accent-soft:rgba(91,107,232,.16); }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);background-image:var(--bg-grad);
+  color:var(--ink);font-family:var(--font);font-size:14.5px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-.01em}
+button{font-family:inherit;font-size:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select{font-family:inherit;font-size:inherit}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- ป้ายกำกับว่าเป็นข้อมูลสมมติ ---------- */
+.mockbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:90;
+  display:flex;gap:14px;align-items:center;justify-content:center;
+  padding:7px 16px;font-size:12.5px;font-weight:600;
+  background:linear-gradient(90deg,rgba(250,178,25,.16),rgba(250,178,25,.07));
+  border-top:1px solid rgba(250,178,25,.35);color:#ffd88a;backdrop-filter:blur(8px);
+}
+.mockbar b{color:#ffe9bb}
+
+/* ---------- โครงหน้า ---------- */
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+.app-shell{display:grid;grid-template-columns:76px 1fr;min-height:100vh}
+
+/* Rail ซ้าย = 5 กล่องโมดูล (แยกกันชัดเจน) */
+.rail{
+  background:linear-gradient(180deg,#0E1016,#0A0B0E);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 0 60px;position:sticky;top:0;height:100vh;
+}
+.rail-logo{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--accent),color-mix(in srgb,var(--accent) 40%,#000));
+  font-weight:800;font-size:15px;color:#fff;margin-bottom:10px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.rail-btn{width:56px;padding:9px 0;border-radius:12px;display:grid;place-items:center;gap:3px;
+  color:var(--ink-3);font-size:10.5px;font-weight:600;transition:.15s;text-align:center}
+.rail-btn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7}
+.rail-btn:hover{background:var(--surface-2);color:var(--ink-2)}
+.rail-btn.on{background:var(--accent-soft);color:var(--accent-2)}
+.rail-spacer{flex:1}
+
+.main{min-width:0;display:flex;flex-direction:column}
+
+/* Top bar */
+.topbar{
+  position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:14px;
+  padding:11px 20px;background:rgba(10,11,14,.86);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.crumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-3)}
+.crumb b{color:var(--ink);font-size:15px;font-weight:700}
+.crumb .sep{opacity:.45}
+.topbar .grow{flex:1}
+.co-switch{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:3px}
+.co-switch button{padding:5px 12px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--ink-3)}
+.co-switch button.on{background:var(--accent);color:#fff}
+.userchip{display:flex;align-items:center;gap:9px;padding:5px 12px 5px 5px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+.avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(140deg,var(--accent),#000);display:grid;place-items:center;font-size:12px;font-weight:800}
+.userchip small{display:block;color:var(--ink-3);font-size:11px;line-height:1.1}
+.ver{font-size:11px;color:var(--ink-3);border:1px solid var(--line);padding:3px 8px;border-radius:7px}
+
+.content{padding:20px 20px 64px;flex:1}
+.page-head{display:flex;align-items:flex-end;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.page-head h2{font-size:21px}
+.page-head p{margin:3px 0 0;color:var(--ink-3);font-size:13px}
+
+/* ---------- แท็บ ---------- */
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:16px;padding-bottom:0}
+.tabs button{white-space:nowrap;padding:10px 15px;font-size:13.5px;font-weight:600;color:var(--ink-3);border-bottom:2px solid transparent;border-radius:8px 8px 0 0}
+.tabs button:hover{color:var(--ink-2);background:var(--surface)}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--accent);background:linear-gradient(180deg,transparent,var(--accent-soft))}
+.subtabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.subtabs button{padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:700;color:var(--ink-2);border:1px solid var(--line);background:var(--surface)}
+.subtabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* ---------- การ์ด ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.card-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.card-h h3{font-size:15px}
+.card-h .hint{color:var(--ink-3);font-size:12px}
+.card-h .grow{flex:1}
+.grid{display:grid;gap:14px;align-items:start}
+.grid>*{min-width:0}   /* กันตารางกว้างดันคอลัมน์จนกล่องข้างๆ ถูกบีบ */
+.g-5{grid-template-columns:repeat(5,1fr)}
+.g-4{grid-template-columns:repeat(4,1fr)}
+.g-3{grid-template-columns:repeat(3,1fr)}
+.g-2{grid-template-columns:repeat(2,1fr)}
+.g-2-1{grid-template-columns:2fr 1fr}
+.g-1-2{grid-template-columns:1fr 2fr}
+@media(max-width:1300px){.g-5{grid-template-columns:repeat(3,1fr)}.g-4{grid-template-columns:repeat(2,1fr)}.g-2-1,.g-1-2{grid-template-columns:1fr}}
+
+/* ---------- KPI / Stat tile ---------- */
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;align-self:stretch}
+.kpi::after{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--accent);opacity:.85}
+.kpi .lbl{font-size:12px;color:var(--ink-3);font-weight:600;display:flex;align-items:center;gap:6px}
+.kpi .val{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-top:4px}
+.kpi .val small{font-size:13px;font-weight:600;color:var(--ink-3);margin-left:4px}
+.kpi .sub{font-size:12px;color:var(--ink-3);margin-top:3px}
+.delta{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:800;padding:2px 7px;border-radius:7px;margin-top:6px}
+.delta.up{color:var(--good-ink);background:rgba(12,163,12,.14)}
+.delta.down{color:#ff8f8f;background:rgba(208,59,59,.16)}
+.delta.flat{color:var(--ink-3);background:var(--surface-2)}
+
+/* ---------- ตาราง ---------- */
+.tbl-wrap{border:1px solid var(--line);border-radius:var(--radius);overflow:auto;background:var(--surface);max-height:560px;position:relative}
+table.tbl{border-collapse:separate;border-spacing:0;width:100%;font-size:13.5px}
+table.tbl th,table.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+table.tbl th{
+  position:sticky;top:0;z-index:20;background:#171B27;color:var(--ink-2);
+  font-size:12px;font-weight:700;letter-spacing:.02em;border-bottom:1px solid var(--line-2);
+}
+table.tbl td.r,table.tbl th.r{text-align:right;font-variant-numeric:tabular-nums}
+table.tbl tbody tr:hover td{background:var(--surface-2)}
+table.tbl td.sticky,table.tbl th.sticky{position:sticky;left:0;z-index:21;background:#171B27}
+table.tbl tbody td.sticky{background:var(--surface);border-right:1px solid var(--line)}
+table.tbl tbody tr:hover td.sticky{background:var(--surface-2)}
+table.tbl th.sticky{z-index:30}
+table.tbl tfoot td{position:sticky;bottom:0;background:#1C2130;font-weight:800;border-top:1px solid var(--line-2);z-index:22}
+tr.grp>td{background:var(--surface-2);font-weight:700;cursor:pointer}
+tr.sub>td{background:rgba(255,255,255,.02);color:var(--ink-2);font-size:13px}
+td.warn{color:#ffd88a;background:rgba(250,178,25,.10)}
+td.bad{color:#ff9d9d;background:rgba(208,59,59,.12)}
+
+/* ---------- ชิป / ป้าย ---------- */
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;border:1px solid var(--line-2);color:var(--ink-2)}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.chip.ok{color:var(--good-ink);border-color:rgba(12,163,12,.4);background:rgba(12,163,12,.12)}
+.chip.warn{color:#ffd88a;border-color:rgba(250,178,25,.4);background:rgba(250,178,25,.10)}
+.chip.bad{color:#ff9d9d;border-color:rgba(208,59,59,.45);background:rgba(208,59,59,.13)}
+.chip.info{color:#9cc6ff;border-color:rgba(57,135,229,.4);background:rgba(57,135,229,.12)}
+.swatch{width:10px;height:10px;border-radius:3px;display:inline-block;box-shadow:0 0 0 2px var(--surface)}
+
+/* ---------- ตัวกรอง ---------- */
+.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:11px;color:var(--ink-3);font-weight:700}
+.fld select,.fld input{
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+  padding:8px 11px;border-radius:10px;min-width:140px;outline:none;
+}
+.fld select:focus,.fld input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.btn{padding:9px 15px;border-radius:10px;font-weight:700;font-size:13px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+.btn:hover{background:var(--surface-3);color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.ghost{background:transparent}
+
+/* ---------- Callout ---------- */
+.callout{display:flex;gap:12px;padding:13px 15px;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface);font-size:13.5px;line-height:1.6}
+.callout.q{border-color:rgba(250,178,25,.4);background:rgba(250,178,25,.07)}
+.callout.i{border-color:rgba(57,135,229,.35);background:rgba(57,135,229,.07)}
+.callout .ic{font-size:18px;line-height:1.3}
+.callout b{color:#fff}
+
+/* ---------- กราฟ ---------- */
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;overflow:visible}
+.gridline{stroke:var(--grid);stroke-width:1}
+.axisline{stroke:var(--axis);stroke-width:1}
+.axtxt{fill:#898781;font-size:11px;font-family:var(--font)}
+.axtxt.b{fill:var(--ink-2);font-weight:700}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.tip{
+  position:absolute;pointer-events:none;z-index:70;min-width:210px;
+  background:#0E1119;border:1px solid var(--line-2);border-radius:12px;padding:10px 12px;
+  box-shadow:var(--shadow);font-size:12.5px;opacity:0;transform:translate(-50%,-108%);transition:opacity .1s;
+}
+.tip.show{opacity:1}
+.tip .t-h{font-weight:800;font-size:13px;margin-bottom:7px;display:flex;justify-content:space-between;gap:14px}
+.tip .t-r{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:2px 0}
+.tip .t-r .l{display:flex;align-items:center;gap:7px;color:var(--ink-2)}
+.tip .t-r .v{font-variant-numeric:tabular-nums;font-weight:700}
+.tip .t-f{margin-top:7px;padding-top:7px;border-top:1px solid var(--line);color:var(--ink-3);font-size:11.5px}
+
+/* ---------- Login / Welcome ---------- */
+.auth{min-height:100vh;display:grid;grid-template-columns:1.05fr .95fr;position:relative;overflow:hidden}
+.auth::before{content:"";position:absolute;width:900px;height:900px;left:-260px;top:-320px;border-radius:50%;
+  background:radial-gradient(circle,rgba(232,35,46,.20),transparent 62%);filter:blur(10px)}
+.auth::after{content:"";position:absolute;width:820px;height:820px;right:-280px;bottom:-360px;border-radius:50%;
+  background:radial-gradient(circle,rgba(91,107,232,.20),transparent 62%)}
+.auth-art{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:36px;gap:16px}
+.auth-art img.people{width:min(74%,430px);filter:drop-shadow(0 30px 60px rgba(0,0,0,.6))}
+.auth-art .tagline{text-align:center;max-width:440px}
+.auth-art .tagline h3{font-size:17px;color:var(--ink)}
+.auth-art .tagline p{margin:6px 0 0;color:var(--ink-3);font-size:13px}
+.auth-form{position:relative;display:flex;flex-direction:column;justify-content:center;padding:40px min(7vw,72px);gap:18px;border-left:1px solid var(--line);background:linear-gradient(180deg,rgba(19,22,32,.6),rgba(10,11,14,.75))}
+.brandrow{display:flex;align-items:center;gap:14px}
+.brandrow img{height:46px}
+.brandrow .divider{width:1px;height:38px;background:var(--line-2)}
+.brand-title{font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.brand-title span{background:linear-gradient(90deg,var(--stt-2),var(--s1-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand-sub{color:var(--ink-3);font-size:13.5px;margin-top:4px}
+.inp{position:relative}
+.inp input{
+  width:100%;background:#0E1119;border:1px solid var(--line);color:var(--ink);
+  padding:13px 14px;border-radius:12px;outline:none;font-size:14.5px;
+}
+.inp input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.inp label{display:block;font-size:12px;color:var(--ink-3);font-weight:700;margin-bottom:6px}
+.btn-line{
+  display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+  padding:14px;border-radius:12px;background:#06C755;color:#fff;font-weight:800;font-size:15px;
+  box-shadow:0 8px 22px rgba(6,199,85,.28);
+}
+.btn-line:hover{filter:brightness(1.06)}
+.or{display:flex;align-items:center;gap:12px;color:var(--ink-3);font-size:12px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.foot-note{color:var(--ink-3);font-size:12px;text-align:center}
+
+/* เลือกบริษัท */
+.co-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:900px;width:100%}
+.co-grid.two{grid-template-columns:repeat(2,1fr);max-width:660px}
+.co-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;text-align:center;
+  transition:.18s;cursor:pointer;position:relative;overflow:hidden;
+}
+.co-card:hover{transform:translateY(-3px);border-color:var(--line-2);box-shadow:var(--shadow)}
+.co-card .bar{position:absolute;left:0;right:0;top:0;height:4px}
+.co-card img{height:52px;margin:8px auto 12px;display:block}
+.co-card h4{font-size:16px}
+.co-card p{margin:5px 0 0;color:var(--ink-3);font-size:12.5px}
+.center-wrap{min-height:100vh;display:grid;place-items:center;padding:40px 20px 70px}
+.center-box{width:100%;max-width:980px;display:flex;flex-direction:column;align-items:center;gap:22px}
+
+/* PIN */
+.pin-row{display:flex;gap:10px;justify-content:center}
+.pin-row .d{width:52px;height:60px;border-radius:12px;background:#0E1119;border:1px solid var(--line);display:grid;place-items:center;font-size:24px;font-weight:800}
+.pin-row .d.filled{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:280px;margin:0 auto}
+.keypad button{padding:15px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);font-size:18px;font-weight:700}
+.keypad button:hover{background:var(--surface-3)}
+.role-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.role-row button{padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:13px;color:var(--ink-2)}
+.role-row button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* Hub */
+.hub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:1100px){.hub-grid{grid-template-columns:repeat(2,1fr)}.co-grid{grid-template-columns:1fr}}
+.mod{
+  background:linear-gradient(160deg,var(--surface),#0F1219);border:1px solid var(--line);border-radius:18px;
+  padding:20px;cursor:pointer;transition:.18s;position:relative;overflow:hidden;min-height:150px;
+  display:flex;flex-direction:column;gap:8px;
+}
+.mod:hover{transform:translateY(-3px);border-color:var(--line-2);box-shadow:var(--shadow)}
+.mod .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-2)}
+.mod .ic svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+.mod h4{font-size:16px;margin-top:4px}
+.mod p{margin:0;color:var(--ink-3);font-size:12.5px;line-height:1.55;flex:1}
+.mod .st{font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:999px;align-self:flex-start}
+.mod .st.ready{background:rgba(12,163,12,.14);color:var(--good-ink)}
+.mod .st.soon{background:var(--surface-3);color:var(--ink-3)}
+.mod.dim{opacity:.72}
+
+/* โครงหน้าโมดูลที่ยังไม่ทำ */
+.skel-row{display:flex;gap:12px;align-items:center;padding:13px 15px;border:1px dashed var(--line-2);border-radius:12px;background:rgba(255,255,255,.015)}
+.skel-bar{height:10px;border-radius:6px;background:linear-gradient(90deg,var(--surface-2),var(--surface-3),var(--surface-2))}
+.roadmap{display:flex;flex-direction:column;gap:10px}
+.roadmap .step{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.roadmap .n{width:24px;height:24px;border-radius:8px;background:var(--accent-soft);color:var(--accent-2);display:grid;place-items:center;font-weight:800;font-size:12px;flex:none}
+
+/* Timeline (Dashboard) */
+.tl-row{display:grid;grid-template-columns:230px 1fr;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.tl-name{font-size:12.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tl-track{position:relative;height:22px;background:rgba(255,255,255,.03);border-radius:6px}
+.tl-bar{position:absolute;top:4px;height:14px;border-radius:4px}
+.tl-bar.ontime{background:var(--good)}
+.tl-bar.late{background:var(--critical)}
+.tl-bar.open{background:var(--s-1)}
+.tl-marker{position:absolute;top:0;bottom:0;width:2px;background:var(--warning)}
+.tl-head{display:grid;grid-template-columns:230px 1fr;gap:12px;font-size:11px;color:var(--ink-3)}
+.tl-scale{display:flex}
+.tl-scale span{flex:1;text-align:left;border-left:1px solid var(--line);padding-left:4px}
+
+.kemsw{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:5px 8px}
+.kemsw .lbl{font-size:11.5px;color:var(--ink-3);font-weight:700;margin-right:4px}
+.kemsw button{padding:5px 12px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--ink-3)}
+.kemsw button.on{background:var(--accent);color:#fff}
+/* ---------- สลับกลุ่มงาน ---------- */
+.grpsw{display:flex;gap:6px;margin-bottom:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;width:fit-content}
+.grpsw button{padding:9px 20px;border-radius:9px;font-size:14px;font-weight:700;color:var(--ink-3)}
+.grpsw button.on{background:var(--accent);color:#fff}
+
+/* ---------- ตัวกรองแบบ Excel ---------- */
+.tbl-bar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:8px;padding:7px 12px;
+  background:#10131C;border-bottom:1px solid var(--line);font-size:12px;color:var(--ink-3)}
+.tbl-bar .cnt{font-weight:700;white-space:nowrap}
+.tbl-bar .fchips{flex:1;display:flex;gap:6px;flex-wrap:wrap;overflow:hidden}
+.fchip{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;font-size:11px;
+  font-weight:700;background:var(--accent-soft);color:var(--accent-2);border:1px solid var(--line-2)}
+.fchip b{cursor:pointer;opacity:.8}
+.fchip b:hover{opacity:1}
+.btn.xs{padding:4px 10px;font-size:11.5px;border-radius:7px}
+.btn.xs.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+
+table.tbl th{top:35px;padding:7px 10px}
+table.tbl th .hl{cursor:pointer;user-select:none}
+table.tbl th .hl:hover{color:var(--ink)}
+table.tbl th .srt{color:var(--accent-2);font-size:10px}
+table.tbl th .fbtn{margin-left:6px;padding:0 5px;border-radius:5px;font-size:10px;line-height:16px;
+  color:var(--ink-3);border:1px solid transparent;vertical-align:middle}
+table.tbl th .fbtn:hover{background:var(--surface-3);color:var(--ink);border-color:var(--line-2)}
+table.tbl th.filtered{color:var(--accent-2)}
+table.tbl th.filtered .fbtn{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.fpanel{position:fixed;z-index:200;width:270px;background:#0E1119;border:1px solid var(--line-2);
+  border-radius:12px;box-shadow:var(--shadow);padding:10px;display:flex;flex-direction:column;gap:8px}
+.fpanel .fp-sort{display:flex;gap:6px}
+.fpanel .fp-sort button{flex:1;padding:6px;border-radius:8px;background:var(--surface-2);
+  border:1px solid var(--line);font-size:11.5px;font-weight:700;color:var(--ink-2)}
+.fpanel .fp-sort button:hover{background:var(--surface-3);color:var(--ink)}
+.fpanel .fp-q{background:#0B0E15;border:1px solid var(--line);color:var(--ink);padding:7px 9px;
+  border-radius:8px;font-size:12.5px;outline:none}
+.fpanel .fp-q:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.fpanel .fp-all{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:4px 2px;
+  border-bottom:1px solid var(--line)}
+.fpanel .fp-list{max-height:210px;overflow:auto;display:flex;flex-direction:column;gap:1px}
+.fpanel .fp-list label{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:4px 6px;
+  border-radius:6px;color:var(--ink-2);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fpanel .fp-list label:hover{background:var(--surface-2);color:var(--ink)}
+.fpanel input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;flex:none}
+.fpanel .fp-act{display:flex;gap:6px;align-items:center;padding-top:6px;border-top:1px solid var(--line)}
+tfoot tr.ft-vis td{background:#20263A;color:#ffd88a;font-weight:800}
+.drill{border-color:var(--accent)!important;box-shadow:0 0 0 1px var(--accent-soft)}
+.tbl-wrap{scrollbar-width:thin}
+
+/* ---------- หน้า Login: จำกัดความกว้างฟอร์มให้สมส่วน ---------- */
+.auth-form{align-items:center}
+.auth-form>*{width:100%;max-width:400px}
+.auth-form .brandrow{justify-content:flex-start}
+
+.hidden{display:none!important}
+.mono{font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-3)}
+.small{font-size:12px}
+.right{text-align:right}
+hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
+
+</style>

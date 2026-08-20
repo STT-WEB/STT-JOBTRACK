@@ -1,0 +1,461 @@
+<script>
+/* =========================================================================
+   06_jobcost.js  —  กลุ่ม Job Cost — ①Bplus ②JOBTRACK ③Reconcile ④Cal ⑤Allocate ⑥เทียบงบ ⑦Master ⑧Dashboard
+   ========================================================================= */
+/* ---------- Job Cost ① Time Bplus ---------- */
+function tabBplus(){
+  const m=st.month, conv=m<NM;
+  const R=D.companies[st.co].recon.filter(r=>r.m===m&&(st.inclKem||E(r.id).dept!==KEM));
+  const rows=R.map(r=>{const e=E(r.id);return {id:r.id,name:esc(e.name),dept:`${e.dept}·${e.deptName}`,
+    etype:e.type,h:hours(r.bplus),d:hours(Math.round(r.bplus/8)),late:hours(r.id.charCodeAt(6)%3),
+    ab:hours(Math.max(0,(D.meta.workdays[m-1]-D.meta.holidays[m-1])*8-r.bplus)/8)};});
+  return `
+  <div class="filters">
+    <div class="fld"><label>ไฟล์รายเดือน</label><select onchange="setMonth(this.value)">${MONTHS.map(i=>`<option value="${i}" ${st.month===i?'selected':''}>${i}.Time Bplus ${MTH[i-1]} ${YEAR}</option>`).join('')}</select></div>
+    <div style="flex:1"></div><button class="btn">เปิดโฟลเดอร์ต้นทาง</button><button class="btn primary">แปลงเป็น Google Sheets แล้วนำเข้า</button>
+  </div>
+  ${conv?`<div class="callout i" style="margin-bottom:14px"><span class="ic">✓</span><div>ไฟล์ <b>${m}.Time Bplus ${MTH[m-1]} ${YEAR}</b> แปลงแล้ว · นำเข้า <b>${rows.length}</b> บรรทัด</div></div>`
+   :`<div class="callout q" style="margin-bottom:14px"><span class="ic">!</span><div><b>ยังอ่านไม่ได้</b> — ไฟล์เดือนนี้เป็น <b>.xlsx</b> ต้องแปลงเป็น Google Sheets ก่อน<br><span class="muted">เปิดไฟล์ใน Drive → ไฟล์ → บันทึกเป็น Google ชีต → กดปุ่ม "แปลงเป็น Google Sheets แล้วนำเข้า"</span></div></div>`}
+  <div class="card"><div class="card-h"><h3>ชั่วโมงจากการสแกนนิ้ว (Bplus) — ${MTH[m-1]} ${YEAR}</h3><div class="grow"></div>
+    <span class="chip ${conv?'ok':'warn'}">${conv?'นำเข้าแล้ว':'รอแปลงไฟล์'}</span></div>
+    ${conv?table([{k:'id',h:'รหัส',sticky:1},{k:'name',h:'ชื่อ'},{k:'dept',h:'แผนก'},{k:'etype',h:'ประเภท'},
+      {k:'h',h:'ชม.รวมจาก Bplus',r:1},{k:'d',h:'≈ วันทำงาน',r:1},{k:'late',h:'สาย (ครั้ง)',r:1},{k:'ab',h:'ขาด (วัน)',r:1}],rows,{maxH:600})
+     :`<div class="skel-row" style="flex-direction:column;align-items:stretch;gap:10px;padding:26px">
+        ${[80,60,70,50].map(w=>`<div class="skel-bar" style="width:${w}%"></div>`).join('')}
+        <div class="muted small" style="text-align:center;margin-top:8px">ไม่มีข้อมูล — ต้องแปลงไฟล์ก่อน</div></div>`}</div>`;
+}
+
+/* ---------- Job Cost ② Time JOBTRACK ---------- */
+function tabJT(){
+  const m=st.month;
+  let JR=D.companies[st.co].jobRows.filter(x=>x.m===m&&(st.inclKem||E(x.id).dept!==KEM));
+  if(st.dept!=='all')JR=JR.filter(x=>E(x.id).dept==+st.dept);
+  if(st.job!=='all')JR=JR.filter(x=>x.job===st.job);
+  const byEmp={}; JR.forEach(x=>{const b=byEmp[x.id]||(byEmp[x.id]={jobs:new Set(),procs:new Set(),th:0,cost:0});
+    b.jobs.add(x.job);b.procs.add(x.proc);b.th+=x.th;b.cost+=x.cost;});
+  const empRows=Object.entries(byEmp).sort((a,b)=>b[1].th-a[1].th).map(([id,b])=>{const e=E(id);
+    return {__on:`drillEmpJT('${id}')`,id,name:esc(e.name),dept:`${e.dept}·${e.deptName}`,
+      njob:hours(b.jobs.size),nproc:hours(b.procs.size),th:hours(b.th),cost:money(b.cost),
+      cph:money(b.th?b.cost/b.th:0)};});
+  const rows=JR.slice().sort((a,b)=>b.th-a.th).map(x=>{const e=E(x.id),j=JOB[x.job]||{};
+    return {id:x.id,name:esc(e.name),dept:`${e.dept}·${e.deptName}`,job:x.job,jname:esc(j.name||''),
+      cust:esc(j.cust||''),proc:`${x.proc} · ${procName(x.proc)}`,
+      hn:hours(x.hn),o15:hours(x.ot15),o30:hours(x.ot30),hhol:hours(x.hhol),th:hours(x.th),cost:money(x.cost)};});
+  const T=k=>JR.reduce((s,x)=>s+x[k],0);
+  const jobsIn=[...new Set(D.companies[st.co].jobRows.map(x=>x.job))].sort();
+  const miss=E(JR[0]?.id||'');
+  return `
+  <div class="filters">
+    <div class="fld"><label>เดือน</label><select onchange="setMonth(this.value)">${MONTHS.map(i=>`<option value="${i}" ${st.month===i?'selected':''}>${MTH[i-1]} ${YEAR}</option>`).join('')}</select></div>
+    <div class="fld"><label>แผนก</label><select onchange="setDept(this.value)"><option value="all">ทุกแผนก</option>
+      ${deptOpts().filter(d=>d.direct).map(d=>`<option value="${d.code}" ${st.dept==d.code?'selected':''}>${d.code} · ${d.name}</option>`).join('')}</select></div>
+    <div class="fld"><label>จ๊อบ</label><select onchange="st.job=this.value;render()"><option value="all">ทุกจ๊อบ</option>
+      ${jobsIn.map(j=>`<option ${st.job===j?'selected':''}>${j}</option>`).join('')}</select></div>
+  </div>
+  <div class="callout q" style="margin-bottom:14px"><span class="ic">⚠</span><div>
+    <b>งานค้าง — ลืม Check Out:</b> ระบบใหม่จะตั้งธงแดงให้ HR + เตือนพนักงานทาง LINE อัตโนมัติ
+    และ<b>ล็อกไม่ให้เอาชั่วโมงนั้นเข้าต้นทุน</b>จนกว่าหัวหน้าจะยืนยัน${miss.name?` (ตัวอย่าง: ${esc(miss.name)} วันที่ 05/${String(m).padStart(2,'0')})`:''}</div></div>
+  <div class="grid g-4" style="margin-bottom:16px">
+    ${kpi('พนักงานที่ลงจ๊อบ',hours(Object.keys(byEmp).length)+' <small>คน</small>',MTH[m-1]+' '+YEAR)}
+    ${kpi('ชั่วโมงรวมลงจ๊อบ',hours(T('th'))+' <small>ชม.</small>',`ปกติ ${hours(T('hn'))} · OT ${hours(T('ot15')+T('ot30'))} · วันหยุด ${hours(T('hhol'))}`)}
+    ${kpi('ต้นทุนค่าแรงลงจ๊อบ','฿ '+money(T('cost')),'เท่ากับ BP ของพนักงาน Direct')}
+    ${kpi('จ๊อบที่มีการลงเวลา',hours(new Set(JR.map(x=>x.job)).size)+' <small>จ๊อบ</small>','เดือนนี้')}
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-h"><h3>พนักงาน 1 คน ทำไปกี่จ๊อบ — ${MTH[m-1]} ${YEAR}</h3><div class="grow"></div>
+      <span class="hint">คลิกแถวเพื่อดูว่าลงจ๊อบไหน process อะไรบ้าง</span></div>
+    ${table([{k:'id',h:'รหัส',sticky:1},{k:'name',h:'ชื่อ'},{k:'dept',h:'แผนก'},{k:'njob',h:'จำนวนจ๊อบ',r:1},
+      {k:'nproc',h:'จำนวน Process',r:1},{k:'th',h:'ชม.รวม',r:1},{k:'cost',h:'ต้นทุนค่าแรง',r:1},{k:'cph',h:'ต้นทุน/ชม.',r:1}],empRows,
+      {foot:{id:`รวม ${empRows.length} คน`,name:'',dept:'',njob:'',nproc:'',th:hours(T('th')),cost:money(T('cost')),cph:''},maxH:420})}</div>
+  ${st.drill?drillPanel():''}
+  <div class="card"><div class="card-h"><h3>รายการลงเวลาต่อจ๊อบ · ต่อ Process</h3><div class="grow"></div>
+    <span class="hint">หัวตารางตรึง · คอลัมน์แรกตรึง · กรองได้ทุกคอลัมน์</span></div>
+    ${table([{k:'id',h:'รหัส',sticky:1},{k:'name',h:'ชื่อ'},{k:'dept',h:'แผนก'},{k:'job',h:'JOB CODE'},
+      {k:'jname',h:'ชื่องาน'},{k:'cust',h:'ลูกค้า'},{k:'proc',h:'Process'},
+      {k:'hn',h:'ชม.ปกติ',r:1},{k:'o15',h:'ชม.OT1.5',r:1},{k:'o30',h:'ชม.OT3',r:1},{k:'hhol',h:'ชม.วันหยุด',r:1},
+      {k:'th',h:'ชม.รวม',r:1},{k:'cost',h:'ต้นทุน (บาท)',r:1}],rows,
+      {foot:{id:`รวม ${rows.length} บรรทัด`,name:'',dept:'',job:'',jname:'',cust:'',proc:'',
+        hn:hours(T('hn')),o15:hours(T('ot15')),o30:hours(T('ot30')),hhol:hours(T('hhol')),
+        th:hours(T('th')),cost:money(T('cost'))},maxH:600})}</div>`;
+}
+function drillEmpJT(id){st.drill=id;render();}
+function drillPanel(){
+  const id=st.drill,e=E(id),m=st.month;
+  const X=D.companies[st.co].jobRows.filter(x=>x.m===m&&x.id===id);
+  if(!X.length)return '';
+  const rows=X.map(x=>{const j=JOB[x.job]||{};return {job:x.job,jname:esc(j.name||''),proc:`${x.proc} · ${procName(x.proc)}`,
+    hn:hours(x.hn),ot:hours(x.ot15+x.ot30),hhol:hours(x.hhol),th:hours(x.th),cost:money(x.cost),
+    sh:pct(x.th/X.reduce((s,y)=>s+y.th,0)*100)};});
+  const T=k=>X.reduce((s,x)=>s+x[k],0);
+  return `<div class="card drill" style="margin-bottom:16px">
+    <div class="card-h"><h3>เจาะดู: ${esc(e.name)} (${id}) — ${MTH[m-1]}</h3><div class="grow"></div>
+      <button class="btn xs" onclick="st.drill=null;render()">ปิด</button></div>
+    ${table([{k:'job',h:'JOB CODE',sticky:1},{k:'jname',h:'ชื่องาน'},{k:'proc',h:'Process'},
+      {k:'hn',h:'ชม.ปกติ',r:1},{k:'ot',h:'ชม.OT',r:1},{k:'hhol',h:'ชม.วันหยุด',r:1},{k:'th',h:'ชม.รวม',r:1},
+      {k:'sh',h:'สัดส่วนเวลา',r:1},{k:'cost',h:'ต้นทุน',r:1}],rows,
+      {foot:{job:'รวม',jname:'',proc:'',hn:hours(T('hn')),ot:hours(T('ot15')+T('ot30')),hhol:hours(T('hhol')),
+        th:hours(T('th')),sh:'100.00%',cost:money(T('cost'))},filter:false})}</div>`;
+}
+
+/* ---------- Job Cost ③ Reconcile (2 ตัว + หาต้นตอ) ---------- */
+function tabRec(){
+  const m=st.month, ready=m<=NM;
+  const R=D.companies[st.co].recon.filter(r=>r.m===m&&(st.inclKem||E(r.id).dept!==KEM));
+  const rowsOf=D.companies[st.co].rows.filter(r=>r.m===m);
+  const bpOf={}; rowsOf.forEach(r=>bpOf[r.id]=r.bp);
+  const jc={}; D.companies[st.co].jobRows.filter(x=>x.m===m).forEach(x=>jc[x.id]=(jc[x.id]||0)+x.cost);
+  const A=R.map(r=>{const e=E(r.id);
+    r.cause = r.c>=0 ? D.causes[r.c].t : '';
+    const cost=e.direct?Math.round((jc[r.id]||0)*100)/100:null;
+    const bp=bpOf[r.id], mdiff=cost==null?null:Math.round((cost-bp)*100)/100;
+    return {...r,e,cost,bp,mdiff};});
+  const tdiff=A.filter(x=>x.diff!==0), mdiff=A.filter(x=>x.mdiff!==null&&Math.abs(x.mdiff)>0.02);
+  const rows=A.map(x=>({__on:x.diff!==0?`rootCause('${x.id}')`:'',
+    id:x.id,name:esc(x.e.name),dept:`${x.e.dept}·${x.e.deptName}`,di:x.e.direct?'Direct':'Indirect',
+    bplus:hours(x.bplus),jt:hours(x.jt),d:(x.diff>0?'+':'')+hours(x.diff),
+    st1:x.diff===0?'<span class="chip ok">● ตรง</span>':'<span class="chip bad">● ไม่ตรง</span>',
+    cause:x.cause?`<span class="chip warn">${x.cause}</span>`:'<span class="muted">—</span>',
+    cost:x.cost==null?'<span class="muted">ไม่ลงจ๊อบ</span>':money(x.cost),bp:money(x.bp),
+    md:x.mdiff==null?'—':money(x.mdiff),
+    st2:x.mdiff==null?'<span class="muted">—</span>':(Math.abs(x.mdiff)<=0.02?'<span class="chip ok">● ตรง</span>':'<span class="chip bad">● ไม่ตรง</span>'),
+    act:x.diff!==0?'<button class="btn xs">หาต้นตอ</button>':'<span class="muted">—</span>',
+    __td:{d:x.diff!==0?'warn':'',md:(x.mdiff!=null&&Math.abs(x.mdiff)>0.02)?'bad':''}}));
+  return `
+  <div class="filters">
+    <div class="fld"><label>งวดเดือน</label><select onchange="setMonth(this.value)">${MONTHS.map(i=>`<option value="${i}" ${st.month===i?'selected':''}>${MTH[i-1]} ${YEAR}</option>`).join('')}</select></div>
+    <div style="flex:1"></div><button class="btn">ส่งออกรายการที่ไม่ตรง</button>
+  </div>
+  <div class="callout i" style="margin-bottom:14px"><span class="ic">i</span><div>
+    Reconcile มี <b>2 ตัว</b> — <b>① เช็คเวลา</b> (Bplus ↔ JOBTRACK) และ <b>② เช็คยอดเงิน</b> (ต้นทุนที่ลงจ๊อบ ↔ เงินที่จ่ายจริง BP)
+    · ถ้าไม่ตรง <b>คลิกแถวเพื่อเปิดหน้าหาต้นตอ</b></div></div>
+  <div class="grid g-4" style="margin-bottom:16px">
+    ${kpi('① เช็คเวลา — ไม่ตรง',hours(tdiff.length)+' <small>คน</small>',`จาก ${A.length} คน · ${pct(tdiff.length/(A.length||1)*100)}`)}
+    ${kpi('② เช็คยอดเงิน — ไม่ตรง',hours(mdiff.length)+' <small>คน</small>','ต้นทุนลงจ๊อบ ≠ BP')}
+    ${kpi('ชั่วโมงที่ต่างรวม',hours(tdiff.reduce((s,x)=>s+Math.abs(x.diff),0))+' <small>ชม.</small>','ต้องหาต้นตอก่อนปิดงวด')}
+    ${kpi('สถานะงวด',tdiff.length||mdiff.length?'รอแก้':'พร้อมปิด','ปิดได้เมื่อทั้ง 2 ด่านผ่าน',
+      tdiff.length||mdiff.length?'<span class="delta down">▲ ยังไม่ผ่าน</span>':'<span class="delta up">✓ ผ่าน</span>')}
+  </div>
+  ${st.drill?rootPanel():''}
+  <div class="card"><div class="card-h"><h3>ตาราง Reconcile — ${MTH[m-1]} ${YEAR}</h3><div class="grow"></div>
+    <span class="hint">ระบายเฉพาะช่องที่ไม่ตรง ไม่ระบายทั้งแถว</span></div>
+    ${table([{k:'id',h:'รหัส',sticky:1},{k:'name',h:'ชื่อ'},{k:'dept',h:'แผนก'},{k:'di',h:'D/I'},
+      {k:'bplus',h:'① ชม. Bplus',r:1},{k:'jt',h:'① ชม. JOBTRACK',r:1},{k:'d',h:'① ต่าง (ชม.)',r:1},{k:'st1',h:'① สถานะ'},
+      {k:'cause',h:'สาเหตุที่ระบบเดา'},
+      {k:'cost',h:'② ต้นทุนลงจ๊อบ',r:1},{k:'bp',h:'② BP จ่ายจริง',r:1},{k:'md',h:'② ต่าง (บาท)',r:1},{k:'st2',h:'② สถานะ'},
+      {k:'act',h:''}],rows,{maxH:620})}
+    <div class="callout i" style="margin-top:12px"><span class="ic">✓</span><div><b>ด่านตรวจระดับเดือน:</b>
+      ต้นทุนลงจ๊อบรวม <b class="num">${money(Object.values(jc).reduce((s,v)=>s+v,0))}</b>
+      = BP ของพนักงาน Direct รวม <b class="num">${money(rowsOf.filter(r=>E(r.id).direct).reduce((s,r)=>s+r.bp,0))}</b></div></div>
+  </div>`;
+}
+function rootCause(id){st.drill='rc:'+id;render();window.scrollTo(0,0);}
+function rootPanel(){
+  if(!String(st.drill).startsWith('rc:'))return '';
+  const id=st.drill.slice(3),m=st.month,e=E(id);
+  const r=D.companies[st.co].recon.find(x=>x.m===m&&x.id===id); if(!r)return '';
+  const row=D.companies[st.co].rows.find(x=>x.m===m&&x.id===id);
+  /* กระจายชั่วโมงลงรายวันแบบคงที่ เพื่อโชว์ว่าวันไหนต่าง */
+  const nd=row.days, per=Math.floor(row.hn/nd);
+  const days=Array.from({length:nd},(_,i)=>({d:i+1,jt:per,bp:per}));
+  let rem=r.diff, i=0;
+  while(rem!==0&&i<nd){const s=rem>0?1:-1;days[i].bp+=s;rem-=s;i++;}
+  const diffDays=days.filter(d=>d.jt!==d.bp);
+  const cs = r.c>=0 ? D.causes[r.c] : {t:'ยังระบุไม่ได้',d:'ไม่เข้าอาการที่ระบบรู้จัก — ต้องเปิดใบลงเวลาจริงดู'};
+  const rows=days.map(d=>({d:`${String(d.d).padStart(2,'0')}/${String(m).padStart(2,'0')}/69`,
+    bp:hours(d.bp),jt:hours(d.jt),diff:d.bp===d.jt?'0':(d.bp-d.jt>0?'+':'')+hours(d.bp-d.jt),
+    s:d.bp===d.jt?'<span class="chip ok">ตรง</span>':'<span class="chip bad">ไม่ตรง</span>',
+    __td:d.bp===d.jt?{}:{diff:'bad'}}));
+  return `<div class="card drill" style="margin-bottom:16px">
+    <div class="card-h"><h3>🔎 หาต้นตอ: ${esc(e.name)} (${id}) — ${MTH[m-1]} ${YEAR}</h3><div class="grow"></div>
+      <button class="btn xs" onclick="st.drill=null;render()">ปิด</button></div>
+    <div class="grid g-3" style="margin-bottom:14px">
+      ${kpi('ชั่วโมง Bplus',hours(r.bplus)+' <small>ชม.</small>','จากการสแกนนิ้ว')}
+      ${kpi('ชั่วโมง JOBTRACK',hours(r.jt)+' <small>ชม.</small>','จากการลงจ๊อบ')}
+      ${kpi('ต่างกัน',(r.diff>0?'+':'')+hours(r.diff)+' <small>ชม.</small>',`พบ ${diffDays.length} วันที่ไม่ตรง`)}
+    </div>
+    <div class="callout q" style="margin-bottom:14px"><span class="ic">💡</span><div>
+      <b>สาเหตุที่ระบบเดา: ${cs.t}</b><br><span class="muted">${cs.d}</span></div></div>
+    <div class="card" style="background:var(--surface-2);margin-bottom:14px">
+      <div class="card-h"><h3 style="font-size:14px">ตรวจรายวัน — Bplus เทียบ JOBTRACK</h3></div>
+      ${table([{k:'d',h:'วันที่',sticky:1},{k:'bp',h:'ชม. Bplus',r:1},{k:'jt',h:'ชม. JOBTRACK',r:1},
+        {k:'diff',h:'ต่าง',r:1},{k:'s',h:'สถานะ'}],rows,{maxH:300,filter:false})}
+    </div>
+    <div class="filters" style="margin-bottom:0">
+      <div class="fld" style="flex:1;min-width:260px"><label>บันทึกว่าแก้อะไร (เก็บประวัติ ใครแก้ เมื่อไหร่)</label>
+        <input placeholder="เช่น แก้เวลาออกงานวันที่ 12 ให้ตรงกับใบลงเวลา"></div>
+      <div class="fld"><label>ผลการตรวจ</label><select><option>ยืนยันแก้แล้ว — ใช้ตัวเลข Bplus</option>
+        <option>ยืนยันแก้แล้ว — ใช้ตัวเลข JOBTRACK</option><option>รอหัวหน้าแผนกยืนยัน</option></select></div>
+      <button class="btn primary" style="align-self:flex-end">บันทึกการแก้ไข</button>
+    </div></div>`;
+}
+
+/* ---------- Job Cost ④ Cal Job Cost ---------- */
+function tabCal(){
+  const m=st.month;
+  let X=D.companies[st.co].jobRows.filter(x=>x.m===m&&(st.inclKem||E(x.id).dept!==KEM));
+  if(st.job!=='all')X=X.filter(x=>x.job===st.job);
+  const rows=X.slice().sort((a,b)=>b.cost-a.cost).map((x,i)=>{const e=E(x.id),j=JOB[x.job]||{},r=D.companies[st.co].rows.find(y=>y.m===m&&y.id===x.id);
+    return {__on:`showCalc(${i})`,id:x.id,name:esc(e.name),etype:e.type,job:x.job,jname:esc(j.name||''),
+      proc:x.proc,hn:hours(x.hn),ot:hours(x.ot15+x.ot30+x.hhol),th:hours(x.th),
+      otr:money(r?r.otr:0),cost:money(x.cost),cph:money(x.th?x.cost/x.th:0)};});
+  const T=k=>X.reduce((s,x)=>s+x[k],0);
+  const bpDirect=D.companies[st.co].rows.filter(r=>r.m===m&&E(r.id).direct&&(st.inclKem||E(r.id).dept!==KEM)).reduce((s,r)=>s+r.bp,0);
+  const jobsIn=[...new Set(D.companies[st.co].jobRows.map(x=>x.job))].sort();
+  const okAll=st.job==='all'&&Math.abs(T('cost')-bpDirect)<0.05;
+  return `
+  <div class="filters">
+    <div class="fld"><label>งวดเดือน</label><select onchange="setMonth(this.value)">${MONTHS.map(i=>`<option value="${i}" ${st.month===i?'selected':''}>${MTH[i-1]} ${YEAR}</option>`).join('')}</select></div>
+    <div class="fld"><label>จ๊อบ</label><select onchange="st.job=this.value;render()"><option value="all">ทุกจ๊อบ</option>
+      ${jobsIn.map(j=>`<option ${st.job===j?'selected':''}>${j}</option>`).join('')}</select></div>
+    <div style="flex:1"></div><button class="btn primary">คำนวณใหม่ทั้งงวด</button>
+  </div>
+  <div class="callout i" style="margin-bottom:14px"><span class="ic">Σ</span><div>
+    ตารางนี้โชว์<b>เฉพาะผลลัพธ์</b> ไม่รกด้วยสูตร — <b>คลิกที่แถวเพื่อดูที่มาที่ไปของตัวเลข</b>
+    · กติกา: ชั่วโมงปกติ = ยอดฐาน ÷ ชม.ที่ใช้หาร × ชม. · OT = อัตรา OT × ตัวคูณ × ชม.
+    (รายวัน: อัตรา/วัน ÷ 8 · รายเดือน: เงินเดือน ÷ 30 ÷ 8)</div></div>
+  <div class="grid g-4" style="margin-bottom:16px">
+    ${kpi('ต้นทุน Direct ลงจ๊อบ','฿ '+money(T('cost')),`${rows.length} บรรทัด · ${MTH[m-1]}`)}
+    ${kpi('BP ที่ Payroll จ่ายจริง','฿ '+money(bpDirect),'พนักงาน Direct ทั้งหมด')}
+    ${kpi('ผลต่าง','฿ '+money(T('cost')-bpDirect),okAll?'ตรงกันเป๊ะ':'กรองอยู่ จึงไม่เท่ากัน',
+      okAll?'<span class="delta up">✓ กฎเหล็กผ่าน</span>':'<span class="delta flat">— กรองอยู่</span>')}
+    ${kpi('ชั่วโมงรวม',hours(T('th'))+' <small>ชม.</small>',`ต้นทุนเฉลี่ย ${money(T('th')?T('cost')/T('th'):0)} บาท/ชม.`)}
+  </div>
+  <div class="card"><div class="card-h"><h3>คำนวณค่าแรงเข้าจ๊อบ — ${MTH[m-1]} ${YEAR}</h3><div class="grow"></div>
+    <span class="hint">คลิกแถว → popup ที่มาที่ไป</span></div>
+    ${table([{k:'id',h:'รหัส',sticky:1},{k:'name',h:'ชื่อ'},{k:'etype',h:'ประเภท'},{k:'job',h:'JOB CODE'},
+      {k:'jname',h:'ชื่องาน'},{k:'proc',h:'Process'},{k:'hn',h:'ชม.ปกติ',r:1},{k:'ot',h:'ชม.OT+วันหยุด',r:1},
+      {k:'th',h:'ชม.รวม',r:1},{k:'otr',h:'อัตรา OT/ชม.',r:1},{k:'cost',h:'ต้นทุนเข้าจ๊อบ',r:1},{k:'cph',h:'ต้นทุน/ชม.',r:1}],rows,
+      {foot:{id:`รวม ${rows.length} บรรทัด`,name:'',etype:'',job:'',jname:'',proc:'',hn:hours(T('hn')),
+        ot:hours(T('ot15')+T('ot30')+T('hhol')),th:hours(T('th')),otr:'',cost:money(T('cost')),cph:''},maxH:620})}
+    <div class="callout ${okAll?'i':'q'}" style="margin-top:12px"><span class="ic">${okAll?'✓':'!'}</span><div>
+      <b>กฎเหล็ก:</b> ต้นทุน Direct ที่ลงจ๊อบ = เงินที่ Payroll จ่ายจริง →
+      <b class="num">${money(T('cost'))}</b> ${okAll?'= <b class="num">'+money(bpDirect)+'</b> ✔':'(กำลังกรองอยู่ · ยอดเต็ม '+money(bpDirect)+')'}</div></div>
+  </div>`;
+}
+window.__calcRows=[];
+function showCalc(i){
+  const x=window.__calcRows[i]; if(!x)return;
+  alert('ตัวอย่าง popup ที่มาที่ไป (ใน Mockup แสดงเป็น alert)\n\n'+x);
+}
+
+/* ---------- Job Cost ⑤ Allocate Indirect ---------- */
+function tabAlloc(){
+  const m=st.month, al=D.companies[st.co].alloc[String(m)];
+  const jr=D.companies[st.co].jobRows.filter(x=>x.m===m);
+  const hByJob={}; jr.forEach(x=>hByJob[x.job]=(hByJob[x.job]||0)+x.th);
+  const cByJob={}; jr.forEach(x=>cByJob[x.job]=Math.round(((cByJob[x.job]||0)+x.cost)*100)/100);
+  const keys=Object.keys(al.byJob).sort();
+  const rows=keys.map(k=>{const j=JOB[k]||{};const dc=cByJob[k]||0,ic=al.byJob[k];
+    return {job:k,jname:esc(j.name||''),type:j.type||'',h:hours(hByJob[k]||0),
+      sh:pct((hByJob[k]||0)/al.hours*100),direct:money(dc),ind:money(ic),tot:money(dc+ic),
+      ratio:pct(dc?ic/dc*100:0)};});
+  const totD=Object.values(cByJob).reduce((s,v)=>s+v,0), totI=Object.values(al.byJob).reduce((s,v)=>s+v,0);
+  after(()=>chartHBar(document.getElementById('ch-alloc'),{
+    items:keys.map(k=>({label:k,value:al.byJob[k],color:S[0],
+      note:`ชั่วโมง Direct ${hours(hByJob[k]||0)} ชม. × ${money(al.rate)} บาท/ชม.`})).sort((a,b)=>b.value-a.value)}));
+  return `
+  <div class="filters">
+    <div class="fld"><label>งวดเดือน</label><select onchange="setMonth(this.value)">${MONTHS.map(i=>`<option value="${i}" ${st.month===i?'selected':''}>${MTH[i-1]} ${YEAR}</option>`).join('')}</select></div>
+    <div style="flex:1"></div><span class="chip info">วิธีที่เบียร์เลือก: ตามชั่วโมงแรงงานตรง</span>
+  </div>
+  <div class="callout i" style="margin-bottom:14px"><span class="ic">Σ</span><div>
+    <b>อัตราจัดสรร = ค่าแรง Indirect รวมของเดือน ÷ ชั่วโมง Direct รวมของเดือน</b><br>
+    ${money(al.pool)} ÷ ${hours(al.hours)} ชม. = <b class="num">${money(al.rate)} บาท/ชม.</b>
+    → Indirect ของแต่ละจ๊อบ = อัตรานี้ × ชั่วโมง Direct ของจ๊อบนั้น</div></div>
+  <div class="grid g-4" style="margin-bottom:16px">
+    ${kpi('ค่าแรง Indirect (ก้อนที่ต้องกระจาย)','฿ '+money(al.pool),MTH[m-1]+' '+YEAR)}
+    ${kpi('ชั่วโมง Direct รวม',hours(al.hours)+' <small>ชม.</small>','ฐานที่ใช้กระจาย')}
+    ${kpi('อัตราจัดสรร','฿ '+money(al.rate)+' <small>/ชม.</small>','เท่ากันทุกจ๊อบในเดือนนี้')}
+    ${kpi('Indirect เทียบ Direct',pct(totI/(totD||1)*100),`Direct ${money(totD)} · Indirect ${money(totI)}`,
+      totI>totD?'<span class="delta down">▲ Indirect สูงกว่า Direct</span>':'<span class="delta up">▼ Indirect ต่ำกว่า Direct</span>')}
+  </div>
+  <div class="grid g-2-1" style="margin-bottom:16px">
+    <div class="card"><div class="card-h"><h3>Indirect ที่กระจายเข้าแต่ละจ๊อบ — ${MTH[m-1]}</h3></div>
+      ${table([{k:'job',h:'JOB CODE',sticky:1},{k:'jname',h:'ชื่องาน'},{k:'type',h:'ประเภท'},
+        {k:'h',h:'ชม. Direct',r:1},{k:'sh',h:'สัดส่วนชั่วโมง',r:1},{k:'direct',h:'ค่าแรง Direct',r:1},
+        {k:'ind',h:'Indirect ที่ได้รับ',r:1},{k:'tot',h:'รวมต้นทุนค่าแรง',r:1},{k:'ratio',h:'Indirect/Direct',r:1}],rows,
+        {foot:{job:'รวม',jname:'',type:'',h:hours(al.hours),sh:'100.00%',direct:money(totD),
+          ind:money(totI),tot:money(totD+totI),ratio:pct(totI/(totD||1)*100)},maxH:520})}
+      <div class="callout i" style="margin-top:12px"><span class="ic">✓</span><div><b>ด่านตรวจ:</b>
+        ผลรวม Indirect ที่กระจายเข้าทุกจ๊อบ = <b class="num">${money(totI)}</b> = ก้อน Indirect ของเดือน <b class="num">${money(al.pool)}</b></div></div></div>
+    <div class="card"><div class="card-h"><h3>Indirect ต่อจ๊อบ (บาท)</h3></div><div class="chart" id="ch-alloc"></div></div>
+  </div>
+  <div class="callout q"><span class="ic">⚠</span><div>
+    <b>จุดที่ต้องระวัง:</b> จ๊อบที่จ้าง<b>ผู้รับเหมา</b>ทำเยอะแต่ใช้คนบริษัทน้อย จะรับ Indirect น้อยผิดปกติ
+    — ระบบจะขึ้นธงเตือนในแท็บ "เทียบงบ" ให้ตัดสินเป็นราย ๆ</div></div>`;
+}
+
+/* ---------- Job Cost ⑥ เทียบงบ ---------- */
+function tabBudget(){
+  let J=D.jobs.slice();
+  if(st.job!=='all')J=J.filter(j=>j.code===st.job);
+  const rows=J.map(j=>{
+    const over=j.total>j.estBudget, flag=j.sub>0 && j.sttLabor>0 && (j.sub/j.sttLabor)>1.2;
+    return {__on:`st.job='${j.code}';st.tab='master';render()`,
+      code:j.code,name:esc(j.name),cust:esc(j.cust),type:j.type,
+      carry:money(j.carry),labor:money(j.sttLabor),ind:money(j.indirect),sub:money(j.sub),
+      tot:money(j.total),est:money(j.estBudget),sale:money(j.saleBudget),
+      vr:money(j.varBudget),pc:pct(j.pctBudget),
+      s:j.pctBudget>100?'<span class="chip bad">เกินงบ</span>':j.pctBudget>90?'<span class="chip warn">เกิน 90%</span>':'<span class="chip ok">อยู่ในงบ</span>',
+      flag:flag?'<span class="chip warn">ผู้รับเหมาสูง</span>':'<span class="muted">—</span>',
+      __td:{tot:over?'bad':j.pctBudget>90?'warn':'',pc:over?'bad':''}};});
+  const T=k=>J.reduce((s,j)=>s+j[k],0);
+  after(()=>chartHBar(document.getElementById('ch-bud'),{fmt:v=>pct(v),unit:'%',
+    items:J.slice().sort((a,b)=>b.pctBudget-a.pctBudget).slice(0,14).map(j=>({label:j.code,value:j.pctBudget,
+      color:j.pctBudget>100?CSS('--critical'):j.pctBudget>90?CSS('--warning'):CSS('--good'),
+      note:`ต้นทุน ${money(j.total)} จากงบ ${money(j.estBudget)}`}))}));
+  return `
+  <div class="filters">
+    <div class="fld"><label>จ๊อบ</label><select onchange="st.job=this.value;render()"><option value="all">ทุกจ๊อบ</option>
+      ${D.jobs.map(j=>`<option ${st.job===j.code?'selected':''}>${j.code}</option>`).join('')}</select></div>
+    <div style="flex:1"></div><span class="chip info">ต้นทุน = ค่าแรงเท่านั้น ยังไม่รวมวัตถุดิบ</span>
+  </div>
+  <div class="callout i" style="margin-bottom:14px"><span class="ic">i</span><div>
+    <b>Est. Budget</b> = งบค่าแรงตั้งต้น · <b>Sale Budget</b> = ยอดขาย (มาจากไฟล์ Payroll DB: Budget labour และ billaftrDiscAmnt)
+    · เกณฑ์เดิมของบริษัท: <b>คุมค่าแรงไม่เกิน 90% ของงบ</b></div></div>
+  <div class="grid g-5" style="margin-bottom:16px">
+    ${kpi('Sale Budget รวม','฿ '+money(T('saleBudget')),`${J.length} จ๊อบ`)}
+    ${kpi('Est. Budget รวม','฿ '+money(T('estBudget')),'งบค่าแรงตั้งต้น')}
+    ${kpi('ต้นทุนค่าแรงจริงรวม','฿ '+money(T('total')),`Direct ${money(T('sttLabor'))} + Indirect ${money(T('indirect'))} + ผรม. ${money(T('sub'))} + ยกมา ${money(T('carry'))}`)}
+    ${kpi('ส่วนต่างจากงบ','฿ '+money(T('varBudget')),pct(T('total')/T('estBudget')*100)+' ของงบ',
+      T('varBudget')<0?'<span class="delta down">▲ เกินงบ</span>':'<span class="delta up">▼ อยู่ในงบ</span>')}
+    ${kpi('จ๊อบที่เกินงบ',hours(J.filter(j=>j.pctBudget>100).length)+' <small>จาก '+J.length+'</small>',
+      'เกิน 90% อีก '+J.filter(j=>j.pctBudget>90&&j.pctBudget<=100).length+' จ๊อบ')}
+  </div>
+  <div class="card" style="margin-bottom:16px"><div class="card-h"><h3>เทียบต้นทุนค่าแรงกับงบ รายจ๊อบ</h3><div class="grow"></div>
+    <span class="hint">คลิกแถว → ไปหน้า Master ของจ๊อบนั้น</span></div>
+    ${table([{k:'code',h:'JOB CODE',sticky:1},{k:'name',h:'ชื่องาน'},{k:'cust',h:'ลูกค้า'},{k:'type',h:'ประเภท'},
+      {k:'carry',h:'ยอดยกมา',r:1},{k:'labor',h:'ค่าแรง STT',r:1},{k:'ind',h:'Indirect ที่ปัน',r:1},
+      {k:'sub',h:'ค่าแรงผู้รับเหมา',r:1},{k:'tot',h:'ต้นทุนรวม',r:1},{k:'est',h:'Est. Budget',r:1},
+      {k:'vr',h:'ส่วนต่าง',r:1},{k:'pc',h:'% Cost/Budget',r:1},{k:'sale',h:'Sale Budget',r:1},
+      {k:'s',h:'สถานะ'},{k:'flag',h:'ธงเตือน'}],rows,
+      {foot:{code:'รวม',name:'',cust:'',type:'',carry:money(T('carry')),labor:money(T('sttLabor')),
+        ind:money(T('indirect')),sub:money(T('sub')),tot:money(T('total')),est:money(T('estBudget')),
+        vr:money(T('varBudget')),pc:pct(T('total')/T('estBudget')*100),sale:money(T('saleBudget')),s:'',flag:''},maxH:560})}</div>
+  <div class="card"><div class="card-h"><h3>% ต้นทุนต่องบ — 14 จ๊อบที่สูงสุด</h3><div class="grow"></div>
+    <span class="legend" style="margin:0"><span><i class="swatch" style="background:var(--good)"></i>≤90%</span>
+    <span><i class="swatch" style="background:var(--warning)"></i>90–100%</span>
+    <span><i class="swatch" style="background:var(--critical)"></i>เกิน 100%</span></span></div>
+    <div class="chart" id="ch-bud"></div></div>`;
+}
+
+/* ---------- Job Cost ⑦ Master จ๊อบ ---------- */
+function tabMaster(){
+  let J=D.jobs.slice();
+  if(st.job!=='all')J=J.filter(j=>j.code===st.job);
+  const rows=J.map(j=>{
+    const o={__on:`st.job='${j.code}';st.tab='dash';render()`,code:j.code,name:esc(j.name),type:j.type,
+      start:dth(j.start),due:dth(j.due),lead:hours(j.leadDays),prog:j.done?'<span class="chip ok">ส่งมอบแล้ว</span>':'<span class="chip info">อยู่ระหว่างผลิต</span>',
+      carry:money(j.carry)};
+    MONTHS.forEach(m=>o['m'+m]=money(j.byMonth[String(m)]||0));
+    o.labor=money(j.sttLabor); o.ind=money(j.indirect); o.sub=money(j.sub); o.tot=money(j.total);
+    return o;});
+  const cols=[{k:'code',h:'JOB CODE',sticky:1},{k:'name',h:'ชื่องาน'},{k:'type',h:'ประเภท'},
+    {k:'start',h:'วันเริ่มงาน'},{k:'due',h:'วันส่งมอบ'},{k:'lead',h:'ใช้เวลา (วัน)',r:1},{k:'prog',h:'สถานะ'},
+    {k:'carry',h:'ยอดยกมา',r:1},
+    ...MONTHS.map(m=>({k:'m'+m,h:MTH[m-1],r:1})),
+    {k:'labor',h:'รวมค่าแรง STT',r:1},{k:'ind',h:'Indirect',r:1},{k:'sub',h:'ผู้รับเหมา',r:1},{k:'tot',h:'Total Cost',r:1}];
+  const foot={code:'รวม',name:'',type:'',start:'',due:'',lead:'',prog:'',
+    carry:money(J.reduce((s,j)=>s+j.carry,0))};
+  MONTHS.forEach(m=>foot['m'+m]=money(J.reduce((s,j)=>s+(j.byMonth[String(m)]||0),0)));
+  foot.labor=money(J.reduce((s,j)=>s+j.sttLabor,0)); foot.ind=money(J.reduce((s,j)=>s+j.indirect,0));
+  foot.sub=money(J.reduce((s,j)=>s+j.sub,0)); foot.tot=money(J.reduce((s,j)=>s+j.total,0));
+  /* ค่าแรงรายเดือน: จ๊อบ vs Payroll */
+  const mRows=MONTHS.map(m=>{const jm=D.jobs.reduce((s,j)=>s+(j.byMonth[String(m)]||0),0);
+    const bp=D.companies.STT.rows.filter(r=>r.m===m&&E(r.id).direct).reduce((s,r)=>s+r.bp,0);
+    const al=D.companies.STT.alloc[String(m)];
+    return {m:MTH[m-1],job:money(jm),bp:money(bp),d:money(jm-bp),
+      s:Math.abs(jm-bp)<0.05?'<span class="chip ok">● ตรง</span>':'<span class="chip bad">● ไม่ตรง</span>',
+      ind:money(al.pool),rate:money(al.rate),tot:money(jm+al.pool),
+      __td:Math.abs(jm-bp)<0.05?{}:{d:'bad'}};});
+  const leadAvg=J.length?J.reduce((s,j)=>s+j.leadDays,0)/J.length:0;
+  return `
+  <div class="filters">
+    <div class="fld"><label>จ๊อบ</label><select onchange="st.job=this.value;render()"><option value="all">ทุกจ๊อบ</option>
+      ${D.jobs.map(j=>`<option ${st.job===j.code?'selected':''}>${j.code}</option>`).join('')}</select></div>
+    <div style="flex:1"></div><span class="chip info">เลื่อนตารางไปทางขวาเพื่อดูครบ 12 เดือน</span>
+  </div>
+  <div class="grid g-4" style="margin-bottom:16px">
+    ${kpi('จ๊อบทั้งหมด',hours(J.length)+' <small>จ๊อบ</small>','ส่งมอบแล้ว '+J.filter(j=>j.done).length+' จ๊อบ')}
+    ${kpi('ระยะเวลาปิดจบเฉลี่ย',hours(Math.round(leadAvg))+' <small>วัน</small>',
+      `เร็วสุด ${Math.min(...J.map(j=>j.leadDays))} · ช้าสุด ${Math.max(...J.map(j=>j.leadDays))} วัน`)}
+    ${kpi('ต้นทุนค่าแรงรวม','฿ '+money(J.reduce((s,j)=>s+j.total,0)),'รวมยอดยกมา + Indirect + ผู้รับเหมา')}
+    ${kpi('ยอดยกมาจากปีก่อน','฿ '+money(J.reduce((s,j)=>s+j.carry,0)),J.filter(j=>j.carry>0).length+' จ๊อบข้ามปี')}
+  </div>
+  <div class="card" style="margin-bottom:16px"><div class="card-h"><h3>Master รายจ๊อบ — ค่าแรงรายเดือน + ยอดยกมา</h3><div class="grow"></div>
+    <span class="hint">คลิกแถว → Dashboard จ๊อบ</span></div>
+    ${table(cols,rows,{foot,maxH:560})}</div>
+  <div class="card"><div class="card-h"><h3>ด่านตรวจรายเดือน — ค่าแรงที่ลงจ๊อบ เทียบ เงินที่ Payroll จ่ายจริง</h3><div class="grow"></div>
+    <span class="chip warn">Direct Cost ต้องเท่ากับ Payroll เสมอ</span></div>
+    ${table([{k:'m',h:'เดือน',sticky:1},{k:'job',h:'ค่าแรง Direct ที่ลงจ๊อบ',r:1},{k:'bp',h:'BP ที่ Payroll จ่ายจริง',r:1},
+      {k:'d',h:'ผลต่าง',r:1},{k:'s',h:'สถานะ'},{k:'ind',h:'Indirect ที่ปันเข้าจ๊อบ',r:1},
+      {k:'rate',h:'อัตราจัดสรร/ชม.',r:1},{k:'tot',h:'ต้นทุนค่าแรงรวมของเดือน',r:1}],mRows,{filter:false})}
+    <div class="callout i" style="margin-top:12px"><span class="ic">✓</span><div>
+      ทุกเดือน: <b>ค่าแรง Direct ที่ลงจ๊อบ = BP ที่ Payroll จ่ายจริง</b> — นี่คือกฎเหล็กที่ระบบบังคับให้ผ่านก่อนปิดงวด</div></div></div>`;
+}
+
+/* ---------- Job Cost ⑧ Dashboard จ๊อบ ---------- */
+function tabDash(){
+  let J=D.jobs.slice();
+  if(st.job!=='all')J=J.filter(j=>j.code===st.job);
+  const on=J.filter(j=>j.done&&j.dueM<=NM).length, late=J.filter(j=>!j.done&&j.dueM<=NM).length,
+        open=J.filter(j=>!j.done&&j.dueM>NM).length;
+  const series=D.processes.map((p,i)=>({name:p.code+' · '+p.name,color:S[i],
+    values:MONTHS.map(m=>Math.round(D.companies.STT.jobRows.filter(x=>x.m===m&&x.proc===p.code&&J.some(j=>j.code===x.job)).reduce((s,x)=>s+x.cost,0)*100)/100)}));
+  after(()=>chartStacked(document.getElementById('ch-proc'),{labels:MONTHS.map(m=>MTH[m-1]),series,
+    footerFn:i=>`ค่าแรง Direct ที่ลงจ๊อบเดือน ${MTH[i]}`}));
+  const tl=J.map(j=>{
+    const s=(j.startM-1)/12*100, e=Math.min(12,j.dueM)/12*100;
+    const cls=j.done?'ontime':(j.dueM<=NM?'late':'open');
+    return `<div class="tl-row"><div class="tl-name" title="${esc(j.name)}">${j.code} · ${esc(j.name)}</div>
+      <div class="tl-track" onmousemove="tlTip(event,'${j.code}')" onmouseleave="hideTip()">
+        <div class="tl-bar ${cls}" style="left:${s}%;width:${Math.max(1.5,e-s)}%"></div>
+        <div class="tl-marker" style="left:${Math.min(12,j.dueM)/12*100}%"></div></div></div>`;}).join('');
+  const pr=D.procRows.filter(p=>J.some(j=>j.code===p.job)).sort((a,b)=>b.cost-a.cost);
+  const totC=pr.reduce((s,p)=>s+p.cost,0);
+  const prRows=pr.map(p=>{const j=JOB[p.job]||{};return {job:p.job,jname:esc(j.name||''),
+    proc:`${p.proc} · ${procName(p.proc)}`,heads:hours(p.heads),hn:hours(p.hn),ot:hours(p.ot),
+    th:hours(p.th),cost:money(p.cost),sh:pct(p.cost/totC*100),cph:money(p.cph)};});
+  return `
+  <div class="filters">
+    <div class="fld"><label>จ๊อบ</label><select onchange="st.job=this.value;render()"><option value="all">ทุกจ๊อบ</option>
+      ${D.jobs.map(j=>`<option ${st.job===j.code?'selected':''}>${j.code}</option>`).join('')}</select></div>
+    <div class="fld"><label>ช่วงวันที่ (เริ่มงาน)</label><input type="date" value="2026-01-01"></div>
+    <div class="fld"><label>ถึง</label><input type="date" value="2026-12-31"></div>
+    <div style="flex:1"></div><button class="btn">หน้า Verify รายเดือน</button>
+  </div>
+  <div class="grid g-4" style="margin-bottom:16px">
+    ${kpi('จ๊อบทั้งหมด',hours(J.length)+' <small>จ๊อบ</small>','ตามตัวกรอง')}
+    ${kpi('ส่งมอบแล้ว',hours(on)+' <small>จ๊อบ</small>',pct(on/(J.length||1)*100))}
+    ${kpi('เลยกำหนดส่ง',hours(late)+' <small>จ๊อบ</small>','ต้องรีวิวสาเหตุ')}
+    ${kpi('อยู่ในช่วงผลิต',hours(open)+' <small>จ๊อบ</small>','ยังไม่ถึงกำหนด')}
+  </div>
+  <div class="card" style="margin-bottom:16px"><div class="card-h"><h3>ไทม์ไลน์จ๊อบ — เริ่มงาน → ส่งมอบ</h3><div class="grow"></div>
+    <span class="legend" style="margin:0"><span><i class="swatch" style="background:var(--good)"></i>ส่งมอบแล้ว</span>
+    <span><i class="swatch" style="background:var(--critical)"></i>เลยกำหนด</span>
+    <span><i class="swatch" style="background:var(--s-1)"></i>อยู่ในช่วง</span>
+    <span><i class="swatch" style="background:var(--warning);width:3px"></i>เส้นวันส่งมอบ</span></span></div>
+    <div class="tl-head"><div></div><div class="tl-scale">${MTH.map(m=>`<span>${m}</span>`).join('')}</div></div>
+    ${tl}</div>
+  <div class="card" style="margin-bottom:16px"><div class="card-h"><h3>สัดส่วนค่าแรงตาม Process รายเดือน</h3></div>
+    <div class="chart" id="ch-proc"></div>
+    <div class="legend">${series.map(s=>`<span><i class="swatch" style="background:${s.color}"></i>${s.name}</span>`).join('')}</div></div>
+  <div class="card"><div class="card-h"><h3>เจาะดูราย Process — ใช้กี่คน กี่ชั่วโมง ต้นทุนเท่าไหร่ กี่ %</h3></div>
+    ${table([{k:'job',h:'JOB CODE',sticky:1},{k:'jname',h:'ชื่องาน'},{k:'proc',h:'Process'},
+      {k:'heads',h:'จำนวนคน',r:1},{k:'hn',h:'ชม.ปกติ',r:1},{k:'ot',h:'ชม.OT',r:1},{k:'th',h:'ชม.รวม',r:1},
+      {k:'cost',h:'ต้นทุน (บาท)',r:1},{k:'sh',h:'% ของทั้งหมด',r:1},{k:'cph',h:'ต้นทุน/ชม.',r:1}],prRows,
+      {foot:{job:'รวม',jname:'',proc:'',heads:'',hn:'',ot:'',th:hours(pr.reduce((s,p)=>s+p.th,0)),
+        cost:money(totC),sh:'100.00%',cph:''},maxH:520})}</div>`;
+}
+function tlTip(e,code){
+  const j=JOB[code];
+  showTip(`<div class="t-h"><span>${j.code}</span><span>${j.type}</span></div>
+    <div class="t-r"><span class="l">งาน</span><span class="v">${esc(j.name)}</span></div>
+    <div class="t-r"><span class="l">ลูกค้า</span><span class="v">${esc(j.cust)}</span></div>
+    <div class="t-r"><span class="l">เริ่มงาน</span><span class="v">${dth(j.start)}</span></div>
+    <div class="t-r"><span class="l">ส่งมอบ</span><span class="v">${dth(j.due)}</span></div>
+    <div class="t-r"><span class="l">ใช้เวลา</span><span class="v">${hours(j.leadDays)} วัน</span></div>
+    <div class="t-r"><span class="l">ต้นทุนค่าแรงรวม</span><span class="v">${money(j.total)}</span></div>
+    <div class="t-f">${j.done?'✓ ส่งมอบแล้ว':'● อยู่ระหว่างผลิต'} · % ต้นทุนต่องบ ${pct(j.pctBudget)}</div>`,e.clientX,e.clientY-12);
+}
+</script>

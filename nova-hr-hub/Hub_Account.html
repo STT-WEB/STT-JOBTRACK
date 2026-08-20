@@ -1,0 +1,91 @@
+<script>
+/* =========================================================================
+   07_account.js  —  My Account (พนักงานดูของตัวเอง) + โครงโมดูลอื่นที่ยังไม่ทำ
+   ========================================================================= */
+/* ---------- MY ACCOUNT ---------- */
+function pageMyAcc(){
+  document.getElementById('crumbSub').textContent='ชั่วโมงและค่าแรงของฉัน';
+  const C=D.companies[st.co];
+  const id=st.empId&&C.rows.some(r=>r.id===st.empId)?st.empId:C.rows[0].id;
+  const e=E(id), mine=C.rows.filter(r=>r.id===id);
+  const cur=mine.find(r=>r.m===st.month)||mine[mine.length-1];
+  const ytd=mine.reduce((s,r)=>s+r.bp,0);
+  const rows=mine.map((r,i)=>({m:MTH[r.m-1],days:hours(r.days),hn:hours(r.hn),o15:hours(r.ot15),o30:hours(r.ot30),
+    hhol:hours(r.hhol),base:money(r.base),pot:money(r.pot),bp:money(r.bp),
+    d:i===0?'<span class="muted">—</span>':deltaChip(r.bp,mine[i-1].bp,true)}));
+  const jr=C.jobRows.filter(x=>x.id===id&&x.m===cur.m);
+  const jRows=jr.map(x=>{const j=JOB[x.job]||{};return {job:x.job,jname:esc(j.name||''),proc:`${x.proc} · ${procName(x.proc)}`,
+    th:hours(x.th),cost:money(x.cost)};});
+  const perf=C.perf.find(p=>p.id===id&&p.m===cur.m);
+  return `
+  <div class="page-head"><div><h2>My Account — ${esc(e.name)}</h2>
+    <p>${id} · ${e.dept}·${e.deptName} (${e.sub}) · ${e.direct?'Direct':'Indirect'} · ${e.type}
+      ${e.type==='รายวัน'?`· ${money(e.rate)} บาท/วัน`:`· เงินเดือน ${money(e.salary)}`}</p></div></div>
+  <div class="callout i" style="margin-bottom:16px"><span class="ic">🔗</span><div>
+    ตัวเลขหน้านี้ <b>ดึงจากชุดเดียวกับที่ HR เห็น</b> — ถ้าไม่ตรงแปลว่าระบบผิด ไม่ใช่คนละสูตร</div></div>
+  <div class="grid g-5" style="margin-bottom:16px">
+    ${kpi('ค่าแรงสะสมปีนี้','฿ '+money(ytd),`${mine.length} เดือน`)}
+    ${kpi(`เดือน ${MTH[cur.m-1]}`,'฿ '+money(cur.bp),`ทำงาน ${hours(cur.days)} วัน`)}
+    ${kpi('ชั่วโมง OT เดือนนี้',hours(cur.ot15+cur.ot30+cur.hhol)+' <small>ชม.</small>',`OT1.5 ${hours(cur.ot15)} · OT3 ${hours(cur.ot30)} · วันหยุด ${hours(cur.hhol)}`)}
+    ${kpi('ค่า OT เดือนนี้','฿ '+money(cur.pot),pct(cur.pot/cur.bp*100)+' ของค่าแรงเดือนนี้')}
+    ${perf?kpi('Performance เดือนนี้',pct(perf.pct),'เกรด '+perf.grade+(perf.absentH?` · ขาด/ลา ${hours(perf.absentH)} ชม.`:' · เต็มเวลา')):kpi('Performance','—','เฉพาะพนักงาน Direct')}
+  </div>
+  <div class="grid g-2-1">
+    <div class="card"><div class="card-h"><h3>สรุปรายเดือน</h3></div>
+      ${table([{k:'m',h:'เดือน',sticky:1},{k:'days',h:'วัน',r:1},{k:'hn',h:'ชม.ปกติ',r:1},{k:'o15',h:'OT1.5',r:1},
+        {k:'o30',h:'OT3',r:1},{k:'hhol',h:'วันหยุด',r:1},{k:'base',h:'ค่าแรง+สวัสดิการ',r:1},{k:'pot',h:'ค่า OT',r:1},
+        {k:'bp',h:'รวมจ่ายจริง',r:1},{k:'d',h:'เทียบเดือนก่อน',r:1}],rows,
+        {foot:{m:'รวม',days:hours(mine.reduce((s,r)=>s+r.days,0)),hn:hours(mine.reduce((s,r)=>s+r.hn,0)),
+          o15:hours(mine.reduce((s,r)=>s+r.ot15,0)),o30:hours(mine.reduce((s,r)=>s+r.ot30,0)),
+          hhol:hours(mine.reduce((s,r)=>s+r.hhol,0)),base:money(mine.reduce((s,r)=>s+r.base,0)),
+          pot:money(mine.reduce((s,r)=>s+r.pot,0)),bp:money(ytd),d:''},filter:false})}</div>
+    <div class="card"><div class="card-h"><h3>จ๊อบที่ทำ — ${MTH[cur.m-1]}</h3><div class="grow"></div>
+      <div class="fld"><select onchange="setMonth(this.value)">${mine.map(r=>`<option value="${r.m}" ${r.m===cur.m?'selected':''}>${MTH[r.m-1]}</option>`).join('')}</select></div></div>
+      ${jr.length?table([{k:'job',h:'JOB CODE',sticky:1},{k:'jname',h:'ชื่องาน'},{k:'proc',h:'Process'},
+        {k:'th',h:'ชม.',r:1},{k:'cost',h:'ต้นทุน',r:1}],jRows,
+        {foot:{job:'รวม',jname:'',proc:'',th:hours(jr.reduce((s,x)=>s+x.th,0)),cost:money(jr.reduce((s,x)=>s+x.cost,0))},filter:false})
+       :'<div class="skel-row"><div class="muted small">พนักงาน Indirect ไม่ได้ลงจ๊อบโดยตรง — ค่าแรงจะถูกปันเข้าจ๊อบด้วยวิธี Allocate</div></div>'}</div>
+  </div>`;
+}
+
+/* ---------- โครงหน้าโมดูลอื่น ---------- */
+const SHELL={
+  recruit:{t:'สรรหา (Recruit)',d:'ใบขออัตรากำลัง → ประกาศ → คัดกรอง → สัมภาษณ์ → บรรจุ',
+    kpis:[['ตำแหน่งเปิดรับ','6','จาก 4 แผนก'],['ใบสมัครใหม่','23','สัปดาห์นี้'],['นัดสัมภาษณ์','5','ภายใน 7 วัน'],['บรรจุเดือนนี้','2','Production 2 คน']],
+    steps:[['ใบขออัตรากำลัง','หัวหน้าแผนกยื่น → ผู้บริหารอนุมัติ → เปิดรับอัตโนมัติ'],['ประกาศรับสมัคร','ลิงก์สมัครผ่าน LINE'],
+      ['คัดกรองใบสมัคร','ตารางผู้สมัคร + สถานะ + เอกสารแนบ'],['สัมภาษณ์ + ให้คะแนน','ฟอร์มให้คะแนนตามเกณฑ์'],
+      ['บรรจุ','ส่งข้อมูลเข้าโมดูลพนักงาน + ตั้ง PIN อัตโนมัติ']],
+    ask:['ใบขออัตรากำลังใช้ฟอร์มไหนอยู่ตอนนี้?','ใครอนุมัติแต่ละขั้น?','เกณฑ์ให้คะแนนสัมภาษณ์มีอยู่แล้วหรือออกแบบใหม่?']},
+  activity:{t:'กิจกรรมพนักงาน',d:'ปฏิทินกิจกรรม · ลงชื่อเข้าร่วม · สรุปผลและงบ',
+    kpis:[['กิจกรรมปีนี้','12','จัดแล้ว 8'],['ผู้เข้าร่วมเฉลี่ย','76%','ต่อกิจกรรม'],['เดือนหน้า','2','รออนุมัติงบ'],['งบใช้ไป','62%','ของงบทั้งปี']],
+    steps:[['สร้างกิจกรรม','ชื่อ วันเวลา สถานที่ งบ ผู้รับผิดชอบ'],['เชิญ + ลงชื่อ','ส่งลิงก์ LINE · เช็กชื่อด้วย QR'],
+      ['บันทึกผล + รูป','อัปโหลดรูป สรุปค่าใช้จ่ายจริง'],['รายงานประจำปี','สรุปกิจกรรม/ผู้เข้าร่วม/งบ']],
+    ask:['กิจกรรมมีกี่ประเภท?','ต้องเก็บชั่วโมงกิจกรรมเข้าประวัติไหม?','งบผูกกับแผนกหรือรวมศูนย์?']},
+  skill:{t:'ทักษะ · ฝึกอบรม',d:'Skill Matrix รายคน + วันหมดอายุใบรับรอง → ต่อยอดจัดคนเข้าจ๊อบ',
+    kpis:[['ทักษะที่ติดตาม','18','รายการ'],['ใบเซอร์ใกล้หมดอายุ','4','ภายใน 60 วัน'],['ช่างเชื่อมมีใบรับรอง','9','จาก 12 คน'],['แผนอบรมไตรมาสนี้','3','หลักสูตร']],
+    steps:[['ตั้งรายการทักษะ','เชื่อม TIG/MIG · โฟล์คลิฟท์ · ทำงานที่สูง · ความปลอดภัยสารเคมี'],
+      ['ให้ระดับรายคน','ระดับ 1–4 + ผู้ประเมิน + วันที่'],['ผูกใบรับรอง + วันหมดอายุ','เตือนล่วงหน้าอัตโนมัติ'],
+      ['วางแผนอบรมจากช่องว่าง','เห็นว่าแผนกไหนขาดทักษะอะไร'],['ต่อยอด: จัดคนเข้าจ๊อบ','เตือนถ้าจัดคนที่ยังไม่ผ่านทักษะ']],
+    ask:['ขอลิสต์ทักษะตั้งต้น','ระดับทักษะใช้กี่ระดับ?','ใบรับรองอะไรที่ต้องเตือนวันหมดอายุ?']},
+  employee:{t:'ข้อมูลพนักงาน',d:'ทะเบียนประวัติกลาง — โมดูลอื่นดึงชื่อ/แผนก/อัตราจากที่นี่ที่เดียว',
+    kpis:[['พนักงานทั้งหมด','107','2 บริษัท'],['เข้าใหม่ปีนี้','11','คน'],['ลาออกปีนี้','6','คน'],['สัญญาใกล้ครบ','3','ภายใน 90 วัน']],
+    steps:[['ทะเบียนประวัติ','ข้อมูลส่วนตัว เอกสารแนบ ผู้ติดต่อฉุกเฉิน'],['ข้อมูลการจ้าง','วันเริ่มงาน ประเภทจ้าง อัตรา แผนก'],
+      ['การเคลื่อนไหว','ย้ายแผนก ปรับค่าแรง เลื่อนตำแหน่ง — เก็บประวัติ'],['เอกสาร/สัญญา','เตือนวันหมดอายุ'],
+      ['เป็นแหล่งกลาง','อัตราค่าแรงที่ใช้คิดต้นทุน ดึงจากที่นี่ ไม่คีย์ซ้ำ']],
+    ask:['ทะเบียนประวัติเก็บที่ไหนตอนนี้?','ประวัติปรับค่าแรงเก็บย้อนหลังกี่ปี?','ใครมีสิทธิ์แก้อัตราค่าแรง?']},
+};
+function pageShell(id){
+  const s=SHELL[id];
+  document.getElementById('crumbSub').textContent='โครงหน้า (ยังไม่ต่อข้อมูลจริง)';
+  return `<div class="page-head"><div><h2>${s.t}</h2><p>${s.d}</p></div><div class="grow"></div>
+    <span class="chip warn">โครงหน้า — รอเคาะรายละเอียด</span></div>
+  <div class="grid g-4" style="margin-bottom:16px">${s.kpis.map(([l,v,sub])=>kpi(l,v,sub)).join('')}</div>
+  <div class="grid g-2-1">
+    <div class="card"><div class="card-h"><h3>ขั้นตอนงานที่วางไว้</h3></div>
+      <div class="roadmap">${s.steps.map(([t,d],i)=>`<div class="step"><div class="n">${i+1}</div><div><b>${t}</b><div class="muted small">${d}</div></div></div>`).join('')}</div></div>
+    <div class="card"><div class="card-h"><h3>ต้องถามเบียร์ก่อนทำจริง</h3></div>
+      <div class="roadmap">${s.ask.map(q=>`<div class="step"><div class="n">?</div><div><b>${q}</b></div></div>`).join('')}</div>
+      <div class="callout i" style="margin-top:12px"><span class="ic">i</span><div>กล่องนี้<b>แยกขาดจากโมดูลค่าแรง</b> ทำทีหลังได้โดยไม่กระทบของเดิม</div></div></div>
+  </div>`;
+}
+</script>

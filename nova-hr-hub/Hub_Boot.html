@@ -1,0 +1,42 @@
+<script>
+/* =========================================================================
+   08_boot.js  —  เริ่มทำงาน — ผูกปุ่มบทบาท · คีย์แพด PIN · เข้าแอป
+   ========================================================================= */
+document.getElementById('roleRow').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  document.querySelectorAll('#roleRow button').forEach(x=>x.classList.toggle('on',x===b));
+  st.role=b.dataset.role;document.getElementById('roleLabel').textContent=st.role;});
+(function(){
+  const kp=document.getElementById('keypad');let n=0;
+  const draw=()=>document.querySelectorAll('#pinRow .d').forEach((d,i)=>{d.classList.toggle('filled',i<n);d.textContent=i<n?'●':'';});
+  kp.innerHTML=[1,2,3,4,5,6,7,8,9,'ล้าง',0,'✓'].map(k=>`<button data-k="${k}">${k}</button>`).join('');
+  kp.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.k;
+    if(k==='ล้าง'){n=0;draw();return;}
+    if(k==='✓'||n>=6){enterApp();return;}
+    n=Math.min(6,n+1);draw();if(n===6)setTimeout(enterApp,220);});
+})();
+function enterApp(){
+  document.querySelectorAll('#coSwitch button').forEach(x=>x.classList.toggle('on',x.dataset.co===st.co));
+  document.body.setAttribute('data-company',st.co);
+  st.mod='hub';renderRail();render();go('app');
+}
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{
+  if(document.getElementById('sc-app').classList.contains('active'))render();},200);});
+renderRail();
+
+/* ---------- แถบล่างสุด: ผลด่านตรวจ 8 ข้อของข้อมูลจริง ---------- */
+(function(){
+  var v = (PAYLOAD.verify)||{pass:0,total:0,fails:[]};
+  var ok = v.fails.length===0;
+  var el = document.getElementById('verifybar');
+  el.style.background = ok ? 'linear-gradient(90deg,rgba(12,163,12,.16),rgba(12,163,12,.07))'
+                           : 'linear-gradient(90deg,rgba(208,59,59,.18),rgba(208,59,59,.08))';
+  el.style.borderTopColor = ok ? 'rgba(12,163,12,.35)' : 'rgba(208,59,59,.45)';
+  el.style.color = ok ? '#8ff0a4' : '#ff9d9d';
+  el.innerHTML = (ok ? '✅ <b>ด่านตรวจผ่านครบ '+v.total+' ข้อ</b> — ข้อมูลจริง ณ '+(PAYLOAD.meta.updatedAt||'')
+                     : '⛔ <b>ด่านตรวจไม่ผ่าน '+v.fails.length+' ข้อ</b> — '+v.fails.join(' · '))
+    + ' <span class="muted">ข้อมูลจริงจากไฟล์ต้นทาง · ถ้าตัวเลขไม่อัปเดตให้รัน forceRefresh() ใน Apps Script</span>'
+    + '<button style="color:inherit;font-weight:800;padding:0 6px" onclick="this.parentElement.style.display=\'none\'">✕</button>';
+})();
+
+</script>

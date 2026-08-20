@@ -1,0 +1,127 @@
+<!-- ===================== 1) LOGIN ===================== -->
+<section class="screen active" id="sc-login">
+  <div class="auth">
+    <div class="auth-art">
+      <img class="people" data-img="people" alt="พนักงาน STT และ S1">
+      <div class="tagline">
+        <h3>ระบบงานบุคคลและต้นทุนแรงงาน ของเครือสุธีกรุ๊ป</h3>
+        <p>ลงเวลา · ต้นทุนงาน · เงินเดือน · สรรหา · ทักษะ — รวมอยู่ที่เดียว</p>
+      </div>
+    </div>
+    <div class="auth-form">
+      <div class="brandrow">
+        <img data-img="stt" alt="Sutee Tankers">
+        <div class="divider"></div>
+        <img data-img="s1" alt="S1 Logistics">
+      </div>
+      <div>
+        <div class="brand-title">STT <span>NOVA&#8209;HR</span></div>
+        <div class="brand-sub">ศูนย์รวมระบบงานบุคคล · Sutee Tankers · S1 Logistics</div>
+      </div>
+      <button class="btn-line" onclick="go('company')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.9 3 2.8 6.3 2.8 10.4c0 3.7 3.3 6.8 7.7 7.4.3.1.7.2.8.5.1.3.1.7 0 1l-.1.8c0 .2-.2.9.8.5 1-.4 5.4-3.2 7.3-5.5 1.4-1.5 2-3 2-4.7C21.2 6.3 17.1 3 12 3z"/></svg>
+        เข้าสู่ระบบด้วย LINE
+      </button>
+      <div class="or">หรือเข้าด้วยรหัสพนักงาน</div>
+      <div class="inp"><label>รหัสพนักงาน</label><input placeholder="เช่น 6204002"></div>
+      <div class="inp"><label>PIN 6 หลัก</label><input type="password" inputmode="numeric" maxlength="6" placeholder="••••••"></div>
+      <button class="btn primary" style="padding:13px;font-size:15px;border-radius:12px" onclick="go('company')">เข้าสู่ระบบ</button>
+      <div class="foot-note">พนักงานใหม่ยังไม่มีบัญชี? <b style="color:var(--accent-2);cursor:pointer" onclick="go('register')">ลงทะเบียนที่นี่</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 1b) REGISTER ===================== -->
+<section class="screen" id="sc-register">
+  <div class="center-wrap"><div class="center-box" style="max-width:640px">
+    <div style="text-align:center">
+      <div class="brand-title" style="font-size:26px">ลงทะเบียนพนักงาน</div>
+      <p class="muted small" style="margin-top:6px">ลงทะเบียนด้วยรหัสพนักงาน — ระบบออก PIN 6 หลักให้ทันที</p>
+    </div>
+    <div class="card" style="width:100%;display:grid;gap:14px">
+      <div class="grid g-2">
+        <div class="inp"><label>ชื่อ-นามสกุล</label><input placeholder="ระบบเติมให้จากรหัสพนักงาน"></div>
+        <div class="inp"><label>รหัสพนักงาน</label><input placeholder="เช่น 6204002"></div>
+      </div>
+      <div class="grid g-2">
+        <div class="fld"><label>บริษัท</label><select><option>Sutee Tankers (STT)</option><option>S1 Logistics</option></select></div>
+        <div class="fld"><label>เบอร์โทร</label><input placeholder="08x-xxx-xxxx"></div>
+      </div>
+      <div class="callout i"><span class="ic">🔑</span><div>ลงทะเบียนด้วย <b>รหัสพนักงาน</b> — ระบบจะ <b>ออก PIN 6 หลักให้อัตโนมัติ</b> แล้วโชว์ให้จำ (จดไว้ · ลืมแล้วต้องให้ HR รีเซ็ต)<br><span class="muted">ชื่อ · แผนก · บทบาท ดึงจากฐานข้อมูลพนักงาน (DATA BASE 2569) อัตโนมัติ ไม่ต้องกรอกซ้ำ</span></div></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn" onclick="go('login')">ย้อนกลับ</button>
+        <button class="btn primary" onclick="go('company')">ส่งคำขอลงทะเบียน</button>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ===================== 2) เลือกบริษัท ===================== -->
+<section class="screen" id="sc-company">
+  <div class="center-wrap"><div class="center-box">
+    <div style="text-align:center">
+      <div class="brand-title" style="font-size:28px">เลือกบริษัทที่ต้องการเข้า</div>
+      <p class="muted small" style="margin-top:6px">สวัสดีคุณ <b style="color:var(--ink)">เบียร์ (ผู้บริหาร)</b> — สิทธิ์ของคุณเข้าได้ทั้ง 2 บริษัท · ธีมสีจะเปลี่ยนตามแบรนด์</p>
+    </div>
+    <div class="co-grid two">
+      <div class="co-card" onclick="pickCompany('STT')">
+        <div class="bar" style="background:linear-gradient(90deg,#E8232E,#FF5A63)"></div>
+        <img data-img="stt" alt="STT">
+        <h4>Sutee Tankers</h4>
+        <p>ผลิตแท็งค์บรรทุกสารเคมี<br>83 คน · 11 แผนก + แผนก KEMREX</p>
+      </div>
+      <div class="co-card" onclick="pickCompany('S1')">
+        <div class="bar" style="background:linear-gradient(90deg,#5B6BE8,#8B97FF)"></div>
+        <img data-img="s1" alt="S1">
+        <h4>S1 Logistics</h4>
+        <p>ขนส่งสารเคมีและน้ำมัน<br>24 คน · 11 แผนก</p>
+      </div>
+    </div>
+    <div class="callout i" style="max-width:900px"><span class="ic">i</span><div><b>คน KEMREX ที่มาทำงานที่ STT</b> อยู่ในฐานข้อมูลเดียวกัน (DATA BASE 2569) ต่างกันแค่ <b>รหัสแผนก</b> — ยอดค่าแรงจึงรวมอยู่ใน STT อยู่แล้ว และมีปุ่มสลับ "นับรวม / ไม่นับ" ให้ดูแยกได้</div></div>
+  </div></div>
+</section>
+
+<!-- ===================== 3) ROLE + PIN ===================== -->
+<section class="screen" id="sc-pin">
+  <div class="center-wrap"><div class="center-box" style="max-width:520px">
+    <div style="text-align:center">
+      <div class="brand-title" style="font-size:24px">ยืนยันสิทธิ์การเข้าใช้</div>
+      <p class="muted small" style="margin-top:6px">เลือกบทบาท แล้วใส่ PIN 6 หลัก — ข้อมูลต้นทุน/เงินเดือนเปิดเฉพาะสิทธิ์ HR และผู้บริหาร</p>
+    </div>
+    <div class="card" style="width:100%;display:grid;gap:18px">
+      <div class="role-row" id="roleRow">
+        <button class="on" data-role="ผู้บริหาร">ผู้บริหาร</button>
+        <button data-role="HR">HR</button>
+        <button data-role="หัวหน้าแผนก">หัวหน้าแผนก</button>
+        <button data-role="พนักงาน">พนักงาน</button>
+      </div>
+      <div class="pin-row" id="pinRow"><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div></div>
+      <div class="keypad" id="keypad"></div>
+      <div class="callout q"><span class="ic">🔒</span><div>สิทธิ์ <b>พนักงาน</b> จะเห็นเฉพาะหน้า <b>My Account</b> (ชั่วโมง/ค่าแรงของตัวเอง) — ตัวเลขต้องตรงกับที่ HR เห็นเป๊ะ</div></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ===================== 4) APP SHELL ===================== -->
+<section class="screen" id="sc-app">
+  <div class="app-shell">
+    <nav class="rail" id="rail"></nav>
+    <div class="main">
+      <header class="topbar">
+        <div class="crumb"><b id="crumbMain">หน้าหลัก</b><span class="sep">›</span><span id="crumbSub">ภาพรวมโมดูล</span></div>
+        <div class="grow"></div>
+        <div class="co-switch" id="coSwitch">
+          <button data-co="STT" class="on">STT</button>
+          <button data-co="S1">S1</button>
+        </div>
+        <span class="ver">NOVA-HR v3.0 · ปีงบ <?!= YEAR ?></span>
+        <div class="userchip"><div class="avatar">บ</div><div><div style="font-size:12.5px;font-weight:700">เบียร์</div><small id="roleLabel">ผู้บริหาร</small></div></div>
+        <button class="btn ghost" onclick="go('login')" title="ออกจากระบบ">ออก</button>
+      </header>
+      <div class="content" id="page"></div>
+    </div>
+  </div>
+</section>
+
+<div class="mockbar" id="verifybar"></div>
+<div class="tip" id="tip"></div>

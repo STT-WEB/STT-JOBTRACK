@@ -5,5 +5,7 @@
 !WebApp.gs
 !Auth.gs
 !Cal.gs
-!Dashboard.html
 !Hub.html
+!Hub_*.html
+!Payload.gs
+!Payload_*.gs

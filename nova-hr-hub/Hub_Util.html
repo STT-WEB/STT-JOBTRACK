@@ -1,0 +1,41 @@
+<script>
+/* =========================================================================
+   01_util.js  —  เครื่องมือกลาง — รูปแบบตัวเลข · ทะเบียนพนักงาน · สถานะหน้าจอ · สีประจำแผนก
+   ========================================================================= */
+const D = PAYLOAD;   /* ← ข้อมูลจริงจาก Payload.gs (ดู Hub_Data.html) */
+const MTH = D.meta.monthsTH, NM = D.meta.nmonth, YEAR = D.meta.year;
+const CSS = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const S = ['--s-1','--s-2','--s-3','--s-4','--s-5','--s-6','--s-7','--s-8'].map(CSS);
+const OTHER_COLOR = '#7f8798';
+
+/* ---------- รูปแบบตัวเลข ---------- */
+const money = v => (v==null||isNaN(v))?'—':Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const hours = v => (v==null||isNaN(v))?'—':String(Math.round(Number(v)*100)/100);
+const pct   = v => (v==null||isNaN(v))?'—':Number(v).toFixed(2)+'%';
+const short = v => {const a=Math.abs(v); return a>=1e6?(v/1e6).toFixed(2)+'ล้าน':a>=1e3?(v/1e3).toFixed(0)+'K':v.toFixed(0);};
+const esc   = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const dth   = s => s? s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(2,4) : '—';
+
+/* ---------- ทะเบียนพนักงาน ---------- */
+const EMP = {}; ['STT','S1'].forEach(c=>D.emps[c].forEach(e=>EMP[e.id]=e));
+const E = id => EMP[id] || {name:'?',dept:0,deptName:'?',direct:false,type:'?',rate:0,salary:0,sub:''};
+const JOB = {}; D.jobs.forEach(j=>JOB[j.code]=j);
+const deptName = c => (D.depts.find(d=>d.code==c)||{}).name || 'อื่นๆ';
+const isDirect = c => !!(D.depts.find(d=>d.code==c)||{}).direct;
+const procName = c => (D.processes.find(p=>p.code===c)||{}).name || c;
+const KEM = 10;
+
+/* ---------- สถานะ ---------- */
+const st = { co:'STT', role:'ผู้บริหาร', mod:'payroll', grp:'pay', tab:'pay', sub:'year',
+             month:NM, dept:'all', job:'all', grade:'all', empId:null, open:{}, inclKem:true, drill:null };
+
+/* ---------- สีประจำแผนก (ผูกกับตัวแผนก ไม่ใช่อันดับ) ---------- */
+let DEPT_COLOR={}, TOP_DEPTS=[], OTHER_DEPTS=[];
+(function(){
+  const tot={}; D.depts.forEach(d=>tot[d.code]=0);
+  D.companies.STT.rows.forEach(r=>{const d=E(r.id).dept; tot[d]=(tot[d]||0)+r.bp;});
+  const order=D.depts.slice().sort((a,b)=>tot[b.code]-tot[a.code]);
+  TOP_DEPTS=order.slice(0,7).map(d=>d.code); OTHER_DEPTS=order.slice(7).map(d=>d.code);
+  TOP_DEPTS.forEach((c,i)=>DEPT_COLOR[c]=S[i]); OTHER_DEPTS.forEach(c=>DEPT_COLOR[c]=OTHER_COLOR);
+})();
+</script>

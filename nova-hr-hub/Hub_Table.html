@@ -1,0 +1,162 @@
+<script>
+/* =========================================================================
+   03_table.js  —  ตาราง + ตัวกรองแบบ Excel (คลิกกรวยที่หัวคอลัมน์) + แถวรวมที่กรองอยู่
+   ========================================================================= */
+let TID=0;
+const FS={};                                   /* สถานะตัวกรองต่อตาราง: FS[id][col] = Set ของค่าที่ติ๊กไว้ (null = ทั้งหมด) */
+
+function table(cols,rows,{foot=null,maxH=null,filter=true}={}){
+  const id='t'+(++TID); FS[id]={};
+  const th=cols.map((c,i)=>`<th class="${c.r?'r':''} ${i===0&&c.sticky?'sticky':''}" data-c="${i}">
+      <span class="hl" onclick="sortBy('${id}',${i})" title="คลิกเพื่อเรียง">${c.h}<span class="srt"></span></span>
+      ${filter?`<button class="fbtn" onclick="openFilter(event,'${id}',${i})" title="ตัวกรอง">▾</button>`:''}</th>`).join('');
+  const tb=rows.map(r=>`<tr class="${r.__cls||''}" ${r.__on?`onclick="${r.__on}" style="cursor:pointer"`:''}>`+
+      cols.map((c,i)=>`<td class="${c.r?'r':''} ${i===0&&c.sticky?'sticky':''} ${(r.__td&&r.__td[c.k])||''}">${r[c.k]??''}</td>`).join('')+'</tr>').join('');
+  const tf=foot?`<tfoot><tr class="ft-all">${cols.map((c,i)=>`<td class="${c.r?'r':''} ${i===0&&c.sticky?'sticky':''}">${foot[c.k]??''}</td>`).join('')}</tr>`
+    +(filter?`<tr class="ft-vis hidden">${cols.map((c,i)=>`<td class="${c.r?'r':''} ${i===0&&c.sticky?'sticky':''}" data-c="${i}">${i===0?'รวมที่กรองอยู่':''}</td>`).join('')}</tr>`:'')+`</tfoot>`:'';
+  return `<div class="tbl-wrap" id="${id}" ${maxH?`style="max-height:${maxH}px"`:''}>`
+    + (filter?`<div class="tbl-bar"><span class="cnt"></span>
+        <span class="fchips"></span>
+        <button class="btn xs" onclick="clearFilter('${id}')">ล้างตัวกรองทั้งหมด</button>
+        <button class="btn xs" onclick="alert('ตัวอย่าง Mockup — ของจริงจะส่งออกเป็นไฟล์ Excel')">ส่งออก</button></div>`:'')
+    + `<table class="tbl"><thead><tr>${th}</tr></thead><tbody>${tb}</tbody>${tf}</table></div>`;
+}
+const numOf = s => { const v=parseFloat(String(s).replace(/[^0-9.\-]/g,'')); return isNaN(v)?null:v; };
+const cellTxt = td => (td?td.textContent:'').trim().replace(/\s+/g,' ');
+
+function applyFilter(id){
+  const w=document.getElementById(id); if(!w) return;
+  const f=FS[id]||{};
+  const trs=[...w.querySelectorAll('tbody tr')]; let vis=0;
+  trs.forEach(tr=>{
+    const ok=Object.keys(f).every(ci=>{const set=f[ci]; if(!set) return true;
+      return set.has(cellTxt(tr.children[ci]));});
+    tr.style.display=ok?'':'none'; if(ok)vis++;
+  });
+  const bar=w.querySelector('.tbl-bar .cnt');
+  if(bar) bar.textContent=`แสดง ${vis.toLocaleString()} จาก ${trs.length.toLocaleString()} แถว`;
+  /* ป้ายบอกว่ากรองคอลัมน์ไหนอยู่ */
+  const chips=w.querySelector('.fchips');
+  if(chips){
+    const act=Object.keys(f).filter(ci=>f[ci]);
+    chips.innerHTML=act.map(ci=>{
+      const h=w.querySelector(`th[data-c="${ci}"] .hl`);
+      const name=h?h.textContent.replace(/[▲▼]/g,'').trim():'';
+      return `<span class="fchip">${esc(name)} <b onclick="dropFilter('${id}',${ci})">✕</b></span>`;}).join('');
+  }
+  w.querySelectorAll('th').forEach(th=>{const ci=th.dataset.c;
+    th.classList.toggle('filtered', !!f[ci]);});
+  const fv=w.querySelector('.ft-vis');
+  if(fv){
+    const any=Object.keys(f).some(ci=>f[ci]); fv.classList.toggle('hidden',!any);
+    if(any) [...fv.children].forEach((td,i)=>{
+      if(i===0) return;
+      if(!td.classList.contains('r')){ td.textContent=''; return; }
+      let sum=0,has=false,sample='';
+      trs.forEach(tr=>{ if(tr.style.display==='none')return; const c=tr.children[i]; if(!c)return;
+        const t=cellTxt(c); const v=numOf(t);
+        if(v!==null){ if(!has) sample=t; sum+=v; has=true; } });
+      const isMoney=/,|\.\d{2}$/.test(sample);
+      td.textContent = has ? (isMoney?money(sum):hours(sum)) : '';
+    });
+  }
+}
+function clearFilter(id){ FS[id]={}; applyFilter(id); closePanel(); }
+function dropFilter(id,ci){ event.stopPropagation(); delete FS[id][ci]; applyFilter(id); }
+
+/* ---------- กล่องตัวกรองแบบ Excel ---------- */
+let FP=null;
+function closePanel(){ if(FP){FP.remove();FP=null;} }
+document.addEventListener('click',e=>{ if(FP && !FP.contains(e.target) && !e.target.closest('.fbtn')) closePanel(); });
+function openFilter(ev,id,ci){
+  ev.stopPropagation(); closePanel();
+  const w=document.getElementById(id);
+  const trs=[...w.querySelectorAll('tbody tr')];
+  const vals=[...new Set(trs.map(tr=>cellTxt(tr.children[ci])))];
+  const numeric=vals.every(v=>v===''||numOf(v)!==null);
+  vals.sort((a,b)=>numeric?(numOf(a)||0)-(numOf(b)||0):a.localeCompare(b,'th'));
+  const cur=FS[id][ci];
+  const p=document.createElement('div'); p.className='fpanel'; FP=p;
+  p.innerHTML=`
+    <div class="fp-sort">
+      <button onclick="sortBy('${id}',${ci},1);closePanel()">▲ เรียงน้อย→มาก</button>
+      <button onclick="sortBy('${id}',${ci},-1);closePanel()">▼ เรียงมาก→น้อย</button>
+    </div>
+    <input class="fp-q" placeholder="ค้นหาค่าในคอลัมน์นี้…">
+    <label class="fp-all"><input type="checkbox" class="fp-allcb" ${cur?'':'checked'}> <b>เลือกทั้งหมด</b> <span class="muted">(${vals.length} ค่า)</span></label>
+    <div class="fp-list">${vals.map((v,k)=>`<label data-v="${esc(v)}"><input type="checkbox" value="${esc(v)}" ${(!cur||cur.has(v))?'checked':''}> ${esc(v||'(ว่าง)')}</label>`).join('')}</div>
+    <div class="fp-act"><button class="btn xs" onclick="clearCol('${id}',${ci})">ล้างคอลัมน์นี้</button>
+      <div style="flex:1"></div><button class="btn xs primary" onclick="okFilter('${id}',${ci})">ตกลง</button></div>`;
+  document.body.appendChild(p);
+  const b=ev.target.getBoundingClientRect();
+  const pw=270, left=Math.min(Math.max(8,b.left-pw+b.width+10), innerWidth-pw-8);
+  p.style.left=left+'px'; p.style.top=Math.min(b.bottom+6, innerHeight-380)+'px';
+  const q=p.querySelector('.fp-q');
+  q.addEventListener('input',()=>{const s=q.value.toLowerCase();
+    p.querySelectorAll('.fp-list label').forEach(l=>l.style.display=l.dataset.v.toLowerCase().includes(s)?'':'none');});
+  p.querySelector('.fp-allcb').addEventListener('change',e=>{
+    p.querySelectorAll('.fp-list input').forEach(cb=>{ if(cb.closest('label').style.display!=='none') cb.checked=e.target.checked;});});
+  q.focus();
+}
+function okFilter(id,ci){
+  const p=FP; if(!p) return;
+  const all=[...p.querySelectorAll('.fp-list input')];
+  const on=all.filter(cb=>cb.checked).map(cb=>cb.value);
+  FS[id][ci] = (on.length===all.length) ? null : new Set(on);
+  if(!FS[id][ci]) delete FS[id][ci];
+  applyFilter(id); closePanel();
+}
+function clearCol(id,ci){ delete FS[id][ci]; applyFilter(id); closePanel(); }
+
+function sortBy(id,ci,dir){
+  const w=document.getElementById(id),tb=w.querySelector('tbody');
+  if(dir==null) dir = (w.dataset.sc==String(ci)&&w.dataset.sd=='1')?-1:1;
+  w.dataset.sc=ci; w.dataset.sd=dir>0?'1':'0';
+  const rows=[...tb.querySelectorAll('tr')];
+  rows.sort((a,b)=>{const x=cellTxt(a.children[ci]),y=cellTxt(b.children[ci]);
+    const nx=numOf(x),ny=numOf(y);
+    return (nx!==null&&ny!==null)?(nx-ny)*dir:x.localeCompare(y,'th')*dir;});
+  rows.forEach(r=>tb.appendChild(r));
+  w.querySelectorAll('th .srt').forEach(s=>s.textContent='');
+  const s=w.querySelector(`th[data-c="${ci}"] .srt`); if(s) s.textContent = dir>0?' ▲':' ▼';
+}
+function initTables(){ closePanel(); document.querySelectorAll('.tbl-wrap').forEach(w=>applyFilter(w.id)); }
+
+const kpi=(l,v,s,extra='')=>`<div class="kpi"><div class="lbl">${l}</div><div class="val num">${v}</div><div class="sub">${s}</div>${extra?`<div>${extra}</div>`:''}</div>`;
+const deltaChip=(cur,prev,goodUp=false)=>{
+  if(prev==null||!prev) return '<span class="delta flat">—</span>';
+  const d=(cur-prev)/prev*100, up=d>0.05, dn=d<-0.05;
+  const good = goodUp? up : dn;
+  return `<span class="delta ${up||dn?(good?'up':'down'):'flat'}">${up?'▲':dn?'▼':'●'} ${pct(Math.abs(d))}</span>`;
+};
+
+/* =========================================================================
+   รวมยอด
+   ========================================================================= */
+const _agg={};
+function M(co,m){
+  const key=co+'|'+m+'|'+(st.inclKem?1:0);
+  if(_agg[key])return _agg[key];
+  const d={total:0,direct:0,indirect:0,base:0,pot:0,hn:0,ot15:0,ot30:0,hhol:0,th:0,head:0,kem:0,own:0,kemHead:0,dept:{},sub:{}};
+  D.companies[co].rows.forEach(r=>{
+    if(r.m!==m)return; const e=E(r.id);
+    if(!st.inclKem&&e.dept===KEM)return;
+    d.total+=r.bp; d.head++; d.base+=r.base; d.pot+=r.pot;
+    d.hn+=r.hn; d.ot15+=r.ot15; d.ot30+=r.ot30; d.hhol+=r.hhol; d.th+=r.th;
+    if(e.direct) d.direct+=r.bp; else d.indirect+=r.bp;
+    if(e.dept===KEM){d.kem+=r.bp;d.kemHead++;} else d.own+=r.bp;
+    const dd=d.dept[e.dept]||(d.dept[e.dept]={total:0,head:0,base:0,ot:0,o15:0,o30:0,hn:0,th:0});
+    dd.total+=r.bp;dd.head++;dd.base+=r.base;dd.ot+=r.pot;dd.o15+=r.ot15;dd.o30+=r.ot30;dd.hn+=r.hn;dd.th+=r.th;
+    const k=e.dept+'|'+e.sub, sd=d.sub[k]||(d.sub[k]={total:0,head:0}); sd.total+=r.bp; sd.head++;
+  });
+  const r2=v=>Math.round(v*100)/100;
+  ['total','direct','indirect','base','pot','kem','own'].forEach(k=>d[k]=r2(d[k]));
+  Object.values(d.dept).forEach(x=>{x.total=r2(x.total);x.ot=r2(x.ot);x.base=r2(x.base);});
+  Object.values(d.sub).forEach(x=>x.total=r2(x.total));
+  return _agg[key]=d;
+}
+const Mall=(co,m)=>{const k=st.inclKem;st.inclKem=true;const r=M(co,m);st.inclKem=k;return r;};
+const MONTHS=[...Array(NM).keys()].map(i=>i+1);
+const isKem = co => D.companies[co].rows.some(r=>E(r.id).dept===KEM);
+const deptOpts = () => D.depts.filter(d=>(st.inclKem||d.code!==KEM)&&D.companies[st.co].rows.some(r=>E(r.id).dept===d.code));
+</script>
