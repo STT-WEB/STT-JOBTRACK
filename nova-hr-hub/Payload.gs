@@ -24,7 +24,7 @@ var CFG = {
   /* ⚠ บั๊ม BUILD ทุกครั้งที่แก้โค้ด — เลขนี้จะไปโชว์บนหน้า Login และมุมขวาบนของแอป
      ถ้าเลขบนเว็บยังเป็นของเก่า = deploy ยังไม่ขึ้น (หรือยังไม่ได้กด Ctrl+Shift+R) */
   VERSION   : 'v3.1',
-  BUILD     : 43,
+  BUILD     : 44,
   YEAR      : 2569,
   NMONTH    : 8,                 // เดือนที่มีข้อมูลแล้ว
   KEMREX    : 5018,              // ✅ รหัสแผนก KEMREX (เบียร์ยืนยันแล้ว) — อยู่ใต้หน่วยงาน 5000 PRODUCTION
@@ -188,15 +188,23 @@ function rebuildSnapshot() {
 }
 
 /**
+ * ⭐ รันตัวนี้ก่อนถ้ายังไม่เคยให้สิทธิ์ — มันจะเด้งหน้าต่าง "Review permissions" ขึ้นมาให้กด Allow
+ * ไม่ทำอะไรนอกจากแตะ ScriptApp เพื่อขอสิทธิ์เท่านั้น
+ */
+function authorize() {
+  var n = ScriptApp.getProjectTriggers().length;      // บรรทัดนี้แหละที่ทำให้ Google ขอสิทธิ์
+  Logger.log('✅ ได้สิทธิ์แล้ว — ตอนนี้มีตัวตั้งเวลาอยู่ ' + n + ' ตัว\nขั้นต่อไป: รัน installSnapshotTrigger()');
+  return 'ได้สิทธิ์แล้ว · มีตัวตั้งเวลา ' + n + ' ตัว';
+}
+
+/**
  * ⭐ รันครั้งเดียวหลัง deploy ครั้งแรก — ตั้งให้ระบบสร้างข้อมูลล่วงหน้าทุกชั่วโมง
  * ผลคือคนเข้าเว็บไม่ต้องรอสร้างข้อมูลอีกเลย
  */
 function installSnapshotTrigger() {
-  try { ScriptApp.getProjectTriggers(); }
-  catch (e) {
-    throw new Error('ยังไม่ได้ให้สิทธิ์ตั้งตัวตั้งเวลา — กด Review permissions → Allow แล้วรันฟังก์ชันนี้ใหม่อีกครั้ง\n' +
-                    '(ถ้าไม่ขึ้นหน้าต่างขอสิทธิ์ ให้กด Run ซ้ำอีกรอบ)');
-  }
+  /* ⚠ ห้ามเอา try/catch มาครอบ ScriptApp ตรงนี้เด็ดขาด
+     Apps Script จะเด้งหน้าต่างขอสิทธิ์ก็ต่อเมื่อ error "ลอยขึ้นไป" ถึงตัวมันเอง
+     ถ้าเราดักไว้เอง มันจะไม่เด้งอะไรเลย แล้วจะติดอยู่แบบนั้นตลอด */
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'rebuildSnapshot') ScriptApp.deleteTrigger(t);
   });
