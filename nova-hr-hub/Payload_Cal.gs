@@ -38,7 +38,7 @@ function readAllCalMonths_(empMap) {
     jd.rows.forEach(function (r) {
       var id = String(pick_(r, ['รหัสพนักงาน'], '')).trim();
       var job = String(pick_(r, ['JOB CODE'], '')).trim();
-      if (!id || !job) return;
+      if (!okCode_(id) || !okCode_(job)) return;      // ข้ามแถวสูตรพัง (#REF! ฯลฯ)
       var proc = String(pick_(r, ['Process'], '')).trim() || '(ไม่ระบุ)';
       var t = htCode_(pick_(r, ['ประเภทชั่วโมง'], '1'));
       var h = nvNum_(pick_(r, ['จำนวนชั่วโมง'], 0));
@@ -60,7 +60,7 @@ function readAllCalMonths_(empMap) {
       var mo = nvNum_(pick_(r, ['เลขเดือน'], 0)) || monthOf_(pick_(r, ['เดือน'], ''));
       if (mo !== m) return;
       var id = String(pick_(r, ['รหัสพนักงาน'], '')).trim();
-      if (!id) return;
+      if (!okCode_(id)) return;
       payBy[id] = {
         days: nvNum_(pick_(r, ['จำนวนวันทำงาน'], 0)),
         ot1: q2_(pick_(r, ['OTx1'], 0)), ot15: q2_(pick_(r, ['OTx1.5'], 0)),
@@ -73,7 +73,7 @@ function readAllCalMonths_(empMap) {
     var pfBy = {};
     pf.rows.forEach(function (r) {
       var id = String(pick_(r, ['รหัสพนักงาน'], '')).trim();
-      if (!id) return;
+      if (!okCode_(id)) return;
       empInfo[id] = empInfo[id] || {};
       empInfo[id].dept     = nvNum_(pick_(r, ['รหัสหน่วยงาน'], 0)) || empInfo[id].dept || 0;
       empInfo[id].deptName = String(pick_(r, ['หน่วยงาน'], '')) || empInfo[id].deptName || '';
@@ -96,7 +96,7 @@ function readAllCalMonths_(empMap) {
     var ps = nvReadSheet_(findTab_(ss, ['PAYROLL_SUMMARY']));
     ps.rows.forEach(function (r) {
       var id = String(pick_(r, ['รหัสพนักงาน'], '')).trim();
-      if (!id) return;
+      if (!okCode_(id)) return;
       var dir = String(pick_(r, ['Direct/Indirect'], '')).indexOf('Direct') === 0;
       empInfo[id] = empInfo[id] || {};
       empInfo[id].direct = dir;                                        // เดือนหลังทับเดือนก่อน = ได้สถานะล่าสุด

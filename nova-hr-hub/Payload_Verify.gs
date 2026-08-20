@@ -49,12 +49,20 @@ function verify_(D, warn) {
   for (var mo = 1; mo <= CFG.NMONTH; mo++) {
     (function (mo) {
       total++;
-      var fromMaster = 0, fromCal = 0;
-      D.jobs.forEach(function (j) { fromMaster += (j.byMonth[String(mo)] || 0); });
+      var fromMaster = 0, fromCal = 0, nJob = 0;
+      D.jobs.forEach(function (j) {
+        var v = j.byMonth[String(mo)] || 0;
+        fromMaster += v; if (v) nJob++;
+      });
       co.jobRows.forEach(function (x) { if (x.m === mo) fromCal += x.cost; });
-      if (Math.abs(q2_(fromMaster - fromCal)) > NV_TOL_MONTH)
+      /* ไฟล์ Master เก็บยอดต่อจ๊อบเป็น "จำนวนเต็มบาท" (ปัดเศษทิ้งไปแล้ว)
+         จ๊อบที่มียอด N จ๊อบ → คลาดเคลื่อนได้ถึง N × 0.5 บาท โดยไม่ใช่ความผิดพลาด */
+      var tol = Math.max(NV_TOL_MONTH, nJob * 0.5);
+      var gapM = q2_(fromMaster - fromCal);
+      if (Math.abs(gapM) > tol)
         fails.push(MONTHS_TH[mo - 1] + ': Master ' + q2_(fromMaster).toLocaleString() +
-                   ' ≠ ที่คำนวณจาก Cal ' + q2_(fromCal).toLocaleString());
+                   ' ≠ ที่คำนวณจาก Cal ' + q2_(fromCal).toLocaleString() +
+                   ' (ต่าง ' + gapM.toLocaleString() + ' บาท · ยอมได้ ' + tol + ')');
     })(mo);
   }
 

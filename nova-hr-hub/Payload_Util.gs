@@ -89,6 +89,11 @@ function pickRe_(row, re, dflt) {
   }
   return (dflt === undefined) ? '' : dflt;
 }
+/** รหัสที่ใช้ได้จริงไหม — ไฟล์จริงมีสูตรพังทิ้งไว้ เช่น #REF! #N/A ต้องข้าม ไม่ใช่เอามานับ */
+function okCode_(v) {
+  var s = String(v == null ? '' : v).trim();
+  return s !== '' && s.indexOf('#') !== 0;
+}
 function nvNum_(v) {
   if (typeof v === 'number') return v;
   var n = parseFloat(String(v).replace(/[^0-9.\-]/g, ''));
