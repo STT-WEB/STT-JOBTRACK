@@ -12,11 +12,25 @@ function readAllCalMonths_(empMap) {
 
   var rows = [], jobRows = [], perf = [], hourTypes = [], procCost = {};
   var empInfo = {};                       // ทะเบียนพนักงานตามที่ "ไฟล์ Cal" บอก (เดือนล่าสุดชนะ)
+  var warn = [];                          // เดือนไหนอ่านอะไรไม่ได้ ต้องดังออกมา ไม่ใช่เงียบแล้วได้ 0
   var workdays = [], holidays = [];
   var seenHT = {};
 
   files.forEach(function (fi) {
     var m = fi.m, ss = SpreadsheetApp.openById(fi.id);
+
+    /* ── ด่านที่ 0: แท็บที่ต้องใช้มีครบไหม ──
+       ถ้าแท็บหาย โค้ดจะอ่านได้ 0 แถวแบบเงียบๆ แล้วเดือนนั้นจะหายไปจากรายงานโดยไม่มีใครรู้
+       จึงต้องบันทึกไว้และเอาไปขึ้นธงแดงบนหน้าจอ */
+    [['JOB_COST_DIRECT', ['JOB_COST_DIRECT']],
+     ['PAYROLL_SUMMARY', ['PAYROLL_SUMMARY']],
+     ['PERFORMANCE',     ['PERFORMANCE']],
+     ['PAYROLL_ACTUAL',  ['PAYROLL_ACTUAL', 'สรุปตารางเงินเดือน']],
+     ['CALENDAR_MASTER', ['CALENDAR_MASTER', 'ปฏิทินวันทำงาน']],
+     ['HOUR_TYPE_RULE',  ['HOUR_TYPE_RULE', 'WORK_HOUR_TYPE']]
+    ].forEach(function (t) {
+      if (!findTab_(ss, t[1])) warn.push(MONTHS_TH[m - 1] + ': ไม่พบแท็บ ' + t[0] + ' ในไฟล์ "' + fi.name + '"');
+    });
 
     /* --- 1) JOB_COST_DIRECT → รวมยอดต่อ คน × จ๊อบ × process --- */
     var jd = nvReadSheet_(findTab_(ss, ['JOB_COST_DIRECT']));
@@ -137,6 +151,7 @@ function readAllCalMonths_(empMap) {
       if (t.indexOf('ปกติ') >= 0) wd++; else if (t.indexOf('หยุด') >= 0) hd++;
     });
     workdays.push(wd); holidays.push(hd);
+    if (!wd) warn.push(MONTHS_TH[m - 1] + ': ปฏิทินไม่มีวันทำงานเลย — เช็ก PeriodKey_รายเดือน ในแท็บ CALENDAR_MASTER');
 
     /* --- 6) WORK_HOUR_TYPE (อ่านครั้งเดียวพอ) --- */
     if (!hourTypes.length) {
@@ -176,8 +191,15 @@ function readAllCalMonths_(empMap) {
     return { job: p.job, proc: p.proc, hn: p.hn, ot: p.ot, hhol: p.hhol, th: p.th, cost: p.cost, heads: heads, cph: p.th ? q2_(p.cost / p.th) : 0 };
   });
 
+  /* เดือนไหนไม่มีแถวเงินเดือนเลย = อ่านไม่ได้จริงๆ */
+  for (var mm = 1; mm <= CFG.NMONTH; mm++) {
+    var n = 0;
+    rows.forEach(function (r) { if (r.m === mm) n++; });
+    if (!n) warn.push(MONTHS_TH[mm - 1] + ': ไม่มีแถวเงินเดือนเลย — อ่านแท็บ PAYROLL_SUMMARY ไม่ได้');
+  }
+
   return {
-    empInfo: empInfo,
+    empInfo: empInfo, warn: warn,
     rows: rows, jobRows: jobRows2, perf: perf, procRows: procRows,
     processes: processes, hourTypes: hourTypes,
     workdays: workdays, holidays: holidays

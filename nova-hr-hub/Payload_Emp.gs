@@ -67,42 +67,59 @@ function buildHrAcc_() {
   var sh = SpreadsheetApp.openById(FILES.PAYACTUAL).getSheetByName('HR&ACC');
   if (!sh) throw new Error('ไม่พบแท็บ HR&ACC');
   var v = sh.getDataRange().getValues();
-  // โครงจริง: 2 แถวหัว (แถวบน = ปี · แถวล่าง = ชื่อค่า) แล้วตามด้วย 12 เดือน
+
+  /* โครงจริง 2 แถวหัว —
+     แถวบน  = ปี   : 2567 · 2568 · 2569 · "2569 (HR)" · "2569 (ACC)" · และคอลัมน์ "% ... เพิ่มหรือลดลง"
+     แถวล่าง = ชื่อ : จำนวนพนงที่จ่าย · เงินเดือน · รวมสวัสดิการ · เงินชดเชย · OT ·
+                      ยอดจ่ายสุทธิ · ยอดจ่ายเงินสด · ยอดจ่ายธนาคาร · ยอดตัดธนาคาร
+     ⚠ กับดัก 2 อัน:
+       ① ช่องที่ผสาน (merged) จะได้ค่าเฉพาะช่องซ้ายสุด ที่เหลือเป็นค่าว่าง → ต้อง "จำปีล่าสุด" ต่อไปเรื่อยๆ
+       ② คอลัมน์ "%" แทรกอยู่ท้ายทุกกลุ่ม และใช้ "ชื่อ" ซ้ำกับคอลัมน์เงิน
+          ถ้าไม่ตัดทิ้ง จะได้ -33.33 มาแทนยอดเงิน (นี่คือสาเหตุที่ตัวเลขกลายเป็น 1.3 / -10.9) */
   var hTop = -1;
-  for (var i = 0; i < Math.min(v.length, 15); i++) {
-    if (String(v[i]).indexOf('จำนวนพนงที่จ่าย') >= 0) { hTop = i - 1; break; }
+  for (var i = 0; i < Math.min(v.length, 200); i++) {
+    for (var c = 0; c < v[i].length; c++) {
+      if (String(v[i][c]).trim() === 'จำนวนพนงที่จ่าย') { hTop = i - 1; break; }
+    }
+    if (hTop >= 0) break;
   }
   if (hTop < 0) throw new Error('อ่านหัวตาราง HR&ACC ไม่ได้ — โครงไฟล์เปลี่ยน');
+
   var yearRow = v[hTop], nameRow = v[hTop + 1];
-  var col = {};                                  // col['2569']['ยอดจ่ายสุทธิ'] = index
-  var curYear = '';
+  var col = {}, curYear = '', isACC = false;
   for (var c = 0; c < nameRow.length; c++) {
     var y = String(yearRow[c]).replace(/\[merged\]\s*/g, '').trim();
-    if (/^25\d\d/.test(y)) curYear = y.replace(/\s*\((HR|ACC)\)/, '') + (/\(ACC\)/.test(y) ? '|ACC' : '');
-    var nm = String(nameRow[c]).trim();
-    if (!nm) continue;
-    var key = curYear.split('|')[0];
-    if (!key) continue;
-    col[key] = col[key] || {};
-    var suffix = (curYear.indexOf('|ACC') >= 0) ? ' (ACC)' : '';
-    col[key][nm + suffix] = c;
+    if (y.indexOf('%') >= 0) { curYear = ''; continue; }        // ② คอลัมน์ % → ข้ามทั้งคอลัมน์
+    var mm = y.match(/^(25\d\d)/);
+    if (mm) { curYear = mm[1]; isACC = /\(ACC\)/.test(y); }     // ① เจอปีใหม่ → จำไว้ใช้กับช่องที่ผสานถัดไป
+    if (!curYear) continue;
+    var nm = String(nameRow[c]).replace(/\[merged\]\s*/g, '').trim();
+    if (!nm || nm === 'เดือน') continue;
+    col[curYear] = col[curYear] || {};
+    var key = nm + (isACC ? ' (ACC)' : '');
+    if (col[curYear][key] === undefined) col[curYear][key] = c;  // ชื่อซ้ำ → เอาคอลัมน์แรก
   }
+
   var out = {};
   ['2567', '2568', '2569'].forEach(function (y) {
-    var arr = [];
+    var C = col[y] || {}, arr = [];
     for (var m = 1; m <= 12; m++) {
       var row = null;
       for (var i = hTop + 2; i < v.length; i++) {
+        if (String(v[i][0]).indexOf('รวม') >= 0) break;          // ถึงแถว "รวมยอดจ่าย" = จบตาราง
         if (monthOf_(v[i][0]) === m) { row = v[i]; break; }
       }
-      var C = col[y] || {};
+      if (!row) { arr.push(null); continue; }
       var get = function (n) { return C[n] === undefined ? 0 : q2_(row[C[n]]); };
-      if (!row || (y === '2569' && m > CFG.NMONTH)) { arr.push(null); continue; }
-      var bank = get('ยอดจ่ายธนาคาร'), acc = get('ยอดตัดธนาคาร');
+      var net = get('ยอดจ่ายสุทธิ');
+      if (!net) { arr.push(null); continue; }                    // เดือนที่ยังไม่ได้กรอก (เช่น 2569 เดือน 8-12)
+      var bank = get('ยอดจ่ายธนาคาร');
+      var acc  = C['ยอดตัดธนาคาร (ACC)'] !== undefined ? q2_(row[C['ยอดตัดธนาคาร (ACC)']]) : get('ยอดตัดธนาคาร');
       arr.push({
-        m: m, heads: nvNum_(row[C['จำนวนพนงที่จ่าย']]),
+        m: m,
+        heads: nvNum_(C['จำนวนพนงที่จ่าย'] === undefined ? 0 : row[C['จำนวนพนงที่จ่าย']]),
         salary: get('เงินเดือน'), benefit: get('รวมสวัสดิการ'),
-        comp: get('เงินชดเชย'), ot: get('OT'), net: get('ยอดจ่ายสุทธิ'),
+        comp: get('เงินชดเชย'), ot: get('OT'), net: net,
         cash: get('ยอดจ่ายเงินสด'), bank: bank, accBank: acc,
         match: Math.abs(bank - acc) < 0.005
       });

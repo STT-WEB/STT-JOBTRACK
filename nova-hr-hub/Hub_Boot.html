@@ -24,6 +24,17 @@ let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>
   if(document.getElementById('sc-app').classList.contains('active'))render();},200);});
 renderRail();
 
+/* ---------- ป้ายเวอร์ชัน: หน้า Login + มุมขวาบนของแอป ----------
+   เลขนี้มาจาก CFG.VERSION / CFG.BUILD ใน Payload.gs ที่เดียว
+   ใช้เช็กว่า deploy ขึ้นแล้วหรือยัง — ถ้าเลขยังเป็นของเก่าให้กด Ctrl+Shift+R */
+(function(){
+  var v = D.meta.ver ? ('NOVA-HR ' + D.meta.ver + ' · build ' + D.meta.build) : 'Mockup v2.0';
+  var tag = document.getElementById('verTag');
+  if (tag) tag.textContent = v + ' · ปีงบ ' + D.meta.year;
+  var lg = document.getElementById('verLogin');
+  if (lg) lg.textContent = v + (D.meta.updatedAt ? ' · ข้อมูล ' + D.meta.updatedAt : '');
+})();
+
 /* ---------- แถบล่างสุด: ผลด่านตรวจ 8 ข้อของข้อมูลจริง ---------- */
 (function(){
   var v = (PAYLOAD.verify)||{pass:0,total:0,fails:[]};

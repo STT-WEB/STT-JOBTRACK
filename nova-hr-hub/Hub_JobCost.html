@@ -4,11 +4,13 @@
    ========================================================================= */
 /* ---------- Job Cost ① Time Bplus ---------- */
 function tabBplus(){
-  const m=st.month, conv=m<NM;
+  const m=st.month, BM=D.meta.bplusMonths||null;
   const R=D.companies[st.co].recon.filter(r=>r.m===m&&(st.inclKem||E(r.id).dept!==KEM));
+  /* แปลงไฟล์แล้วหรือยัง — ถ้า Payload ส่งรายชื่อเดือนมาให้ใช้ตัวนั้น (ของจริง) */
+  const conv=BM?BM.indexOf(m)>=0:m<NM;
   const rows=R.map(r=>{const e=E(r.id);return {id:r.id,name:esc(e.name),dept:`${e.dept}·${e.deptName}`,
-    etype:e.type,h:hours(r.bplus),d:hours(Math.round(r.bplus/8)),late:hours(r.id.charCodeAt(6)%3),
-    ab:hours(Math.max(0,(D.meta.workdays[m-1]-D.meta.holidays[m-1])*8-r.bplus)/8)};});
+    etype:e.type,h:hours(r.bplus),d:hours(r.bd!==undefined?r.bd:Math.round(r.bplus/8)),
+    late:hours(r.lt||0),ab:hours(r.ab||0)};});
   return `
   <div class="filters">
     <div class="fld"><label>ไฟล์รายเดือน</label><select onchange="setMonth(this.value)">${MONTHS.map(i=>`<option value="${i}" ${st.month===i?'selected':''}>${i}.Time Bplus ${MTH[i-1]} ${YEAR}</option>`).join('')}</select></div>
@@ -100,40 +102,50 @@ function drillPanel(){
 /* ---------- Job Cost ③ Reconcile (2 ตัว + หาต้นตอ) ---------- */
 function tabRec(){
   const m=st.month, ready=m<=NM;
+  /* เดือนที่ยกเวลามาจากระบบเก่า → ด่าน ① เช็คเวลา เป็นข้อมูลอ้างอิง ไม่บล็อกปิดงวด
+     ด่าน ② เช็คยอดเงิน ยังเข้มเหมือนเดิมทุกเดือน */
+  const legacy = m <= (D.meta.legacyTimeUntil||0);
   const R=D.companies[st.co].recon.filter(r=>r.m===m&&(st.inclKem||E(r.id).dept!==KEM));
   const rowsOf=D.companies[st.co].rows.filter(r=>r.m===m);
+  const DIR=r=>r.dir!==undefined?!!r.dir:!!E(r.id).direct;   /* Direct/Indirect ของเดือนนั้น */
   const bpOf={}; rowsOf.forEach(r=>bpOf[r.id]=r.bp);
   const jc={}; D.companies[st.co].jobRows.filter(x=>x.m===m).forEach(x=>jc[x.id]=(jc[x.id]||0)+x.cost);
   const A=R.map(r=>{const e=E(r.id);
     r.cause = r.c>=0 ? D.causes[r.c].t : '';
-    const cost=e.direct?Math.round((jc[r.id]||0)*100)/100:null;
+    const cost=DIR(r)?Math.round((jc[r.id]||0)*100)/100:null;
     const bp=bpOf[r.id], mdiff=cost==null?null:Math.round((cost-bp)*100)/100;
     return {...r,e,cost,bp,mdiff};});
   const tdiff=A.filter(x=>x.diff!==0), mdiff=A.filter(x=>x.mdiff!==null&&Math.abs(x.mdiff)>0.02);
   const rows=A.map(x=>({__on:x.diff!==0?`rootCause('${x.id}')`:'',
     id:x.id,name:esc(x.e.name),dept:`${x.e.dept}·${x.e.deptName}`,di:x.e.direct?'Direct':'Indirect',
     bplus:hours(x.bplus),jt:hours(x.jt),d:(x.diff>0?'+':'')+hours(x.diff),
-    st1:x.diff===0?'<span class="chip ok">● ตรง</span>':'<span class="chip bad">● ไม่ตรง</span>',
+    st1:x.diff===0?'<span class="chip ok">● ตรง</span>'
+        :(legacy?'<span class="chip warn">● ต่าง (ระบบเก่า)</span>':'<span class="chip bad">● ไม่ตรง</span>'),
     cause:x.cause?`<span class="chip warn">${x.cause}</span>`:'<span class="muted">—</span>',
     cost:x.cost==null?'<span class="muted">ไม่ลงจ๊อบ</span>':money(x.cost),bp:money(x.bp),
     md:x.mdiff==null?'—':money(x.mdiff),
     st2:x.mdiff==null?'<span class="muted">—</span>':(Math.abs(x.mdiff)<=0.02?'<span class="chip ok">● ตรง</span>':'<span class="chip bad">● ไม่ตรง</span>'),
     act:x.diff!==0?'<button class="btn xs">หาต้นตอ</button>':'<span class="muted">—</span>',
     __td:{d:x.diff!==0?'warn':'',md:(x.mdiff!=null&&Math.abs(x.mdiff)>0.02)?'bad':''}}));
+  const blocking = legacy ? mdiff.length : (tdiff.length||mdiff.length);
   return `
   <div class="filters">
     <div class="fld"><label>งวดเดือน</label><select onchange="setMonth(this.value)">${MONTHS.map(i=>`<option value="${i}" ${st.month===i?'selected':''}>${MTH[i-1]} ${YEAR}</option>`).join('')}</select></div>
     <div style="flex:1"></div><button class="btn">ส่งออกรายการที่ไม่ตรง</button>
   </div>
-  <div class="callout i" style="margin-bottom:14px"><span class="ic">i</span><div>
+  <div class="callout ${legacy?'q':'i'}" style="margin-bottom:14px"><span class="ic">${legacy?'!':'i'}</span><div>
     Reconcile มี <b>2 ตัว</b> — <b>① เช็คเวลา</b> (Bplus ↔ JOBTRACK) และ <b>② เช็คยอดเงิน</b> (ต้นทุนที่ลงจ๊อบ ↔ เงินที่จ่ายจริง BP)
-    · ถ้าไม่ตรง <b>คลิกแถวเพื่อเปิดหน้าหาต้นตอ</b></div></div>
+    · ถ้าไม่ตรง <b>คลิกแถวเพื่อเปิดหน้าหาต้นตอ</b>
+    ${legacy?`<br><b>เดือนนี้ยกเวลามาจากระบบเก่า</b> — ด่าน ① เทียบได้ไม่ครบทุกคน ถือเป็น<b>ข้อมูลอ้างอิง</b> ไม่บล็อกการปิดงวด
+      · <b>ด่าน ② ยอดเงินยังต้องตรงเป๊ะ</b> ถึงจะปิดงวดได้`:''}</div></div>
   <div class="grid g-4" style="margin-bottom:16px">
-    ${kpi('① เช็คเวลา — ไม่ตรง',hours(tdiff.length)+' <small>คน</small>',`จาก ${A.length} คน · ${pct(tdiff.length/(A.length||1)*100)}`)}
+    ${kpi('① เช็คเวลา — ไม่ตรง',hours(tdiff.length)+' <small>คน</small>',
+      legacy?`จาก ${A.length} คน · เวลายกมาจากระบบเก่า (อ้างอิง)`:`จาก ${A.length} คน · ${pct(tdiff.length/(A.length||1)*100)}`)}
     ${kpi('② เช็คยอดเงิน — ไม่ตรง',hours(mdiff.length)+' <small>คน</small>','ต้นทุนลงจ๊อบ ≠ BP')}
-    ${kpi('ชั่วโมงที่ต่างรวม',hours(tdiff.reduce((s,x)=>s+Math.abs(x.diff),0))+' <small>ชม.</small>','ต้องหาต้นตอก่อนปิดงวด')}
-    ${kpi('สถานะงวด',tdiff.length||mdiff.length?'รอแก้':'พร้อมปิด','ปิดได้เมื่อทั้ง 2 ด่านผ่าน',
-      tdiff.length||mdiff.length?'<span class="delta down">▲ ยังไม่ผ่าน</span>':'<span class="delta up">✓ ผ่าน</span>')}
+    ${kpi('ชั่วโมงที่ต่างรวม',hours(tdiff.reduce((s,x)=>s+Math.abs(x.diff),0))+' <small>ชม.</small>',
+      legacy?'ข้อมูลอ้างอิง ไม่บล็อกปิดงวด':'ต้องหาต้นตอก่อนปิดงวด')}
+    ${kpi('สถานะงวด',blocking?'รอแก้':'พร้อมปิด',legacy?'เดือนนี้ตัดสินจากด่าน ② ยอดเงิน':'ปิดได้เมื่อทั้ง 2 ด่านผ่าน',
+      blocking?'<span class="delta down">▲ ยังไม่ผ่าน</span>':'<span class="delta up">✓ ผ่าน</span>')}
   </div>
   ${st.drill?rootPanel():''}
   <div class="card"><div class="card-h"><h3>ตาราง Reconcile — ${MTH[m-1]} ${YEAR}</h3><div class="grow"></div>
@@ -143,9 +155,14 @@ function tabRec(){
       {k:'cause',h:'สาเหตุที่ระบบเดา'},
       {k:'cost',h:'② ต้นทุนลงจ๊อบ',r:1},{k:'bp',h:'② BP จ่ายจริง',r:1},{k:'md',h:'② ต่าง (บาท)',r:1},{k:'st2',h:'② สถานะ'},
       {k:'act',h:''}],rows,{maxH:620})}
-    <div class="callout i" style="margin-top:12px"><span class="ic">✓</span><div><b>ด่านตรวจระดับเดือน:</b>
-      ต้นทุนลงจ๊อบรวม <b class="num">${money(Object.values(jc).reduce((s,v)=>s+v,0))}</b>
-      = BP ของพนักงาน Direct รวม <b class="num">${money(rowsOf.filter(r=>E(r.id).direct).reduce((s,r)=>s+r.bp,0))}</b></div></div>
+    ${(()=>{const tc=Object.values(jc).reduce((s,v)=>s+v,0),
+        tb=rowsOf.filter(r=>r.dir!==undefined?r.dir:E(r.id).direct).reduce((s,r)=>s+r.bp,0),
+        ok=Math.abs(tc-tb)<=0.05;
+      return `<div class="callout ${ok?'i':'d'}" style="margin-top:12px"><span class="ic">${ok?'✓':'✕'}</span><div>
+      <b>ด่านตรวจระดับเดือน (ยอดเงิน — ต้องตรงเสมอ):</b>
+      ต้นทุนลงจ๊อบรวม <b class="num">${money(tc)}</b>
+      ${ok?'=':'≠'} BP ของพนักงาน Direct รวม <b class="num">${money(tb)}</b>
+      ${ok?'':`<br><b>ต่างกัน ${money(tc-tb)} บาท</b> — ต้องแก้ก่อนปิดงวด`}</div></div>`;})()}
   </div>`;
 }
 function rootCause(id){st.drill='rc:'+id;render();window.scrollTo(0,0);}
@@ -155,7 +172,7 @@ function rootPanel(){
   const r=D.companies[st.co].recon.find(x=>x.m===m&&x.id===id); if(!r)return '';
   const row=D.companies[st.co].rows.find(x=>x.m===m&&x.id===id);
   /* กระจายชั่วโมงลงรายวันแบบคงที่ เพื่อโชว์ว่าวันไหนต่าง */
-  const nd=row.days, per=Math.floor(row.hn/nd);
+  const nd=Math.max(1,row.days||Math.round(row.th/8)||1), per=Math.floor((row.hn||0)/nd);
   const days=Array.from({length:nd},(_,i)=>({d:i+1,jt:per,bp:per}));
   let rem=r.diff, i=0;
   while(rem!==0&&i<nd){const s=rem>0?1:-1;days[i].bp+=s;rem-=s;i++;}

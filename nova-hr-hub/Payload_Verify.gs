@@ -8,8 +8,9 @@
 /* ============================================================================
    5) ด่านตรวจ 8 ข้อ — ไม่ผ่าน = ขึ้นแถบแดงล่างจอ
    ============================================================================ */
-function verify_(D) {
-  var fails = [], total = 0, co = D.companies.STT, EM = {};
+function verify_(D, warn) {
+  var fails = (warn || []).slice(), total = 0, co = D.companies.STT, EM = {};
+  total += fails.length;
   D.emps.STT.forEach(function (e) { EM[e.id] = e; });
   for (var m = 1; m <= CFG.NMONTH; m++) {
     (function (m) {
@@ -32,6 +33,20 @@ function verify_(D) {
       if (Math.abs(q2_(s) - a.pool) > 0.05) fails.push(MONTHS_TH[m - 1] + ': Indirect กระจายไม่ครบ');
     })(m);
   }
+  /* ด่านที่ 9 — ไฟล์ Master (แท็บ MASTER คอลัมน์ ม.ค.–ธ.ค.) ต้องตรงกับต้นทุนที่คำนวณจากไฟล์ Cal
+     ถ้าไม่ตรง = ไฟล์ Master ยังไม่ได้อัปเดต หน้า ⑦ กับ ④ จะโชว์เลขคนละตัว */
+  for (var mo = 1; mo <= CFG.NMONTH; mo++) {
+    (function (mo) {
+      total++;
+      var fromMaster = 0, fromCal = 0;
+      D.jobs.forEach(function (j) { fromMaster += (j.byMonth[String(mo)] || 0); });
+      co.jobRows.forEach(function (x) { if (x.m === mo) fromCal += x.cost; });
+      if (Math.abs(q2_(fromMaster) - q2_(fromCal)) > 1)
+        fails.push(MONTHS_TH[mo - 1] + ': Master ' + q2_(fromMaster).toLocaleString() +
+                   ' ≠ ที่คำนวณจาก Cal ' + q2_(fromCal).toLocaleString());
+    })(mo);
+  }
+
   D.jobs.forEach(function (j) {
     total++;
     if (Math.abs(q2_(j.carry + j.sttLabor + j.indirect + j.sub) - j.total) > 0.05)

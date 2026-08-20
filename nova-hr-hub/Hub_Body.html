@@ -26,6 +26,7 @@
       <div class="inp"><label>รหัสพนักงาน</label><input placeholder="เช่น 6204002"></div>
       <div class="inp"><label>PIN 6 หลัก</label><input type="password" inputmode="numeric" maxlength="6" placeholder="••••••"></div>
       <button class="btn primary" style="padding:13px;font-size:15px;border-radius:12px" onclick="go('company')">เข้าสู่ระบบ</button>
+      <div class="foot-note" id="verLogin" style="opacity:.5;margin-bottom:-6px"></div>
       <div class="foot-note">พนักงานใหม่ยังไม่มีบัญชี? <b style="color:var(--accent-2);cursor:pointer" onclick="go('register')">ลงทะเบียนที่นี่</b></div>
     </div>
   </div>
@@ -114,7 +115,7 @@
           <button data-co="STT" class="on">STT</button>
           <button data-co="S1">S1</button>
         </div>
-        <span class="ver">NOVA-HR v3.0 · ปีงบ <?!= YEAR ?></span>
+        <span class="ver" id="verTag">Mockup v2.0 · ปีงบ 2569</span>
         <div class="userchip"><div class="avatar">บ</div><div><div style="font-size:12.5px;font-weight:700">เบียร์</div><small id="roleLabel">ผู้บริหาร</small></div></div>
         <button class="btn ghost" onclick="go('login')" title="ออกจากระบบ">ออก</button>
       </header>

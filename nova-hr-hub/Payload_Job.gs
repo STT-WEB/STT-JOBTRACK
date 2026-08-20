@@ -81,8 +81,10 @@ function readBudget_() {
     return hr;
   };
 
+  CFG._budgetWarn = [];
   /* ---- Sale Budget ---- */
   var sh = findTab_(ss, ['Sale Budget', 'SaleBudget', 'Budget labour']);
+  if (!sh) CFG._budgetWarn.push('ไม่พบแท็บ "Sale Budget" ในไฟล์ Payroll DB → Sale Budget จะว่างทั้งหมด');
   if (sh) {
     var v = sh.getDataRange().getValues(), hr = headRowOf(v);
     if (hr >= 0) {
@@ -102,6 +104,7 @@ function readBudget_() {
 
   /* ---- Estimate Budget (คอลัมน์ C · หัวคอลัมน์ว่าง) ---- */
   var sh2 = findTab_(ss, ['Estimate Budget', 'EstimateBudget', 'Est Budget']);
+  if (!sh2) CFG._budgetWarn.push('ไม่พบแท็บ "Estimate Budget" ในไฟล์ Payroll DB → Est. Budget จะว่างทั้งหมด');
   if (sh2) {
     var v2 = sh2.getDataRange().getValues(), hr2 = headRowOf(v2);
     if (hr2 >= 0) {

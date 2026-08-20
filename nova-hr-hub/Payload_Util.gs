@@ -78,6 +78,17 @@ function pick_(row, names, dflt) {
   return (dflt === undefined) ? '' : dflt;
 }
 
+/**
+ * หยิบค่าจากคอลัมน์ด้วย "รูปแบบชื่อ" แทนชื่อเป๊ะๆ
+ * จำเป็นเพราะไฟล์จริงสะกดไม่เหมือนกันทุกเดือน เช่น ไฟล์ Bplus เดือน 1 เขียนว่า
+ * "รืมรูดบัตร" (ร) ไม่ใช่ "ลืมรูดบัตร" (ล) — ถ้าจับชื่อเป๊ะจะได้ 0 เงียบๆ โดยไม่มีใครรู้
+ */
+function pickRe_(row, re, dflt) {
+  for (var k in row) if (row.hasOwnProperty(k) && re.test(k)) {
+    if (row[k] !== '' && row[k] !== null) return row[k];
+  }
+  return (dflt === undefined) ? '' : dflt;
+}
 function nvNum_(v) {
   if (typeof v === 'number') return v;
   var n = parseFloat(String(v).replace(/[^0-9.\-]/g, ''));

@@ -21,11 +21,20 @@ var FILES = {
 };
 
 var CFG = {
+  /* ⚠ บั๊ม BUILD ทุกครั้งที่แก้โค้ด — เลขนี้จะไปโชว์บนหน้า Login และมุมขวาบนของแอป
+     ถ้าเลขบนเว็บยังเป็นของเก่า = deploy ยังไม่ขึ้น (หรือยังไม่ได้กด Ctrl+Shift+R) */
+  VERSION   : 'v3.1',
+  BUILD     : 37,
   YEAR      : 2569,
   NMONTH    : 8,                 // เดือนที่มีข้อมูลแล้ว
   KEMREX    : 5018,              // ✅ รหัสแผนก KEMREX (เบียร์ยืนยันแล้ว) — อยู่ใต้หน่วยงาน 5000 PRODUCTION
   KEMREX_SPLIT: true,            // true = ยก KEMREX ขึ้นเป็น "แผนกใหญ่" แยกบนหน้าจอ (แม้ไฟล์จะอยู่ใต้ PRODUCTION)
   PERIOD_START: 26,              // งวดจ่าย = วันที่ 26 เดือนก่อน ถึง 25 เดือนนี้ (ตรงกับไฟล์ Bplus)
+  /* เดือน 1–7/2569 ยกเวลามาจากระบบเก่า → เทียบ Bplus ↔ JOBTRACK ไม่ตรงเป็นเรื่องปกติ
+     ด่าน "เช็คเวลา" ของเดือนเหล่านี้จึงเป็นข้อมูลอ้างอิงเท่านั้น ไม่บล็อกการปิดงวด
+     แต่ด่าน "เช็คยอดเงิน" (ต้นทุนลงจ๊อบ = BP จ่ายจริง) ยังเข้มเหมือนเดิมทุกเดือน
+     เดือนไหนเริ่มใช้ JOBTRACK จริงเต็มตัวแล้ว ให้ลดเลขนี้ลง */
+  LEGACY_TIME_UNTIL: 7,
   SHOW_ALL_JOBS: false,          // true = โชว์จ๊อบเก่าที่ไม่มียอดอะไรเลยด้วย
   NPROC     : 7,                 // โชว์ Process 7 อันดับแรกแยกสี ที่เหลือรวมเป็น "อื่นๆ" (จานสีมี 8 ช่อง)
   CACHE_KEY : 'NOVA_PAYLOAD_v3_1_0',   // ⚠️ บั๊มเลขนี้ทุกครั้งที่แก้ logic (กันเว็บโชว์ของเก่า)
@@ -54,6 +63,10 @@ function buildPayload() {
   var D = {
     meta: {
       note: '', year: CFG.YEAR, nmonth: CFG.NMONTH, monthsTH: MONTHS_TH,
+      ver: CFG.VERSION, build: CFG.BUILD,
+      /* เดือนที่ไฟล์ Bplus ถูกแปลงเป็น Google Sheets แล้ว → หน้า ① Time Bplus ใช้ตัวนี้ตัดสิน */
+      bplusMonths: Object.keys(bplusFiles_()).map(Number).sort(function (a, b) { return a - b; }),
+      legacyTimeUntil: CFG.LEGACY_TIME_UNTIL,
       workdays: cal.workdays, holidays: cal.holidays,
       updatedAt: Utilities.formatDate(new Date(), 'Asia/Bangkok', 'd MMM yyyy HH:mm')
     },
@@ -74,7 +87,7 @@ function buildPayload() {
     },
     jobs: jobs, procRows: cal.procRows, hracc: buildHrAcc_()
   };
-  D.verify = verify_(D);
+  D.verify = verify_(D, cal.warn.concat(CFG._budgetWarn || []));
   return D;
 }
 
@@ -94,7 +107,9 @@ function forceRefresh() { CacheService.getScriptCache().remove(CFG.CACHE_KEY); }
    ดูผลที่ View → Logs · ถ้าแท็บไหนขึ้น ✗ แปลว่าชื่อแท็บในไฟล์เปลี่ยน ต้องมาแก้ที่ findTab_
    ============================================================================ */
 function probe() {
-  var L = [];
+  var L = ['NOVA-HR ' + CFG.VERSION + ' · build ' + CFG.BUILD +
+           '   (เวลาที่รัน ' + Utilities.formatDate(new Date(), 'Asia/Bangkok', 'd MMM yyyy HH:mm:ss') + ')',
+           '────────────────────────────────────────────'];
   var cf = calFiles_();
   L.push('พบไฟล์ Cal ' + cf.length + ' เดือน: ' + cf.map(function (x) { return x.m + '=' + x.name; }).join(' | '));
   var bf = bplusFiles_();
@@ -116,10 +131,15 @@ function probe() {
     L.push('เงินเดือน ' + D.companies.STT.rows.length + ' แถว · ลงจ๊อบ ' + D.companies.STT.jobRows.length +
            ' แถว · Performance ' + D.companies.STT.perf.length + ' แถว · Reconcile ' + D.companies.STT.recon.length + ' แถว');
     L.push('จ๊อบ ' + D.jobs.length + ' · เดือนที่มีข้อมูล ' + D.meta.nmonth);
+    L.push('เดือนที่อ่าน Bplus ได้: ' + D.meta.bplusMonths.join(', '));
+    L.push(diagBplus_());
     L.push('เติมพนักงานที่ไม่มีในทะเบียนจากไฟล์ Cal: ' + (CFG._added || 0) + ' คน');
     L.push('แผนกใหญ่: ' + D.depts.map(function (d) { return d.code + '=' + d.name; }).join(' · '));
     L.push('ด่านตรวจ ผ่าน ' + D.verify.pass + '/' + D.verify.total);
     D.verify.fails.forEach(function (f) { L.push('   ✗ ' + f); });
+    var nEst = 0, nSale = 0;
+    D.jobs.forEach(function (j) { if (j.estBudget) nEst++; if (j.saleBudget) nSale++; });
+    L.push('งบ: มี Sale Budget ' + nSale + ' จ๊อบ · Est. Budget ' + nEst + ' จ๊อบ (จากทั้งหมด ' + D.jobs.length + ')');
     L.push(diagDirect_(D));
   } catch (e) {
     L.push('!! buildPayload ล้ม: ' + e.message);
@@ -153,4 +173,22 @@ function diagDirect_(D) {
     if (c.length) L.push('   • ลงจ๊อบแต่ไม่มีในตารางเงินเดือนเลย (' + c.length + ' คน): ' + c.slice(0, 6).join(' | '));
   }
   return L.length > 1 ? L.join('\n') : '— Direct = ต้นทุนลงจ๊อบ ครบทุกเดือน ✅ —';
+}
+
+/** พิมพ์ชื่อคอลัมน์จริงของไฟล์ Bplus ทุกเดือน — ไว้เช็กว่าเดือนไหนสะกดไม่เหมือนกัน */
+function diagBplus_() {
+  var bf = bplusFiles_(), L = ['— คอลัมน์จริงในไฟล์ Bplus แต่ละเดือน —'];
+  Object.keys(bf).sort(function (a, b) { return a - b; }).forEach(function (m) {
+    try {
+      var sh = SpreadsheetApp.openById(bf[m]).getSheets()[0];
+      var t = nvReadSheet_(sh);
+      var need = ['ชม.งาน', 'มาสาย', 'ขาดงาน', 'เวลารูดบัตร'];
+      var miss = [];
+      need.forEach(function (n) { if (t.head.indexOf(n) < 0) miss.push(n); });
+      var forget = t.head.filter(function (h) { return /ืมรูดบัตร/.test(h); });
+      L.push('  เดือน ' + m + ': ' + t.rows.length + ' แถว · คอลัมน์ลืมรูดบัตร = "' +
+             (forget[0] || '❌ ไม่มี') + '"' + (miss.length ? ' · ❌ ขาด ' + miss.join(',') : ' ✓'));
+    } catch (e) { L.push('  เดือน ' + m + ': อ่านไม่ได้ — ' + e.message); }
+  });
+  return L.join('\n');
 }

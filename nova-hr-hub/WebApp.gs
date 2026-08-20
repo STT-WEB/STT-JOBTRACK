@@ -4,17 +4,18 @@
  * (ชั้น 5 อ่านจากชั้น 4 "ผลสำเร็จรูป" — ไม่คำนวณซ้ำ = เร็ว)
  ***********************************************************/
 
-var HUB_VERSION = 'STT NOVA-HR HUB · version 31';   // ★ บวก +1 ทุกครั้งที่แก้โค้ด — ดูบนหน้า Login ว่าตรงไหม = deploy ล่าสุดหรือยัง
-function getVersion() { return HUB_VERSION; }
+/* เวอร์ชันอยู่ที่เดียวคือ CFG.VERSION / CFG.BUILD ใน Payload.gs
+   โชว์บนหน้า Login และมุมขวาบนของแอป → เช็กได้ทันทีว่า deploy ขึ้นหรือยัง */
+function getVersion() { return 'STT NOVA-HR HUB · ' + CFG.VERSION + ' · build ' + CFG.BUILD; }
+var HUB_VERSION = 'STT NOVA-HR HUB';   // เก็บไว้เผื่อโค้ดเก่าเรียกใช้
 
 /* ---------------------------------------------------------------------------
    รวมไฟล์ย่อยเข้าหน้าเดียว — ใช้ใน Hub.html ด้วย  <?!= include('ชื่อไฟล์') ?>
    ไฟล์ส่วนใหญ่เป็น HTML/JS ธรรมดา → ต่อดิบๆ (เร็วและปลอดภัยที่สุด)
-   มีแค่ 2 ไฟล์ที่มีตัวแปรฝังอยู่ ต้องผ่านตัวแทนค่าก่อน:
-     Hub_Body  → <?!= YEAR ?>          (ป้ายปีงบมุมบน)
+   มีไฟล์เดียวที่มีตัวแปรฝังอยู่ ต้องผ่านตัวแทนค่าก่อน:
      Hub_Data  → <?!= PAYLOAD_JSON ?>  (ข้อมูลจริงทั้งก้อน)
    --------------------------------------------------------------------------- */
-var NV_TPL = { 'Hub_Body': 1, 'Hub_Data': 1 };
+var NV_TPL = { 'Hub_Data': 1 };        // เหลือไฟล์เดียวที่มีตัวแปรฝัง (ป้ายเวอร์ชัน/ปีงบ ใช้ JS อ่านจากข้อมูลแทนแล้ว)
 var NV_CTX = {};                       // เติมค่าครั้งเดียวใน doGet (กันสร้าง payload ซ้ำ 12 รอบ)
 
 function include(name) {
@@ -42,6 +43,7 @@ function doGet() {
       'display:grid;place-items:center;padding:40px;text-align:center">' +
       '<div style="max-width:620px">' +
       '<div style="font-size:44px">🔧</div>' +
+      '<div style="color:#5A6478;font-size:12px;letter-spacing:.5px">' + getVersion() + '</div>' +
       '<h2 style="margin:12px 0 6px">ระบบอ่านข้อมูลต้นทางไม่สำเร็จ</h2>' +
       '<p style="color:#9AA3B2;margin:0 0 18px">หน้าตาเว็บไม่ได้พัง — แค่ดึงตัวเลขจากไฟล์ต้นทางไม่ได้</p>' +
       '<pre style="text-align:left;background:#151922;border:1px solid #2A3140;border-radius:10px;' +
