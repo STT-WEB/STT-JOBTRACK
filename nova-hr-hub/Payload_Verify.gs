@@ -16,9 +16,12 @@ function verify_(D) {
       total += 4;
       var bpD = 0, hD = 0, jc = 0, hJ = 0, bTot = 0, potTot = 0, bpTot = 0, ind = 0;
       co.rows.forEach(function (r) {
-        if (r.m !== m) return; var e = EM[r.id]; if (!e) return;
+        if (r.m !== m) return;
         bTot += r.base; potTot += r.pot; bpTot += r.bp;
-        if (e.direct) { bpD += r.bp; hD += r.th; } else ind += r.bp;
+        /* ใช้ Direct/Indirect "ของเดือนนั้น" จากไฟล์ Cal ไม่ใช่สถานะปัจจุบันในทะเบียน
+           (คนย้ายประเภทกลางปีได้ ถ้าใช้สถานะปัจจุบันย้อนหลังจะไม่มีวันตรง) */
+        var dir = (r.dir !== undefined) ? r.dir : !!(EM[r.id] || {}).direct;
+        if (dir) { bpD += r.bp; hD += r.th; } else ind += r.bp;
       });
       co.jobRows.forEach(function (x) { if (x.m === m) { jc += x.cost; hJ += x.th; } });
       if (Math.abs(q2_(bTot + potTot) - q2_(bpTot)) > 0.05) fails.push(MONTHS_TH[m - 1] + ': ค่าแรง+OT ≠ ยอดจ่าย');

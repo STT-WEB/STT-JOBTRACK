@@ -26,6 +26,7 @@ var CFG = {
   KEMREX    : 5018,              // ✅ รหัสแผนก KEMREX (เบียร์ยืนยันแล้ว) — อยู่ใต้หน่วยงาน 5000 PRODUCTION
   KEMREX_SPLIT: true,            // true = ยก KEMREX ขึ้นเป็น "แผนกใหญ่" แยกบนหน้าจอ (แม้ไฟล์จะอยู่ใต้ PRODUCTION)
   PERIOD_START: 26,              // งวดจ่าย = วันที่ 26 เดือนก่อน ถึง 25 เดือนนี้ (ตรงกับไฟล์ Bplus)
+  SHOW_ALL_JOBS: false,          // true = โชว์จ๊อบเก่าที่ไม่มียอดอะไรเลยด้วย
   NPROC     : 7,                 // โชว์ Process 7 อันดับแรกแยกสี ที่เหลือรวมเป็น "อื่นๆ" (จานสีมี 8 ช่อง)
   CACHE_KEY : 'NOVA_PAYLOAD_v3_1_0',   // ⚠️ บั๊มเลขนี้ทุกครั้งที่แก้ logic (กันเว็บโชว์ของเก่า)
   CACHE_SEC : 300
@@ -44,7 +45,8 @@ function buildPayload() {
   var emps = buildEmps_();
   var empMap = {}; emps.STT.concat(emps.S1 || []).forEach(function (e) { empMap[e.id] = e; });
 
-  var cal = readAllCalMonths_(empMap);          // { rows, jobRows, perf, procRows }
+  var cal = readAllCalMonths_(empMap);          // { rows, jobRows, perf, procRows, empInfo }
+  CFG._added = mergeEmpInfo_(emps, empMap, cal.empInfo);   // ไฟล์ Cal คือความจริง — ทับทะเบียนให้ตรง
   var alloc = buildAlloc_(cal.rows, cal.jobRows, empMap);
   var jobs = buildJobs_(alloc);
   var recon = buildRecon_(cal, empMap);        // ⚠️ ต้องเห็นไฟล์ Bplus ก่อนถึงจะครบ
@@ -114,11 +116,41 @@ function probe() {
     L.push('เงินเดือน ' + D.companies.STT.rows.length + ' แถว · ลงจ๊อบ ' + D.companies.STT.jobRows.length +
            ' แถว · Performance ' + D.companies.STT.perf.length + ' แถว · Reconcile ' + D.companies.STT.recon.length + ' แถว');
     L.push('จ๊อบ ' + D.jobs.length + ' · เดือนที่มีข้อมูล ' + D.meta.nmonth);
+    L.push('เติมพนักงานที่ไม่มีในทะเบียนจากไฟล์ Cal: ' + (CFG._added || 0) + ' คน');
+    L.push('แผนกใหญ่: ' + D.depts.map(function (d) { return d.code + '=' + d.name; }).join(' · '));
     L.push('ด่านตรวจ ผ่าน ' + D.verify.pass + '/' + D.verify.total);
     D.verify.fails.forEach(function (f) { L.push('   ✗ ' + f); });
+    L.push(diagDirect_(D));
   } catch (e) {
     L.push('!! buildPayload ล้ม: ' + e.message);
   }
   Logger.log(L.join('\n'));
   return L.join('\n');
+}
+
+/**
+ * วิเคราะห์ว่าทำไม "ค่าแรง Direct ≠ ต้นทุนที่ลงจ๊อบ" — ชี้ตัวคนที่เป็นต้นเหตุ
+ * (ใช้ตอนรัน probe() เท่านั้น ไม่ได้ถูกเรียกตอนเปิดเว็บ)
+ */
+function diagDirect_(D) {
+  var co = D.companies.STT, L = ['— หาต้นเหตุ Direct ≠ ต้นทุนลงจ๊อบ —'];
+  for (var m = 1; m <= CFG.NMONTH; m++) {
+    var bpD = 0, jc = 0, inJob = {}, payOf = {};
+    co.jobRows.forEach(function (x) { if (x.m === m) { jc += x.cost; inJob[x.id] = (inJob[x.id] || 0) + x.cost; } });
+    co.rows.forEach(function (r) { if (r.m === m) { payOf[r.id] = r; if (r.dir) bpD += r.bp; } });
+    var gap = q2_(bpD - jc);
+    if (Math.abs(gap) <= 0.05) continue;
+    L.push(MONTHS_TH[m - 1] + ': Direct ' + q2_(bpD).toLocaleString() + ' − ลงจ๊อบ ' + q2_(jc).toLocaleString() + ' = ' + gap.toLocaleString());
+    var a = [], b = [], c = [];
+    Object.keys(payOf).forEach(function (id) {
+      var r = payOf[id];
+      if (r.dir && !inJob[id]) a.push(id + ' ' + (r.bp).toLocaleString());          // Direct แต่ไม่มีในตารางลงจ๊อบ
+      if (!r.dir && inJob[id]) b.push(id + ' ' + q2_(inJob[id]).toLocaleString());  // Indirect แต่ไปโผล่ในจ๊อบ
+    });
+    Object.keys(inJob).forEach(function (id) { if (!payOf[id]) c.push(id + ' ' + q2_(inJob[id]).toLocaleString()); });
+    if (a.length) L.push('   • เป็น Direct แต่ไม่มีในตารางลงจ๊อบ (' + a.length + ' คน): ' + a.slice(0, 6).join(' | '));
+    if (b.length) L.push('   • เป็น Indirect แต่ไปโผล่ในตารางลงจ๊อบ (' + b.length + ' คน): ' + b.slice(0, 6).join(' | '));
+    if (c.length) L.push('   • ลงจ๊อบแต่ไม่มีในตารางเงินเดือนเลย (' + c.length + ' คน): ' + c.slice(0, 6).join(' | '));
+  }
+  return L.length > 1 ? L.join('\n') : '— Direct = ต้นทุนลงจ๊อบ ครบทุกเดือน ✅ —';
 }

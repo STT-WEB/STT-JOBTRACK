@@ -29,6 +29,9 @@ function buildJobs_(alloc) {
     }
     var b = budget[code] || {};
     var w = wip[code] || {};
+    /* ไฟล์ Master เก็บจ๊อบสะสมทุกปี (800+ จ๊อบ) — จ๊อบที่ไม่มียอดอะไรเลยไม่ต้องเอาขึ้นจอ
+       เปิดดูทั้งหมดได้ที่ CFG.SHOW_ALL_JOBS = true */
+    if (!CFG.SHOW_ALL_JOBS && !carry && !sum && !ind && !sub) return;
     var total = q2_(carry + sum + ind + sub);
     /* Est. Budget = แท็บ Estimate Budget คอลัมน์ C · Sale Budget = แท็บ Sale Budget คอลัมน์ Budget labour
        จ๊อบไหนยังไม่ได้กรอก Estimate → ส่วนต่าง/% เทียบกับ Sale Budget แทน (ไม่โชว์ตัวเลขมั่ว) */
@@ -138,8 +141,8 @@ function buildAlloc_(rows, jobRows, empMap) {
     var pool = 0, hours = 0, byJobH = {};
     rows.forEach(function (r) {
       if (r.m !== m) return;
-      var e = empMap[r.id]; if (!e) return;
-      if (!e.direct) pool = q2_(pool + r.bp);
+      var dir = (r.dir !== undefined) ? r.dir : !!(empMap[r.id] || {}).direct;
+      if (!dir) pool = q2_(pool + r.bp);
     });
     jobRows.forEach(function (x) {
       if (x.m !== m) return;

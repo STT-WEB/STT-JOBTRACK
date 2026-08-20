@@ -11,6 +11,7 @@ function readAllCalMonths_(empMap) {
   CFG.NMONTH = files[files.length - 1].m;          // เดือนล่าสุดที่มีไฟล์จริง
 
   var rows = [], jobRows = [], perf = [], hourTypes = [], procCost = {};
+  var empInfo = {};                       // ทะเบียนพนักงานตามที่ "ไฟล์ Cal" บอก (เดือนล่าสุดชนะ)
   var workdays = [], holidays = [];
   var seenHT = {};
 
@@ -39,7 +40,7 @@ function readAllCalMonths_(empMap) {
     Object.keys(byKey).forEach(function (k) { jobRows.push(byKey[k]); });
 
     /* --- 2) สรุปตารางเงินเดือน → วัน/OT รายก้อน --- */
-    var pay = nvReadSheet_(findTab_(ss, ['สรุปตารางเงินเดือน']));
+    var pay = nvReadSheet_(findTab_(ss, ['PAYROLL_ACTUAL', 'สรุปตารางเงินเดือน']));
     var payBy = {};
     pay.rows.forEach(function (r) {
       var mo = nvNum_(pick_(r, ['เลขเดือน'], 0)) || monthOf_(pick_(r, ['เดือน'], ''));
@@ -59,6 +60,11 @@ function readAllCalMonths_(empMap) {
     pf.rows.forEach(function (r) {
       var id = String(pick_(r, ['รหัสพนักงาน'], '')).trim();
       if (!id) return;
+      empInfo[id] = empInfo[id] || {};
+      empInfo[id].dept     = nvNum_(pick_(r, ['รหัสหน่วยงาน'], 0)) || empInfo[id].dept || 0;
+      empInfo[id].deptName = String(pick_(r, ['หน่วยงาน'], '')) || empInfo[id].deptName || '';
+      empInfo[id].sub      = String(pick_(r, ['แผนก'], '')) || empInfo[id].sub || '';
+      empInfo[id].name     = String(pick_(r, ['ชื่อพนักงาน'], '')) || empInfo[id].name || '';
       pfBy[id] = {
         stdH: nvNum_(pick_(r, ['ชม. มาตรฐาน', 'ชม.มาตรฐาน'], 0)),
         holH: nvNum_(pick_(r, ['ชม. หยุดนักขัตฤกษ์', 'ชม.หยุดนักขัตฤกษ์'], 0)),
@@ -77,7 +83,11 @@ function readAllCalMonths_(empMap) {
     ps.rows.forEach(function (r) {
       var id = String(pick_(r, ['รหัสพนักงาน'], '')).trim();
       if (!id) return;
-      var e = empMap[id] || {};
+      var dir = String(pick_(r, ['Direct/Indirect'], '')).indexOf('Direct') === 0;
+      empInfo[id] = empInfo[id] || {};
+      empInfo[id].direct = dir;                                        // เดือนหลังทับเดือนก่อน = ได้สถานะล่าสุด
+      empInfo[id].type   = String(pick_(r, ['Employee Type (รายวัน/รายเดือน)', 'Employee Type'], '')).indexOf('รายวัน') >= 0 ? 'รายวัน' : 'รายเดือน';
+      empInfo[id].name   = empInfo[id].name || String(pick_(r, ['ชื่อพนักงาน'], ''));
       var bp = q2_(pick_(r, ['(เงินเดือน+OT+สวัสดิการ)'], 0));
       var base = q2_(pick_(r, ['(เงินเดือน+สวัสดิการ ไม่รวม OT)'], 0));
       var pot = q2_(pick_(r, ['Total OT'], 0));
@@ -88,7 +98,7 @@ function readAllCalMonths_(empMap) {
       var absentH = nvNum_(pick_(r, ['ชม. ขาด/ลาจริง (กระทบ Performance)', 'ชม. ขาด/ลาจริง'], F.absentH || 0));
       var phol = P.othol, p30 = P.ot3, p15 = q2_(pot - phol - p30);      // OTx1 ถูกกลืนเข้า p15 เพื่อให้รวมเท่า Total OT
       rows.push({
-        m: m, id: id,
+        m: m, id: id, dir: dir,
         days: P.days,
         absentD: Math.round(absentH / 8 * 100) / 100,
         hn:    H ? H.hn    : nvNum_(pick_(r, ['ชม. ปกติจาก Timesheet'], 0)),
@@ -104,7 +114,7 @@ function readAllCalMonths_(empMap) {
         absentH: absentH
       });
       /* perf = เฉพาะพนักงาน Direct (ตามที่เบียร์สั่ง) และ "คิดเกรดใหม่" */
-      if (e.direct && F.netH) {
+      if (dir && F.netH) {
         var pct = q2_(F.hn / F.netH * 100);
         var th = F.th || (H ? H.th : 0);
         perf.push({
@@ -117,7 +127,7 @@ function readAllCalMonths_(empMap) {
     });
 
     /* --- 5) ปฏิทินวันทำงาน --- */
-    var cal = nvReadSheet_(findTab_(ss, ['ปฏิทินวันทำงาน', 'ปฏิทิน']));
+    var cal = nvReadSheet_(findTab_(ss, ['CALENDAR_MASTER', 'ปฏิทินวันทำงาน']));
     var wd = 0, hd = 0;
     cal.rows.forEach(function (r) {
       var pk = String(pick_(r, ['PeriodKey_รายเดือน'], ''));
@@ -130,7 +140,7 @@ function readAllCalMonths_(empMap) {
 
     /* --- 6) WORK_HOUR_TYPE (อ่านครั้งเดียวพอ) --- */
     if (!hourTypes.length) {
-      var wh = nvReadSheet_(findTab_(ss, ['WORK_HOUR_TYPE']));
+      var wh = nvReadSheet_(findTab_(ss, ['HOUR_TYPE_RULE', 'WORK_HOUR_TYPE']));
       wh.rows.forEach(function (r) {
         var code = htCode_(pick_(r, ['Work Hour Type Name'], pick_(r, ['Work Hour Type Code'], '')));
         if (seenHT[code]) return; seenHT[code] = 1;
@@ -167,6 +177,7 @@ function readAllCalMonths_(empMap) {
   });
 
   return {
+    empInfo: empInfo,
     rows: rows, jobRows: jobRows2, perf: perf, procRows: procRows,
     processes: processes, hourTypes: hourTypes,
     workdays: workdays, holidays: holidays

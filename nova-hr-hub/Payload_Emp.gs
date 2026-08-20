@@ -21,8 +21,10 @@ function buildEmps_() {
       name: String(pick_(r, ['ชื่อพนักงาน'], '')),
       /* โครงจริง: หน่วยงาน (1000/3000/4000/5000...) = แผนกใหญ่ · รหัสแผนก (1001/5013/5018) = แผนกย่อย
          KEMREX 5018 อยู่ใต้ PRODUCTION ในไฟล์ แต่เบียร์ต้องการเห็นแยก → ยกขึ้นเป็นแผนกใหญ่ */
+      /* บางแถวไม่ได้กรอก "รหัสหน่วยงาน" → เดาจากรหัสแผนก (5013 → 5000) */
       dept: (CFG.KEMREX_SPLIT && nvNum_(pick_(r, ['รหัสแผนก'], 0)) === CFG.KEMREX)
-              ? CFG.KEMREX : nvNum_(pick_(r, ['รหัสหน่วยงาน'], 0)),
+              ? CFG.KEMREX
+              : (nvNum_(pick_(r, ['รหัสหน่วยงาน'], 0)) || Math.floor(nvNum_(pick_(r, ['รหัสแผนก'], 0)) / 1000) * 1000),
       deptName: (CFG.KEMREX_SPLIT && nvNum_(pick_(r, ['รหัสแผนก'], 0)) === CFG.KEMREX)
               ? 'KEMREX' : String(pick_(r, ['ชื่อหน่วยงาน'], '')),
       subCode: nvNum_(pick_(r, ['รหัสแผนก'], 0)),
@@ -108,4 +110,30 @@ function buildHrAcc_() {
     out[y] = arr;
   });
   return out;
+}
+
+/**
+ * รวมทะเบียนพนักงานกับสิ่งที่ "ไฟล์ Cal" บอก
+ * ไฟล์ Cal คือความจริงของการเดินงวด — Salary Master อาจอัปเดตไม่ทัน/คนลาออกถูกลบทิ้ง
+ * ทำ 2 อย่าง: ① ทับ หน่วยงาน/แผนก/Direct-Indirect ด้วยของจริง  ② เติมคนที่ไม่มีในทะเบียน
+ * คืนค่า = จำนวนคนที่เติมเข้ามา + รายชื่อคนที่เปลี่ยน Direct↔Indirect ระหว่างปี
+ */
+function mergeEmpInfo_(emps, empMap, empInfo) {
+  var added = 0;
+  Object.keys(empInfo).forEach(function (id) {
+    var c = empInfo[id], e = empMap[id];
+    if (!e) {                                        // มีใน Cal แต่ไม่มีในทะเบียน (เช่น ลาออกแล้วถูกลบ)
+      e = { id: id, name: c.name || id, rate: 0, salary: 0, benefit: 0,
+            hireM: 1, leaveM: CFG.NMONTH, subCode: 0 };
+      emps.STT.push(e); empMap[id] = e; added++;
+    }
+    var isKem = (c.sub === 'KEMREX') || (e.subCode === CFG.KEMREX);
+    e.direct   = !!c.direct;
+    e.type     = c.type || e.type || 'รายเดือน';
+    e.name     = e.name || c.name || id;
+    e.sub      = c.sub || e.sub || '';
+    e.dept     = (CFG.KEMREX_SPLIT && isKem) ? CFG.KEMREX : (c.dept || e.dept || 0);
+    e.deptName = (CFG.KEMREX_SPLIT && isKem) ? 'KEMREX'   : (c.deptName || e.deptName || String(e.dept));
+  });
+  return added;
 }
