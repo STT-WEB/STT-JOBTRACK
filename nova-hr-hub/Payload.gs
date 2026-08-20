@@ -24,7 +24,7 @@ var CFG = {
   /* ⚠ บั๊ม BUILD ทุกครั้งที่แก้โค้ด — เลขนี้จะไปโชว์บนหน้า Login และมุมขวาบนของแอป
      ถ้าเลขบนเว็บยังเป็นของเก่า = deploy ยังไม่ขึ้น (หรือยังไม่ได้กด Ctrl+Shift+R) */
   VERSION   : 'v3.1',
-  BUILD     : 42,
+  BUILD     : 43,
   YEAR      : 2569,
   NMONTH    : 8,                 // เดือนที่มีข้อมูลแล้ว
   KEMREX    : 5018,              // ✅ รหัสแผนก KEMREX (เบียร์ยืนยันแล้ว) — อยู่ใต้หน่วยงาน 5000 PRODUCTION
@@ -192,6 +192,11 @@ function rebuildSnapshot() {
  * ผลคือคนเข้าเว็บไม่ต้องรอสร้างข้อมูลอีกเลย
  */
 function installSnapshotTrigger() {
+  try { ScriptApp.getProjectTriggers(); }
+  catch (e) {
+    throw new Error('ยังไม่ได้ให้สิทธิ์ตั้งตัวตั้งเวลา — กด Review permissions → Allow แล้วรันฟังก์ชันนี้ใหม่อีกครั้ง\n' +
+                    '(ถ้าไม่ขึ้นหน้าต่างขอสิทธิ์ ให้กด Run ซ้ำอีกรอบ)');
+  }
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'rebuildSnapshot') ScriptApp.deleteTrigger(t);
   });
@@ -223,11 +228,18 @@ function probe() {
     var ss = SpreadsheetApp.openById(cf[cf.length - 1].id);
     L.push('แท็บทั้งหมดในไฟล์ ' + cf[cf.length - 1].name + ':');
     ss.getSheets().forEach(function (s) { L.push('   • ' + s.getName() + '  (' + s.getLastRow() + ' แถว)'); });
-    ['JOB_COST_DIRECT', 'PAYROLL_SUMMARY', 'PERFORMANCE', 'สรุปตารางเงินเดือน', 'ปฏิทินวันทำงาน', 'WORK_HOUR_TYPE', 'ALL WIP']
-      .forEach(function (k) {
-        var sh = findTab_(ss, [k]);
-        L.push((sh ? '✓ ' : '✗ ') + k + (sh ? ' → ' + sh.getName() : ' → หาไม่เจอ'));
-      });
+    /* ต้องใช้ "ชื่อที่โค้ดจริงค้นหา" ไม่ใช่ชื่อที่เราเรียกกันเอง ไม่งั้นจะขึ้น ✗ หลอก */
+    [['JOB_COST_DIRECT', ['JOB_COST_DIRECT']],
+     ['PAYROLL_SUMMARY', ['PAYROLL_SUMMARY']],
+     ['PERFORMANCE',     ['PERFORMANCE']],
+     ['ตารางเงินเดือน',   ['PAYROLL_ACTUAL', 'สรุปตารางเงินเดือน']],
+     ['ปฏิทินวันทำงาน',   ['CALENDAR_MASTER', 'ปฏิทินวันทำงาน']],
+     ['ประเภทชั่วโมง',    ['HOUR_TYPE_RULE', 'WORK_HOUR_TYPE']],
+     ['ALL WIP',         ['ALL WIP']]
+    ].forEach(function (t) {
+      var sh = findTab_(ss, t[1]);
+      L.push((sh ? '✓ ' : '✗ ') + t[0] + (sh ? ' → ' + sh.getName() : ' → หาไม่เจอ'));
+    });
   }
   try {
     var D = buildPayload();
@@ -245,9 +257,13 @@ function probe() {
       Utilities.formatDate(sf.getLastUpdated(), 'Asia/Bangkok', 'd MMM yyyy HH:mm') +
       ' · ' + Math.round(sf.getSize()/1024) + ' KB'
       : '❌ ยังไม่มี — รัน installSnapshotTrigger() หนึ่งครั้ง ไม่งั้นเข้าเว็บจะรอ ~1 นาทีทุกครั้ง'));
-    L.push('ตัวตั้งเวลาสร้างข้อมูลอัตโนมัติ: ' +
-      (ScriptApp.getProjectTriggers().filter(function(t){return t.getHandlerFunction()==='rebuildSnapshot';}).length
-        ? '✓ ตั้งแล้ว (ทุก 1 ชั่วโมง)' : '❌ ยังไม่ได้ตั้ง — รัน installSnapshotTrigger()'));
+    try {
+      L.push('ตัวตั้งเวลาสร้างข้อมูลอัตโนมัติ: ' +
+        (ScriptApp.getProjectTriggers().filter(function(t){return t.getHandlerFunction()==='rebuildSnapshot';}).length
+          ? '✓ ตั้งแล้ว (ทุก 1 ชั่วโมง)' : '❌ ยังไม่ได้ตั้ง — รัน installSnapshotTrigger()'));
+    } catch (e) {
+      L.push('ตัวตั้งเวลา: ยังไม่ได้ให้สิทธิ์ → รัน installSnapshotTrigger() แล้วกด Allow หนึ่งครั้ง');
+    }
     L.push('ด่านตรวจ ผ่าน ' + D.verify.pass + '/' + D.verify.total);
     D.verify.fails.forEach(function (f) { L.push('   ✗ ' + f); });
     var nEst = 0, nSale = 0;
