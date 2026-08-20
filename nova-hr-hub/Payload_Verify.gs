@@ -8,6 +8,12 @@
 /* ============================================================================
    5) ด่านตรวจ 8 ข้อ — ไม่ผ่าน = ขึ้นแถบแดงล่างจอ
    ============================================================================ */
+/* เกณฑ์ยอมรับของยอด "รวมทั้งเดือน"
+   ต้นทุนแต่ละบรรทัดถูกปัดเป็น 2 ตำแหน่งก่อนบวก คนละไม่กี่สตางค์ × 60-100 คน
+   รวมแล้วต่างได้ถึงราวครึ่งบาท — ไฟล์ Cal ต้นทางเองก็เขียนว่า "ต่างแค่ทศนิยม"
+   จึงยอมได้ไม่เกิน 1 บาท/เดือน  ส่วนต่างจริงจะถูกพิมพ์ออกมาเสมอ ไม่มีการซ่อน */
+var NV_TOL_MONTH = 1;
+
 function verify_(D, warn) {
   var fails = (warn || []).slice(), total = 0, co = D.companies.STT, EM = {};
   total += fails.length;
@@ -25,12 +31,17 @@ function verify_(D, warn) {
         if (dir) { bpD += r.bp; hD += r.th; } else ind += r.bp;
       });
       co.jobRows.forEach(function (x) { if (x.m === m) { jc += x.cost; hJ += x.th; } });
-      if (Math.abs(q2_(bTot + potTot) - q2_(bpTot)) > 0.05) fails.push(MONTHS_TH[m - 1] + ': ค่าแรง+OT ≠ ยอดจ่าย');
-      if (Math.abs(q2_(bpD) - q2_(jc)) > 0.05) fails.push(MONTHS_TH[m - 1] + ': Direct ≠ ต้นทุนลงจ๊อบ');
-      if (Math.abs(hD - hJ) > 0.05) fails.push(MONTHS_TH[m - 1] + ': ชั่วโมง Direct ≠ ชั่วโมงลงจ๊อบ');
+      if (Math.abs(q2_(bTot + potTot - bpTot)) > NV_TOL_MONTH)
+        fails.push(MONTHS_TH[m - 1] + ': ค่าแรง+OT ≠ ยอดจ่าย (ต่าง ' + q2_(bTot + potTot - bpTot).toLocaleString() + ' บาท)');
+      var gapD = q2_(bpD - jc);
+      if (Math.abs(gapD) > NV_TOL_MONTH)
+        fails.push(MONTHS_TH[m - 1] + ': Direct ≠ ต้นทุนลงจ๊อบ (ต่าง ' + gapD.toLocaleString() + ' บาท)');
+      if (Math.abs(hD - hJ) > 0.05)
+        fails.push(MONTHS_TH[m - 1] + ': ชั่วโมง Direct ≠ ชั่วโมงลงจ๊อบ (ต่าง ' + q2_(hD - hJ) + ' ชม.)');
       var a = co.alloc[String(m)], s = 0;
       Object.keys(a.byJob).forEach(function (k) { s += a.byJob[k]; });
-      if (Math.abs(q2_(s) - a.pool) > 0.05) fails.push(MONTHS_TH[m - 1] + ': Indirect กระจายไม่ครบ');
+      if (Math.abs(q2_(s - a.pool)) > NV_TOL_MONTH)
+        fails.push(MONTHS_TH[m - 1] + ': Indirect กระจายไม่ครบ (ต่าง ' + q2_(s - a.pool).toLocaleString() + ' บาท)');
     })(m);
   }
   /* ด่านที่ 9 — ไฟล์ Master (แท็บ MASTER คอลัมน์ ม.ค.–ธ.ค.) ต้องตรงกับต้นทุนที่คำนวณจากไฟล์ Cal
@@ -41,7 +52,7 @@ function verify_(D, warn) {
       var fromMaster = 0, fromCal = 0;
       D.jobs.forEach(function (j) { fromMaster += (j.byMonth[String(mo)] || 0); });
       co.jobRows.forEach(function (x) { if (x.m === mo) fromCal += x.cost; });
-      if (Math.abs(q2_(fromMaster) - q2_(fromCal)) > 1)
+      if (Math.abs(q2_(fromMaster - fromCal)) > NV_TOL_MONTH)
         fails.push(MONTHS_TH[mo - 1] + ': Master ' + q2_(fromMaster).toLocaleString() +
                    ' ≠ ที่คำนวณจาก Cal ' + q2_(fromCal).toLocaleString());
     })(mo);
@@ -55,8 +66,10 @@ function verify_(D, warn) {
   ['2567', '2568', '2569'].forEach(function (y) {
     (D.hracc[y] || []).forEach(function (r) {
       if (!r) return; total++;
-      if (Math.abs(q2_(r.cash + r.bank) - r.net) > 0.05) fails.push(y + '/' + MONTHS_TH[r.m - 1] + ': เงินสด+ธนาคาร ≠ สุทธิ');
+      if (Math.abs(q2_(r.cash + r.bank - r.net)) > NV_TOL_MONTH)
+        fails.push(y + '/' + MONTHS_TH[r.m - 1] + ': เงินสด+ธนาคาร ≠ สุทธิ (ต่าง ' +
+                   q2_(r.cash + r.bank - r.net).toLocaleString() + ' บาท)');
     });
   });
-  return { total: total, pass: total - fails.length, fails: fails.slice(0, 6) };
+  return { total: total, pass: total - fails.length, nfail: fails.length, fails: fails.slice(0, 20) };
 }

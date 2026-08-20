@@ -24,7 +24,7 @@ var CFG = {
   /* ⚠ บั๊ม BUILD ทุกครั้งที่แก้โค้ด — เลขนี้จะไปโชว์บนหน้า Login และมุมขวาบนของแอป
      ถ้าเลขบนเว็บยังเป็นของเก่า = deploy ยังไม่ขึ้น (หรือยังไม่ได้กด Ctrl+Shift+R) */
   VERSION   : 'v3.1',
-  BUILD     : 44,
+  BUILD     : 45,
   YEAR      : 2569,
   NMONTH    : 8,                 // เดือนที่มีข้อมูลแล้ว
   KEMREX    : 5018,              // ✅ รหัสแผนก KEMREX (เบียร์ยืนยันแล้ว) — อยู่ใต้หน่วยงาน 5000 PRODUCTION
@@ -272,7 +272,8 @@ function probe() {
     } catch (e) {
       L.push('ตัวตั้งเวลา: ยังไม่ได้ให้สิทธิ์ → รัน installSnapshotTrigger() แล้วกด Allow หนึ่งครั้ง');
     }
-    L.push('ด่านตรวจ ผ่าน ' + D.verify.pass + '/' + D.verify.total);
+    L.push('ด่านตรวจ ผ่าน ' + D.verify.pass + '/' + D.verify.total +
+           (D.verify.nfail ? '  (ไม่ผ่าน ' + D.verify.nfail + ' ข้อ)' : '  ✅ ผ่านครบ'));
     D.verify.fails.forEach(function (f) { L.push('   ✗ ' + f); });
     var nEst = 0, nSale = 0;
     D.jobs.forEach(function (j) { if (j.estBudget) nEst++; if (j.saleBudget) nSale++; });
@@ -296,12 +297,13 @@ function diagDirect_(D) {
     co.jobRows.forEach(function (x) { if (x.m === m) { jc += x.cost; inJob[x.id] = (inJob[x.id] || 0) + x.cost; } });
     co.rows.forEach(function (r) { if (r.m === m) { payOf[r.id] = r; if (r.dir) bpD += r.bp; } });
     var gap = q2_(bpD - jc);
-    if (Math.abs(gap) <= 0.05) continue;
-    L.push(MONTHS_TH[m - 1] + ': Direct ' + q2_(bpD).toLocaleString() + ' − ลงจ๊อบ ' + q2_(jc).toLocaleString() + ' = ' + gap.toLocaleString());
+    if (Math.abs(gap) <= 0.005) continue;
+    L.push(MONTHS_TH[m - 1] + ': Direct ' + q2_(bpD).toLocaleString() + ' − ลงจ๊อบ ' + q2_(jc).toLocaleString() +
+           ' = ' + gap.toLocaleString() + ' บาท' + (Math.abs(gap) <= NV_TOL_MONTH ? '   ← แค่เศษสตางค์จากการปัดเลข ผ่านเกณฑ์' : '   ⛔ ต้องแก้'));
     var a = [], b = [], c = [];
     Object.keys(payOf).forEach(function (id) {
       var r = payOf[id];
-      if (r.dir && !inJob[id]) a.push(id + ' ' + (r.bp).toLocaleString());          // Direct แต่ไม่มีในตารางลงจ๊อบ
+      if (r.dir && !inJob[id] && r.bp > 0.005) a.push(id + ' ' + (r.bp).toLocaleString());   // Direct แต่ไม่มีในตารางลงจ๊อบ (ข้ามคนที่ยอด 0)
       if (!r.dir && inJob[id]) b.push(id + ' ' + q2_(inJob[id]).toLocaleString());  // Indirect แต่ไปโผล่ในจ๊อบ
     });
     Object.keys(inJob).forEach(function (id) { if (!payOf[id]) c.push(id + ' ' + q2_(inJob[id]).toLocaleString()); });
