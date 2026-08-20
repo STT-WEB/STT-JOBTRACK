@@ -24,7 +24,7 @@ var CFG = {
   /* ⚠ บั๊ม BUILD ทุกครั้งที่แก้โค้ด — เลขนี้จะไปโชว์บนหน้า Login และมุมขวาบนของแอป
      ถ้าเลขบนเว็บยังเป็นของเก่า = deploy ยังไม่ขึ้น (หรือยังไม่ได้กด Ctrl+Shift+R) */
   VERSION   : 'v3.1',
-  BUILD     : 46,
+  BUILD     : 47,
   YEAR      : 2569,
   NMONTH    : 8,                 // เดือนที่มีข้อมูลแล้ว
   KEMREX    : 5018,              // ✅ รหัสแผนก KEMREX (เบียร์ยืนยันแล้ว) — อยู่ใต้หน่วยงาน 5000 PRODUCTION
@@ -156,7 +156,11 @@ function nvSnapRead_() {
     var f = nvSnapFile_(); if (!f) return null;
     var ageSec = (new Date().getTime() - f.getLastUpdated().getTime()) / 1000;
     if (ageSec > CFG.SNAP_MAX_SEC) return null;          // เก่าเกินไป → สร้างใหม่
-    return f.getBlob().getDataAsString('UTF-8');
+    var s = f.getBlob().getDataAsString('UTF-8');
+    /* สแนปช็อตที่สร้างด้วยโค้ดเวอร์ชันเก่า ใช้ไม่ได้ — ไม่งั้น deploy แล้วเว็บยังโชว์ของเดิม
+       (และเลข build บนหน้า Login กับในแอปจะไม่ตรงกัน งงกันเปล่าๆ) */
+    if (s.indexOf('"build":' + CFG.BUILD) < 0) return null;
+    return s;
   } catch (e) { return null; }
 }
 function nvSnapWrite_(s) {
@@ -168,11 +172,14 @@ function nvSnapWrite_(s) {
 }
 
 /** ตัวที่หน้าเว็บใช้ — เร็วที่สุดเท่าที่จะเป็นไปได้ */
+/** คีย์แคชผูกกับเลข build — deploy ใหม่ = แคชเก่าใช้ไม่ได้อัตโนมัติ ไม่ต้องมานั่งบั๊มเอง */
+function nvKey_() { return CFG.CACHE_KEY + '_b' + CFG.BUILD; }
+
 function getPayloadJson() {
-  var hit = nvCacheGet_(CFG.CACHE_KEY);
+  var hit = nvCacheGet_(nvKey_());
   if (hit) return hit;                                    // ① แคช (เร็วสุด)
   var snap = nvSnapRead_();
-  if (snap) { nvCachePut_(CFG.CACHE_KEY, snap, CFG.CACHE_SEC); return snap; }   // ② ไฟล์สแนปช็อต
+  if (snap) { nvCachePut_(nvKey_(), snap, CFG.CACHE_SEC); return snap; }   // ② ไฟล์สแนปช็อต
   return rebuildSnapshot();                               // ③ สร้างใหม่ (~1 นาที)
 }
 
@@ -181,7 +188,7 @@ function rebuildSnapshot() {
   var t0 = new Date().getTime();
   var s = JSON.stringify(buildPayload()).replace(/<\//g, '<\\/');   // กัน '</script>' ที่อาจหลุดมาในชื่องาน
   nvSnapWrite_(s);
-  nvCachePut_(CFG.CACHE_KEY, s, CFG.CACHE_SEC);
+  nvCachePut_(nvKey_(), s, CFG.CACHE_SEC);
   Logger.log('สร้างข้อมูลใหม่เสร็จ ' + Math.round(s.length / 1024) + ' KB · ใช้เวลา ' +
              Math.round((new Date().getTime() - t0) / 1000) + ' วินาที');
   return s;
@@ -215,7 +222,7 @@ function installSnapshotTrigger() {
 }
 
 function forceRefresh() {
-  nvCacheClear_(CFG.CACHE_KEY);
+  nvCacheClear_(nvKey_());
   var s = rebuildSnapshot();
   return 'ดึงข้อมูลสดจากไฟล์ต้นทางใหม่แล้ว (' + Math.round(s.length / 1024) + ' KB)';
 }
@@ -263,7 +270,8 @@ function probe() {
     var sf = nvSnapFile_();
     L.push('ไฟล์สแนปช็อต: ' + (sf ? 'มีแล้ว · อัปเดตล่าสุด ' +
       Utilities.formatDate(sf.getLastUpdated(), 'Asia/Bangkok', 'd MMM yyyy HH:mm') +
-      ' · ' + Math.round(sf.getSize()/1024) + ' KB'
+      ' · ' + Math.round(sf.getSize()/1024) + ' KB' +
+      (nvSnapRead_() ? ' · ตรงกับโค้ดปัจจุบัน ✓' : ' · ⚠ สร้างด้วยโค้ดเวอร์ชันเก่า ระบบจะสร้างใหม่ให้เองตอนเปิดเว็บครั้งแรก')
       : '❌ ยังไม่มี — รัน installSnapshotTrigger() หนึ่งครั้ง ไม่งั้นเข้าเว็บจะรอ ~1 นาทีทุกครั้ง'));
     try {
       L.push('ตัวตั้งเวลาสร้างข้อมูลอัตโนมัติ: ' +
