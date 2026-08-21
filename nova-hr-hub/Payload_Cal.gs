@@ -64,7 +64,20 @@ function readAllCalMonths_(empMap) {
       payBy[id] = {
         days: nvNum_(pick_(r, ['จำนวนวันทำงาน'], 0)),
         ot1: q2_(pick_(r, ['OTx1'], 0)), ot15: q2_(pick_(r, ['OTx1.5'], 0)),
-        othol: q2_(pick_(r, ['OTx2'], 0)), ot3: q2_(pick_(r, ['OTx3'], 0))
+        othol: q2_(pick_(r, ['OTx2'], 0)), ot3: q2_(pick_(r, ['OTx3'], 0)),
+        /* ---- ตารางเงินเดือนที่พนักงานได้รับจริง (ตามที่เบียร์ระบุคอลัมน์) ---- */
+        rate:   q2_(pick_(r, ['อัตรา'], 0)),
+        sal:    q2_(pick_(r, ['เงินเดือน'], 0)),
+        otTot:  q2_(pick_(r, ['Total OT'], 0)),
+        ben:    q2_(pick_(r, ['สวัสดิการพนักงาน (Benefit Fix+Benefit Non-Fix)'], 0)),
+        sob:    q2_(pick_(r, ['เงินเดือน+OT+สวัสดิการ'], 0)),
+        ded:    q2_(pick_(r, ['รวมเงินหัก'], 0)),
+        netEmp: q2_(pick_(r, ['**ยอดจ่ายสุทธิที่พนักงานได้รับ'], 0)),
+        netAcc: q2_(pick_(r, ['**ยอดจ่ายสุทธิจ่ายจากเงินเดือน ACC'], 0)),
+        /* ---- ต้นทุนแรงงานฝั่งบริษัท คอลัมน์ BP · BQ · BR (ใช้ในฝั่ง Job Cost) ---- */
+        cbAll:  q2_(pick_(r, ['ต้นทุนแรงงานบริษัท (เงินเดือน+OT+สวัสดิการ)'], 0)),
+        cbBase: q2_(pick_(r, ['ต้นทุนแรงงานบริษัท (เงินเดือน+สวัสดิการ)'], 0)),
+        cbOt:   q2_(pick_(r, ['ต้นทุนแรงงานบริษัท (Total OT)'], 0))
       };
     });
 
@@ -122,6 +135,11 @@ function readAllCalMonths_(empMap) {
         th:    H ? H.th    : nvNum_(pick_(r, ['ชม. รวมที่ทำงานจริง'], 0)),
         otr: q2_(pick_(r, ['OT Rate'], 0)),
         base: base, p15: p15, p30: p30, phol: phol, pot: pot, bp: bp,
+        /* ฝั่งพนักงานได้รับจริง */
+        rate: P.rate || 0, sal: P.sal || 0, otTot: P.otTot || pot, ben: P.ben || 0,
+        sob: P.sob || bp, ded: P.ded || 0, netEmp: P.netEmp || 0, netAcc: P.netAcc || 0,
+        /* ฝั่งต้นทุนบริษัท (BP:BR) */
+        cbAll: P.cbAll || bp, cbBase: P.cbBase || base, cbOt: P.cbOt || pot,
         stdH: F.stdH || nvNum_(pick_(r, ['ชม. ที่ควรทำงานจริง (รายวัน)'], 0)),
         holH: F.holH || nvNum_(pick_(r, ['ชม. หยุดนักขัตฤกษ์'], 0)),
         netH: F.netH || 0,

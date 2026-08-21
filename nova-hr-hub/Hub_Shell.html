@@ -92,7 +92,7 @@ function pageHub(){
    ========================================================================= */
 const GROUPS={
   pay:{name:'Payroll · เงินเดือน',tabs:[['pay','① เงินเดือนจ่ายจริง'],['exec','② Dashboard ผู้บริหาร'],['sum','③ สรุปค่าแรง'],['perf','④ Performance']]},
-  jc: {name:'Job Cost · ต้นทุนงาน',tabs:[['bplus','① Time Bplus'],['jt','② Time JOBTRACK'],['rec','③ Reconcile'],['cal','④ Cal Job Cost'],['alloc','⑤ Allocate Indirect'],['budget','⑥ เทียบงบ'],['master','⑦ Master จ๊อบ'],['dash','⑧ Dashboard จ๊อบ']]},
+  jc: {name:'Job Cost · ต้นทุนงาน',tabs:[['cost','① ค่าแรงจ่ายจริง'],['bplus','② Time Bplus'],['jt','③ Time JOBTRACK'],['rec','④ Reconcile'],['cal','⑤ Cal Job Cost'],['alloc','⑥ Allocate Indirect'],['budget','⑦ เทียบงบ'],['master','⑧ Master จ๊อบ'],['dash','⑨ Dashboard จ๊อบ']]},
 };
 function setGrp(g){st.grp=g;st.tab=GROUPS[g].tabs[0][0];render();window.scrollTo(0,0);}
 function setTab(k){st.tab=k;if(k==='sum')st.sub='year';render();window.scrollTo(0,0);}
@@ -105,7 +105,7 @@ function toggleDept(c){st.open['d'+c]=!st.open['d'+c];render();}
 function pageWork(){
   const g=GROUPS[st.grp];
   document.getElementById('crumbSub').textContent=g.name+' › '+((g.tabs.find(t=>t[0]===st.tab)||[])[1]||'');
-  const body={pay:tabPay,exec:tabExec,sum:tabSum,perf:tabPerf,bplus:tabBplus,jt:tabJT,rec:tabRec,
+  const body={pay:tabPay,exec:tabExec,sum:tabSum,perf:tabPerf,cost:tabCost,bplus:tabBplus,jt:tabJT,rec:tabRec,
               cal:tabCal,alloc:tabAlloc,budget:tabBudget,master:tabMaster,dash:tabDash}[st.tab]();
   const kemSw=isKem(st.co)?`<div class="kemsw"><span class="lbl">แผนก KEMREX</span>
       <button class="${st.inclKem?'on':''}" onclick="setKem(true)">นับรวม</button>

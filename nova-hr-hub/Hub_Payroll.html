@@ -2,85 +2,117 @@
 /* =========================================================================
    05_payroll.js  —  กลุ่ม Payroll — ① เงินเดือนจ่ายจริง ② Dashboard ผู้บริหาร ③ สรุปค่าแรง ④ Performance
    ========================================================================= */
-/* ---------- ① Data Payroll ---------- */
+/* ---------- ① เงินเดือนที่จ่ายจริง (ตารางที่พนักงานได้รับ) ----------
+   คอลัมน์ตามที่เบียร์ระบุ: อัตรา · เงินเดือน · Total OT · สวัสดิการ(Fix+Non-Fix)
+   · เงินเดือน+OT+สวัสดิการ · รวมเงินหัก · สุทธิที่พนักงานได้รับ · สุทธิจ่ายจาก ACC
+   ทุกช่องมาจากแท็บ PAYROLL_ACTUAL ตรงๆ ไม่มีการคำนวณใหม่                        */
 function tabPay(){
   const m=st.month, rows=D.companies[st.co].rows.filter(r=>r.m===m&&(st.inclKem||E(r.id).dept!==KEM))
     .filter(r=>st.dept==='all'||E(r.id).dept==+st.dept);
-  const g=M(st.co,m);
-  const sso=r=>Math.min(750,Math.round(r.bp*0.05*100)/100);
+  const V=(r,k,f)=>r[k]!==undefined?r[k]:f;               /* mockup เก่าไม่มีคอลัมน์ใหม่ → ใช้ค่าสำรอง */
   const tr=rows.map(r=>{const e=E(r.id);return {__on:`openEmp('${r.id}')`,
     id:r.id,name:esc(e.name),dept:`${e.dept}·${e.deptName}`,etype:e.type,di:e.direct?'Direct':'Indirect',
-    days:hours(r.days),base:money(r.base),o15:money(r.p15),o30:money(r.p30),ohol:money(r.phol),
-    pot:money(r.pot),bp:money(r.bp),sso:money(sso(r)),net:money(r.bp-sso(r))};});
-  const sum=k=>rows.reduce((s,r)=>s+r[k],0);
-  const ss=rows.reduce((s,r)=>s+sso(r),0);
+    days:hours(r.days),
+    rate:money(V(r,'rate',e.rate||e.salary)), sal:money(V(r,'sal',r.base)),
+    ot:money(V(r,'otTot',r.pot)),            ben:money(V(r,'ben',0)),
+    sob:money(V(r,'sob',r.bp)),              ded:money(V(r,'ded',0)),
+    net:money(V(r,'netEmp',0)),              acc:money(V(r,'netAcc',0))};});
+  const sum=k=>rows.reduce((s,r)=>s+(r[k]||0),0);
+  const tSob=rows.reduce((s,r)=>s+V(r,'sob',r.bp),0), tDed=sum('ded'),
+        tNet=sum('netEmp'), tAcc=sum('netAcc');
   return `
   <div class="filters">
     <div class="fld"><label>งวดเดือน</label><select onchange="setMonth(this.value)">${MONTHS.map(i=>`<option value="${i}" ${st.month===i?'selected':''}>${MTH[i-1]} ${YEAR}</option>`).join('')}</select></div>
     <div class="fld"><label>แผนก</label><select onchange="setDept(this.value)"><option value="all">ทุกแผนก</option>${deptOpts().map(d=>`<option value="${d.code}" ${st.dept==d.code?'selected':''}>${d.code} · ${d.name}</option>`).join('')}</select></div>
-    <div style="flex:1"></div><span class="chip info">แหล่ง: ตารางเงินเดือนจริง (BP)</span>
+    <div style="flex:1"></div><span class="chip info">แหล่ง: แท็บ PAYROLL_ACTUAL</span>
   </div>
   <div class="grid g-5" style="margin-bottom:16px">
-    ${kpi('ยอดจ่ายจริง (BP)','฿ '+money(sum('bp')),`${rows.length} คน · ${MTH[m-1]} ${YEAR}`)}
-    ${kpi('ค่าแรงปกติ+สวัสดิการ','฿ '+money(sum('base')),pct(sum('base')/(sum('bp')||1)*100)+' ของยอดจ่าย')}
-    ${kpi('ค่า OT รวม','฿ '+money(sum('pot')),pct(sum('pot')/(sum('bp')||1)*100)+' ของยอดจ่าย')}
-    ${kpi('ประกันสังคม (หัก)','฿ '+money(ss),'5% ไม่เกิน 750.00/คน')}
-    ${kpi('ยอดสุทธิ','฿ '+money(sum('bp')-ss),'หลังหักประกันสังคม')}
+    ${kpi('เงินเดือน','฿ '+money(sum('sal')),`${rows.length} คน · ${MTH[m-1]} ${YEAR}`)}
+    ${kpi('Total OT','฿ '+money(sum('otTot')||sum('pot')),pct((sum('otTot')||sum('pot'))/(tSob||1)*100)+' ของยอดรวม')}
+    ${kpi('สวัสดิการพนักงาน','฿ '+money(sum('ben')),'Benefit Fix + Non-Fix')}
+    ${kpi('รวมเงินหัก','฿ '+money(tDed),'ประกันสังคม · ภาษี · เงินกู้ ฯลฯ')}
+    ${kpi('สุทธิที่พนักงานได้รับ','฿ '+money(tNet),'หลังหักทุกอย่าง')}
   </div>
   <div class="card">
     <div class="card-h"><h3>เงินเดือนที่จ่ายจริง — ${MTH[m-1]} ${YEAR}</h3><div class="grow"></div>
       <span class="hint">คลิกแถว → ดูรายละเอียดรายคน</span></div>
     ${table([{k:'id',h:'รหัส',sticky:1},{k:'name',h:'ชื่อ-นามสกุล'},{k:'dept',h:'แผนก'},{k:'etype',h:'ประเภท'},{k:'di',h:'D/I'},
-      {k:'days',h:'วันทำงาน',r:1},{k:'base',h:'ค่าแรง+สวัสดิการ',r:1},{k:'o15',h:'OT 1.5',r:1},{k:'o30',h:'OT 3',r:1},
-      {k:'ohol',h:'ทำงานวันหยุด',r:1},{k:'pot',h:'OT รวม',r:1},{k:'bp',h:'ยอดจ่ายจริง (BP)',r:1},
-      {k:'sso',h:'ประกันสังคม',r:1},{k:'net',h:'สุทธิ',r:1}],tr,
-      {foot:{id:`รวม ${rows.length} คน`,name:'',dept:'',etype:'',di:'',days:hours(sum('days')),
-        base:money(sum('base')),o15:money(sum('p15')),o30:money(sum('p30')),ohol:money(sum('phol')),
-        pot:money(sum('pot')),bp:money(sum('bp')),sso:money(ss),net:money(sum('bp')-ss)},maxH:600})}
-    <div class="callout i" style="margin-top:12px"><span class="ic">✓</span><div><b>ด่านตรวจ:</b>
-      ค่าแรง+สวัสดิการ <b class="num">${money(sum('base'))}</b> + OT รวม <b class="num">${money(sum('pot'))}</b>
-      = <b class="num">${money(sum('bp'))}</b> ${st.dept==='all'?`→ ตรงกับยอดจ่ายทั้งเดือน <b class="num">${money(g.total)}</b>`:'(กรองเฉพาะแผนก)'}</div></div>
+      {k:'days',h:'วันทำงาน',r:1},{k:'rate',h:'อัตรา',r:1},{k:'sal',h:'เงินเดือน',r:1},{k:'ot',h:'Total OT',r:1},
+      {k:'ben',h:'สวัสดิการพนักงาน',r:1},{k:'sob',h:'เงินเดือน+OT+สวัสดิการ',r:1},{k:'ded',h:'รวมเงินหัก',r:1},
+      {k:'net',h:'สุทธิที่พนักงานได้รับ',r:1},{k:'acc',h:'สุทธิจ่ายจาก ACC',r:1}],tr,
+      {foot:{id:`รวม ${rows.length} คน`,name:'',dept:'',etype:'',di:'',days:hours(sum('days')),rate:'',
+        sal:money(sum('sal')),ot:money(sum('otTot')||sum('pot')),ben:money(sum('ben')),
+        sob:money(tSob),ded:money(tDed),net:money(tNet),acc:money(tAcc)},maxH:600})}
+    <div class="callout ${Math.abs(tNet-tAcc)<=1?'i':'d'}" style="margin-top:12px"><span class="ic">${Math.abs(tNet-tAcc)<=1?'✓':'✕'}</span><div><b>ด่านตรวจ:</b>
+      สุทธิที่พนักงานได้รับ <b class="num">${money(tNet)}</b>
+      ${Math.abs(tNet-tAcc)<=1?'=':'≠'} สุทธิที่จ่ายจากบัญชี ACC <b class="num">${money(tAcc)}</b>
+      ${Math.abs(tNet-tAcc)<=1?'':`<br><b>ต่าง ${money(tNet-tAcc)} บาท</b> — ต้องตรวจกับบัญชี`}</div></div>
   </div>`;
 }
 function openEmp(id){st.empId=id;st.mod='myacc';renderRail();render();window.scrollTo(0,0);}
 
 /* ---------- ② Dashboard ผู้บริหาร (HR&ACC) ---------- */
 function tabExec(){
-  const Y=['2567','2568','2569'];
-  const arr=y=>D.hracc[y];
+  const Y=Object.keys(D.hracc).sort();               /* ปีที่มีข้อมูลจริงในไฟล์ */
+  const arr=y=>D.hracc[y]||[];
+  if(!st.hy) st.hy=Y[Y.length-1];                    /* ค่าเริ่มต้น = ปีล่าสุด */
+  const ALL = st.hy==='all';                         /* 'all' = รวมทุกปีตั้งแต่ 2567 */
   const series=Y.map((y,i)=>({name:'ปี '+y,color:S[i],values:arr(y).map(r=>r?r.net:null)}));
   after(()=>chartLines(document.getElementById('ch-net'),{labels:MTH,series,
     footerFn:i=>{const a=arr('2568')[i],b=arr('2569')[i];return a&&b?`ปี 69 เทียบ 68: ${((b.net-a.net)/a.net*100).toFixed(2)}%`:'ยังไม่ถึงเดือนนี้';}}));
   const heads=Y.map((y,i)=>({name:'ปี '+y,color:S[i],values:arr(y).map(r=>r?r.heads:null)}));
   after(()=>chartLines(document.getElementById('ch-head'),{labels:MTH,series:heads,zero:true,
     footerFn:i=>'จำนวนคนที่จ่ายเงินเดือนเดือนนั้น'}));
-  const cur=arr('2569').filter(Boolean), prev=arr('2568');
+  /* cur = แถวที่จะเอาไปทำกราฟโครงสร้างและตาราง — ขึ้นกับปีที่เลือก
+     ถ้าเลือก "รวมทุกปี" จะเรียงต่อกันเป็นไทม์ไลน์ยาว 2567 ม.ค. → ปีล่าสุด    */
+  const lab=[];
+  let cur=[], prev=[];
+  if(ALL){
+    Y.forEach(y=>arr(y).forEach((r,i)=>{ if(r){ cur.push(Object.assign({_y:y},r)); lab.push(MTH[i]+' '+y.slice(2)); } }));
+    prev=[];
+  }else{
+    const pi=Y.indexOf(st.hy);
+    arr(st.hy).forEach((r,i)=>{ if(r){ cur.push(Object.assign({_y:st.hy},r)); lab.push(MTH[i]); } });
+    prev=pi>0?arr(Y[pi-1]):[];
+  }
   const comp=[{name:'เงินเดือน',color:S[0],values:cur.map(r=>r.salary)},
               {name:'สวัสดิการ',color:S[2],values:cur.map(r=>r.benefit)},
               {name:'ค่า OT',color:S[3],values:cur.map(r=>r.ot)},
               {name:'เงินชดเชย',color:S[6],values:cur.map(r=>r.comp)}];
-  after(()=>chartStacked(document.getElementById('ch-mix'),{labels:cur.map(r=>MTH[r.m-1]),series:comp,
-    footerFn:i=>`ยอดจ่ายสุทธิ ${money(cur[i].net)} · จ่าย ${cur[i].heads} คน`}));
-  const rows=arr('2569').map((r,i)=>{ if(!r) return null; const p=prev[i];
-    return {m:MTH[i],heads:hours(r.heads),salary:money(r.salary),ben:money(r.benefit),ot:money(r.ot),
+  after(()=>chartStacked(document.getElementById('ch-mix'),{labels:lab,series:comp,
+    footerFn:i=>`${ALL?cur[i]._y+' · ':''}ยอดจ่ายสุทธิ ${money(cur[i].net)} · จ่าย ${cur[i].heads} คน`}));
+  const rows=cur.map((r,i)=>{ const p=ALL?cur[i-1]:prev[r.m-1];
+    return {m:(ALL?r._y+' · ':'')+MTH[r.m-1],heads:hours(r.heads),salary:money(r.salary),ben:money(r.benefit),ot:money(r.ot),
       comp:money(r.comp),net:money(r.net),cash:money(r.cash),bank:money(r.bank),acc:money(r.accBank),
       chk:r.match?'<span class="chip ok">● ตรง</span>':'<span class="chip bad">● ไม่ตรง</span>',
       d:p?deltaChip(r.net,p.net):'—',
-      __td:r.match?{}:{acc:'bad',chk:'bad'}};}).filter(Boolean);
-  const T=k=>cur.reduce((s,r)=>s+r[k],0);
+      __td:r.match?{}:{acc:'bad',chk:'bad'}};});
+  const T=k=>cur.reduce((s,r)=>s+(r[k]||0),0);
   const bad=cur.filter(r=>!r.match);
-  const sum68=prev.filter((r,i)=>r&&i<NM).reduce((s,r)=>s+r.net,0);
+  const sumPrev=prev.filter((r,i)=>r&&i<cur.length).reduce((s,r)=>s+r.net,0);
+  const yLabel=ALL?('รวม '+Y[0]+'–'+Y[Y.length-1]):st.hy;
+  const yearSw=`<div class="filters" style="margin-bottom:14px">
+    <div class="fld"><label>ปีที่ดู</label>
+      <select onchange="st.hy=this.value;render()">
+        ${Y.map(y=>`<option value="${y}" ${st.hy===y?'selected':''}>ปี ${y}</option>`).join('')}
+        <option value="all" ${ALL?'selected':''}>รวมทุกปี (${Y[0]}–${Y[Y.length-1]})</option>
+      </select></div>
+    <div style="flex:1"></div>
+    <span class="chip info">${ALL?cur.length+' เดือน จาก '+Y.length+' ปี':'ปี '+st.hy+' · '+cur.length+' เดือน'}</span>
+  </div>`;
   return `
+  ${yearSw}
   <div class="callout i" style="margin-bottom:14px"><span class="ic">i</span><div>
     ข้อมูลหน้านี้มาจากแท็บ <b>HR&amp;ACC</b> ที่ HR เป็นคนกรอก — ระบบเอามาวิเคราะห์และทำกราฟให้อัตโนมัติ
     · <b>ด่านตรวจกับบัญชี = ยอดจ่ายธนาคาร (HR) เทียบ ยอดตัดธนาคาร (ACC)</b></div></div>
   <div class="grid g-5" style="margin-bottom:16px">
-    ${kpi('ยอดจ่ายสุทธิสะสม '+YEAR,'฿ '+money(T('net')),`${cur.length} เดือน`,deltaChip(T('net'),sum68)+' <span class="muted small">vs ช่วงเดียวกันปี 2568</span>')}
+    ${kpi('ยอดจ่ายสุทธิสะสม '+yLabel,'฿ '+money(T('net')),`${cur.length} เดือน`,
+      sumPrev?deltaChip(T('net'),sumPrev)+' <span class="muted small">vs ช่วงเดียวกันปีก่อน</span>':'')}
     ${kpi('เงินเดือน','฿ '+money(T('salary')),pct(T('salary')/T('net')*100)+' ของยอดจ่าย')}
     ${kpi('ค่า OT','฿ '+money(T('ot')),pct(T('ot')/T('net')*100)+' ของยอดจ่าย')}
-    ${kpi('จำนวนคนที่จ่าย (เดือนล่าสุด)',hours(cur[cur.length-1].heads)+' <small>คน</small>',
+    ${kpi('จำนวนคนที่จ่าย (เดือนล่าสุด)',hours(cur.length?cur[cur.length-1].heads:0)+' <small>คน</small>',
       `ต่ำสุด ${Math.min(...cur.map(r=>r.heads))} · สูงสุด ${Math.max(...cur.map(r=>r.heads))} คน`)}
-    ${kpi('เดือนที่ HR ≠ ACC',hours(bad.length)+' <small>เดือน</small>',bad.length?('ต้องตรวจ: '+bad.map(r=>MTH[r.m-1]).join(', ')):'ตรงกันทุกเดือน',
+    ${kpi('เดือนที่ HR ≠ ACC',hours(bad.length)+' <small>เดือน</small>',bad.length?('ต้องตรวจ: '+bad.map(r=>(ALL?r._y+'/':'')+MTH[r.m-1]).join(', ')):'ตรงกันทุกเดือน',
       bad.length?'<span class="delta down">▲ ต้องตรวจ</span>':'<span class="delta up">✓ ผ่าน</span>')}
   </div>
   <div class="grid g-2" style="margin-bottom:16px">
@@ -93,11 +125,11 @@ function tabExec(){
       <div class="chart" id="ch-head"></div>
       <div class="legend">${heads.map(s=>`<span><i class="swatch" style="background:${s.color}"></i>${s.name}</span>`).join('')}</div></div>
   </div>
-  <div class="card" style="margin-bottom:16px"><div class="card-h"><h3>โครงสร้างค่าใช้จ่ายรายเดือน ${YEAR}</h3>
+  <div class="card" style="margin-bottom:16px"><div class="card-h"><h3>โครงสร้างค่าใช้จ่ายรายเดือน — ${yLabel}</h3>
     <span class="hint">เงินเดือน · สวัสดิการ · OT · เงินชดเชย</span></div>
     <div class="chart" id="ch-mix"></div>
     <div class="legend">${comp.map(s=>`<span><i class="swatch" style="background:${s.color}"></i>${s.name}</span>`).join('')}</div></div>
-  <div class="card"><div class="card-h"><h3>ตาราง HR&amp;ACC — ${YEAR}</h3><div class="grow"></div>
+  <div class="card"><div class="card-h"><h3>ตาราง HR&amp;ACC — ${yLabel}</h3><div class="grow"></div>
     <span class="chip warn">ระบายแดง = ยอดธนาคารไม่ตรงกับบัญชี</span></div>
     ${table([{k:'m',h:'เดือน',sticky:1},{k:'heads',h:'จำนวนคนที่จ่าย',r:1},{k:'salary',h:'เงินเดือน',r:1},
       {k:'ben',h:'สวัสดิการ',r:1},{k:'ot',h:'ค่า OT',r:1},{k:'comp',h:'เงินชดเชย',r:1},

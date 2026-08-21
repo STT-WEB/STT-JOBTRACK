@@ -1,4 +1,68 @@
 <script>
+/* ---------- Job Cost ① ค่าแรงจ่ายจริง (ต้นทุนแรงงานฝั่งบริษัท) ----------
+   ตารางเดียวกับ Payroll ① แต่พ่วงคอลัมน์ BP · BQ · BR ของแท็บ PAYROLL_ACTUAL
+   = "ต้นทุนแรงงานบริษัท" ซึ่งเป็นตัวเลขที่เอาไปลงจ๊อบจริง
+   ต่างกับฝั่งพนักงานตรงที่ ฝั่งพนักงาน = เงินที่ได้รับหลังหัก · ฝั่งบริษัท = เงินที่บริษัทจ่ายออกทั้งก้อน */
+function tabCost(){
+  const m=st.month, rows=D.companies[st.co].rows.filter(r=>r.m===m&&(st.inclKem||E(r.id).dept!==KEM))
+    .filter(r=>st.dept==='all'||E(r.id).dept==+st.dept);
+  const V=(r,k,f)=>r[k]!==undefined?r[k]:f;
+  const jc={}; D.companies[st.co].jobRows.filter(x=>x.m===m).forEach(x=>jc[x.id]=(jc[x.id]||0)+x.cost);
+  const tr=rows.map(r=>{const e=E(r.id), dir=r.dir!==undefined?!!r.dir:e.direct;
+    const cbAll=V(r,'cbAll',r.bp), lg=dir?(jc[r.id]||0):null,
+          gap=lg==null?null:Math.round((lg-cbAll)*100)/100;
+    return {__on:`openEmp('${r.id}')`,
+      id:r.id,name:esc(e.name),dept:`${e.dept}·${e.deptName}`,etype:e.type,di:dir?'Direct':'Indirect',
+      days:hours(r.days),
+      sal:money(V(r,'sal',r.base)), ot:money(V(r,'otTot',r.pot)), ben:money(V(r,'ben',0)),
+      cbBase:money(V(r,'cbBase',r.base)), cbOt:money(V(r,'cbOt',r.pot)), cbAll:money(cbAll),
+      lg:lg==null?'<span class="muted">ไม่ลงจ๊อบ</span>':money(lg),
+      gap:gap==null?'—':money(gap),
+      st:gap==null?'<span class="muted">—</span>':(Math.abs(gap)<=0.05?'<span class="chip ok">● ตรง</span>':'<span class="chip bad">● ไม่ตรง</span>'),
+      __td:{gap:(gap!=null&&Math.abs(gap)>0.05)?'bad':''}};});
+  const sum=k=>rows.reduce((s,r)=>s+(r[k]||0),0);
+  const tAll=rows.reduce((s,r)=>s+V(r,'cbAll',r.bp),0);
+  const dRows=rows.filter(r=>r.dir!==undefined?r.dir:E(r.id).direct);
+  const tDir=dRows.reduce((s,r)=>s+V(r,'cbAll',r.bp),0);
+  const tJob=Object.keys(jc).reduce((s,k)=>s+jc[k],0);
+  const ok=Math.abs(tDir-tJob)<=1;
+  return `
+  <div class="filters">
+    <div class="fld"><label>งวดเดือน</label><select onchange="setMonth(this.value)">${MONTHS.map(i=>`<option value="${i}" ${st.month===i?'selected':''}>${MTH[i-1]} ${YEAR}</option>`).join('')}</select></div>
+    <div class="fld"><label>แผนก</label><select onchange="setDept(this.value)"><option value="all">ทุกแผนก</option>${deptOpts().map(d=>`<option value="${d.code}" ${st.dept==d.code?'selected':''}>${d.code} · ${d.name}</option>`).join('')}</select></div>
+    <div style="flex:1"></div><span class="chip info">แหล่ง: PAYROLL_ACTUAL คอลัมน์ BP · BQ · BR</span>
+  </div>
+  <div class="callout i" style="margin-bottom:14px"><span class="ic">i</span><div>
+    หน้านี้คือ <b>ต้นทุนค่าแรงฝั่งบริษัท</b> — ไม่ใช่เงินที่พนักงานได้รับ (อันนั้นอยู่ Payroll ①)<br>
+    <span class="muted">ฝั่งพนักงาน = หลังหักประกันสังคม/ภาษี · <b>ฝั่งบริษัท = เงินที่จ่ายออกทั้งก้อน</b> ตัวนี้แหละที่เอาไปลงเป็นต้นทุนจ๊อบ</span></div></div>
+  <div class="grid g-5" style="margin-bottom:16px">
+    ${kpi('ต้นทุนแรงงานรวม','฿ '+money(tAll),`${rows.length} คน · ${MTH[m-1]} ${YEAR}`)}
+    ${kpi('เงินเดือน+สวัสดิการ (BQ)','฿ '+money(rows.reduce((s,r)=>s+V(r,'cbBase',r.base),0)),pct(rows.reduce((s,r)=>s+V(r,'cbBase',r.base),0)/(tAll||1)*100)+' ของต้นทุนแรงงาน')}
+    ${kpi('Total OT (BR)','฿ '+money(rows.reduce((s,r)=>s+V(r,'cbOt',r.pot),0)),pct(rows.reduce((s,r)=>s+V(r,'cbOt',r.pot),0)/(tAll||1)*100)+' ของต้นทุนแรงงาน')}
+    ${kpi('ต้นทุน Direct (BP)','฿ '+money(tDir),`${dRows.length} คน · ตัวที่ต้องลงจ๊อบ`)}
+    ${kpi('ลงจ๊อบไปแล้ว','฿ '+money(tJob),ok?'ตรงกับ Direct':'ต่าง '+money(tJob-tDir)+' บาท',
+      ok?'<span class="delta up">✓ ตรง</span>':'<span class="delta down">▲ ไม่ตรง</span>')}
+  </div>
+  <div class="card">
+    <div class="card-h"><h3>ค่าแรงจ่ายจริง (ต้นทุนบริษัท) — ${MTH[m-1]} ${YEAR}</h3><div class="grow"></div>
+      <span class="hint">คลิกแถว → ดูรายละเอียดรายคน</span></div>
+    ${table([{k:'id',h:'รหัส',sticky:1},{k:'name',h:'ชื่อ-นามสกุล'},{k:'dept',h:'แผนก'},{k:'etype',h:'ประเภท'},{k:'di',h:'D/I'},
+      {k:'days',h:'วันทำงาน',r:1},{k:'sal',h:'เงินเดือน',r:1},{k:'ot',h:'Total OT',r:1},{k:'ben',h:'สวัสดิการ',r:1},
+      {k:'cbBase',h:'BQ ต้นทุน เงินเดือน+สวัสดิการ',r:1},{k:'cbOt',h:'BR ต้นทุน OT',r:1},
+      {k:'cbAll',h:'BP ต้นทุนแรงงานรวม',r:1},
+      {k:'lg',h:'ลงจ๊อบแล้ว',r:1},{k:'gap',h:'ต่าง (บาท)',r:1},{k:'st',h:'สถานะ'}],tr,
+      {foot:{id:`รวม ${rows.length} คน`,name:'',dept:'',etype:'',di:'',days:hours(sum('days')),
+        sal:money(sum('sal')),ot:money(sum('otTot')||sum('pot')),ben:money(sum('ben')),
+        cbBase:money(rows.reduce((s,r)=>s+V(r,'cbBase',r.base),0)),
+        cbOt:money(rows.reduce((s,r)=>s+V(r,'cbOt',r.pot),0)),
+        cbAll:money(tAll),lg:money(tJob),gap:money(tJob-tDir),st:''},maxH:600})}
+    <div class="callout ${ok?'i':'d'}" style="margin-top:12px"><span class="ic">${ok?'✓':'✕'}</span><div><b>กฎเหล็ก:</b>
+      ต้นทุนแรงงาน Direct (BP) <b class="num">${money(tDir)}</b>
+      ${ok?'=':'≠'} ต้นทุนที่ลงจ๊อบทั้งหมด <b class="num">${money(tJob)}</b>
+      ${ok?'':`<br><b>ต่าง ${money(tJob-tDir)} บาท</b> — ต้องแก้ก่อนปิดงวด`}</div></div>
+  </div>`;
+}
+
 /* =========================================================================
    06_jobcost.js  —  กลุ่ม Job Cost — ①Bplus ②JOBTRACK ③Reconcile ④Cal ⑤Allocate ⑥เทียบงบ ⑦Master ⑧Dashboard
    ========================================================================= */
