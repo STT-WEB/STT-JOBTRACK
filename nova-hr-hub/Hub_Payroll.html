@@ -91,12 +91,20 @@ function tabExec(){
   const bad=cur.filter(r=>!r.match);
   const sumPrev=prev.filter((r,i)=>r&&i<cur.length).reduce((s,r)=>s+r.net,0);
   const yLabel=ALL?('รวม '+Y[0]+'–'+Y[Y.length-1]):st.hy;
+  const MEAS=[['net','ยอดจ่ายสุทธิ'],['salary','เงินเดือน'],['benefit','สวัสดิการ'],
+              ['ot','ค่า OT'],['comp','เงินชดเชย'],['heads','จำนวนคนที่จ่าย'],
+              ['cash','จ่ายเงินสด'],['bank','จ่ายธนาคาร (HR)'],['accBank','ตัดธนาคาร (ACC)']];
+  if(!st.hmeas) st.hmeas='net';
   const yearSw=`<div class="filters" style="margin-bottom:14px">
     <div class="fld"><label>ปีที่ดู</label>
       <select onchange="st.hy=this.value;render()">
         ${Y.map(y=>`<option value="${y}" ${st.hy===y?'selected':''}>ปี ${y}</option>`).join('')}
         <option value="all" ${ALL?'selected':''}>รวมทุกปี (${Y[0]}–${Y[Y.length-1]})</option>
       </select></div>
+    ${ALL?`<div class="fld"><label>ตัวเลขที่เอามาเทียบ</label>
+      <select onchange="st.hmeas=this.value;render()">
+        ${MEAS.map(([k,n])=>`<option value="${k}" ${st.hmeas===k?'selected':''}>${n}</option>`).join('')}
+      </select></div>`:''}
     <div style="flex:1"></div>
     <span class="chip info">${ALL?cur.length+' เดือน จาก '+Y.length+' ปี':'ปี '+st.hy+' · '+cur.length+' เดือน'}</span>
   </div>`;
@@ -129,6 +137,7 @@ function tabExec(){
     <span class="hint">เงินเดือน · สวัสดิการ · OT · เงินชดเชย</span></div>
     <div class="chart" id="ch-mix"></div>
     <div class="legend">${comp.map(s=>`<span><i class="swatch" style="background:${s.color}"></i>${s.name}</span>`).join('')}</div></div>
+  ${ALL?cmpTable():`
   <div class="card"><div class="card-h"><h3>ตาราง HR&amp;ACC — ${yLabel}</h3><div class="grow"></div>
     <span class="chip warn">ระบายแดง = ยอดธนาคารไม่ตรงกับบัญชี</span></div>
     ${table([{k:'m',h:'เดือน',sticky:1},{k:'heads',h:'จำนวนคนที่จ่าย',r:1},{k:'salary',h:'เงินเดือน',r:1},
@@ -138,7 +147,35 @@ function tabExec(){
       {foot:{m:'รวม',heads:'',salary:money(T('salary')),ben:money(T('benefit')),ot:money(T('ot')),
         comp:money(T('comp')),net:money(T('net')),d:'',cash:money(T('cash')),bank:money(T('bank')),
         acc:money(T('accBank')),chk:''}})}
-  </div>`;
+  </div>`}`;
+
+  /* ---------- โหมดรวมทุกปี: เรียงเป็น "เดือน × ปี" ให้เทียบกันได้ในบรรทัดเดียว ---------- */
+  function cmpTable(){
+    const key=st.hmeas, name=(MEAS.find(x=>x[0]===key)||[])[1]||key;
+    const isCnt = key==='heads';
+    const fmt = v => v==null?'—':(isCnt?hours(v):money(v));
+    const last=Y[Y.length-1], prevY=Y[Y.length-2];
+    const cells=(y,i)=>{const r=arr(y)[i]; return r?r[key]:null;};
+    const rowsC=MTH.map((mn,i)=>{
+      const o={m:mn}; Y.forEach(y=>{o['y'+y]=fmt(cells(y,i));});
+      const a=cells(prevY,i), b=cells(last,i);
+      o.d=(a&&b)?deltaChip(b,a):'—';
+      return o;});
+    const tot=y=>arr(y).reduce((s,r)=>s+(r?(r[key]||0):0),0);
+    const cnt=y=>arr(y).filter(Boolean).length;
+    const foot={m:'รวมทั้งปี'}; Y.forEach(y=>{foot['y'+y]=isCnt?('เฉลี่ย '+hours(Math.round(tot(y)/(cnt(y)||1)))):money(tot(y));});
+    foot.d=(tot(prevY)&&tot(last))?deltaChip(tot(last),tot(prevY)):'—';
+    return `
+    <div class="card"><div class="card-h"><h3>เทียบรายปี — ${esc(name)}</h3><div class="grow"></div>
+      <span class="hint">แถวเดียวกัน = เดือนเดียวกัน · เทียบข้ามปีได้ทันที</span></div>
+      ${table([{k:'m',h:'เดือน',sticky:1}].concat(Y.map(y=>({k:'y'+y,h:'ปี '+y,r:1})))
+        .concat([{k:'d',h:`${prevY} → ${last}`,r:1}]),rowsC,{foot:foot})}
+      <div class="callout i" style="margin-top:12px"><span class="ic">i</span><div>
+        เปลี่ยนตัวเลขที่เทียบได้ที่ช่อง <b>"ตัวเลขที่เอามาเทียบ"</b> ด้านบน —
+        ${isCnt?'จำนวนคนใช้ค่าเฉลี่ยทั้งปีในแถวรวม':'แถวรวม = ยอดสะสมทั้งปี'}
+        · เดือนที่ยังไม่มีข้อมูลจะขึ้น <b>—</b></div></div>
+    </div>`;
+  }
 }
 
 /* ---------- ③ สรุปค่าแรง ---------- */

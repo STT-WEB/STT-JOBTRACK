@@ -24,7 +24,7 @@ var CFG = {
   /* ⚠ บั๊ม BUILD ทุกครั้งที่แก้โค้ด — เลขนี้จะไปโชว์บนหน้า Login และมุมขวาบนของแอป
      ถ้าเลขบนเว็บยังเป็นของเก่า = deploy ยังไม่ขึ้น (หรือยังไม่ได้กด Ctrl+Shift+R) */
   VERSION   : 'v3.1',
-  BUILD     : 50,
+  BUILD     : 51,
   YEAR      : 2569,
   NMONTH    : 8,                 // เดือนที่มีข้อมูลแล้ว
   KEMREX    : 5018,              // ✅ รหัสแผนก KEMREX (เบียร์ยืนยันแล้ว) — อยู่ใต้หน่วยงาน 5000 PRODUCTION
@@ -265,6 +265,7 @@ function probe() {
     L.push('จ๊อบ ' + D.jobs.length + ' · เดือนที่มีข้อมูล ' + D.meta.nmonth);
     L.push('เดือนที่อ่าน Bplus ได้: ' + D.meta.bplusMonths.join(', '));
     L.push(diagBplus_());
+    L.push(diagPayCols_(cf[cf.length - 1].id));
     L.push('เติมพนักงานที่ไม่มีในทะเบียนจากไฟล์ Cal: ' + (CFG._added || 0) + ' คน');
     L.push('แผนกใหญ่: ' + D.depts.map(function (d) { return d.code + '=' + d.name; }).join(' · '));
     var sf = nvSnapFile_();
@@ -338,4 +339,22 @@ function diagBplus_() {
     } catch (e) { L.push('  เดือน ' + m + ': อ่านไม่ได้ — ' + e.message); }
   });
   return L.join('\n');
+}
+
+/** เช็กว่าคอลัมน์เงินที่หน้าจอต้องใช้ มีอยู่จริงในแท็บ PAYROLL_ACTUAL ไหม */
+function diagPayCols_(fileId) {
+  var need = ['จำนวนวันทำงาน', 'อัตรา', 'เงินเดือน', 'Total OT',
+              'สวัสดิการพนักงาน (Benefit Fix+Benefit Non-Fix)', 'เงินเดือน+OT+สวัสดิการ',
+              'รวมเงินหัก', '**ยอดจ่ายสุทธิที่พนักงานได้รับ', '**ยอดจ่ายสุทธิจ่ายจากเงินเดือน ACC',
+              'ต้นทุนแรงงานบริษัท (เงินเดือน+OT+สวัสดิการ)', 'ต้นทุนแรงงานบริษัท (เงินเดือน+สวัสดิการ)',
+              'ต้นทุนแรงงานบริษัท (Total OT)'];
+  try {
+    var ss = SpreadsheetApp.openById(fileId);
+    var t = nvReadSheetBy_(findTab_(ss, ['PAYROLL_ACTUAL', 'สรุปตารางเงินเดือน']),
+                           ['รหัสพนักงาน', 'เลขเดือน', 'จำนวนวันทำงาน']);
+    if (t.headRow < 0) return '— PAYROLL_ACTUAL: ❌ หาแถวหัวคอลัมน์ไม่เจอ —';
+    var miss = need.filter(function (n) { return t.head.indexOf(n) < 0; });
+    return '— PAYROLL_ACTUAL: หัวตารางอยู่แถวที่ ' + t.headRow + ' · อ่านได้ ' + t.rows.length + ' แถว · ' +
+           (miss.length ? '❌ ไม่เจอคอลัมน์: ' + miss.join(' | ') : '✓ คอลัมน์ที่ต้องใช้ครบทั้ง ' + need.length + ' ตัว') + ' —';
+  } catch (e) { return '— PAYROLL_ACTUAL: อ่านไม่ได้ — ' + e.message + ' —'; }
 }

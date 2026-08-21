@@ -33,7 +33,7 @@ function readAllCalMonths_(empMap) {
     });
 
     /* --- 1) JOB_COST_DIRECT → รวมยอดต่อ คน × จ๊อบ × process --- */
-    var jd = nvReadSheet_(findTab_(ss, ['JOB_COST_DIRECT']));
+    var jd = nvReadSheetBy_(findTab_(ss, ['JOB_COST_DIRECT']), ['รหัสพนักงาน', 'JOB CODE', 'จำนวนชั่วโมง']);
     var byKey = {}, byEmpH = {};
     jd.rows.forEach(function (r) {
       var id = String(pick_(r, ['รหัสพนักงาน'], '')).trim();
@@ -51,10 +51,11 @@ function readAllCalMonths_(empMap) {
       e[f] += h; e.th += h; e.cost = q2_(e.cost + c);
       procCost[proc] = q2_((procCost[proc] || 0) + c);
     });
+    if (!jd.rows.length) warn.push(MONTHS_TH[m - 1] + ': อ่าน JOB_COST_DIRECT ไม่ได้ (หาแถวหัวคอลัมน์ไม่เจอ)');
     Object.keys(byKey).forEach(function (k) { jobRows.push(byKey[k]); });
 
     /* --- 2) สรุปตารางเงินเดือน → วัน/OT รายก้อน --- */
-    var pay = nvReadSheet_(findTab_(ss, ['PAYROLL_ACTUAL', 'สรุปตารางเงินเดือน']));
+    var pay = nvReadSheetBy_(findTab_(ss, ['PAYROLL_ACTUAL', 'สรุปตารางเงินเดือน']), ['รหัสพนักงาน', 'เลขเดือน', 'จำนวนวันทำงาน']);
     var payBy = {};
     pay.rows.forEach(function (r) {
       var mo = nvNum_(pick_(r, ['เลขเดือน'], 0)) || monthOf_(pick_(r, ['เดือน'], ''));
@@ -81,8 +82,10 @@ function readAllCalMonths_(empMap) {
       };
     });
 
+    if (!pay.rows.length) warn.push(MONTHS_TH[m - 1] + ': อ่านตารางเงินเดือน (PAYROLL_ACTUAL) ไม่ได้ — ยอดเงินจะหาย');
+
     /* --- 3) PERFORMANCE → ชั่วโมงมาตรฐาน --- */
-    var pf = nvReadSheet_(findTab_(ss, ['PERFORMANCE']));
+    var pf = nvReadSheetBy_(findTab_(ss, ['PERFORMANCE']), ['รหัสพนักงาน', 'ชม. มาตรฐาน']);
     var pfBy = {};
     pf.rows.forEach(function (r) {
       var id = String(pick_(r, ['รหัสพนักงาน'], '')).trim();
@@ -106,7 +109,7 @@ function readAllCalMonths_(empMap) {
     });
 
     /* --- 4) PAYROLL_SUMMARY → แหล่งความจริงของยอดเงิน --- */
-    var ps = nvReadSheet_(findTab_(ss, ['PAYROLL_SUMMARY']));
+    var ps = nvReadSheetBy_(findTab_(ss, ['PAYROLL_SUMMARY']), ['รหัสพนักงาน', 'Total OT']);
     ps.rows.forEach(function (r) {
       var id = String(pick_(r, ['รหัสพนักงาน'], '')).trim();
       if (!okCode_(id)) return;
@@ -159,7 +162,7 @@ function readAllCalMonths_(empMap) {
     });
 
     /* --- 5) ปฏิทินวันทำงาน --- */
-    var cal = nvReadSheet_(findTab_(ss, ['CALENDAR_MASTER', 'ปฏิทินวันทำงาน']));
+    var cal = nvReadSheetBy_(findTab_(ss, ['CALENDAR_MASTER', 'ปฏิทินวันทำงาน']), ['ประเภทวันทำงาน', 'PeriodKey_รายเดือน']);
     var wd = 0, hd = 0;
     cal.rows.forEach(function (r) {
       var pk = String(pick_(r, ['PeriodKey_รายเดือน'], ''));
@@ -173,7 +176,7 @@ function readAllCalMonths_(empMap) {
 
     /* --- 6) WORK_HOUR_TYPE (อ่านครั้งเดียวพอ) --- */
     if (!hourTypes.length) {
-      var wh = nvReadSheet_(findTab_(ss, ['HOUR_TYPE_RULE', 'WORK_HOUR_TYPE']));
+      var wh = nvReadSheetBy_(findTab_(ss, ['HOUR_TYPE_RULE', 'WORK_HOUR_TYPE']), ['Work Hour Type Name', 'Multiplier']);
       wh.rows.forEach(function (r) {
         var code = htCode_(pick_(r, ['Work Hour Type Name'], pick_(r, ['Work Hour Type Code'], '')));
         if (seenHT[code]) return; seenHT[code] = 1;
