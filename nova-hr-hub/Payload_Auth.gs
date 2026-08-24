@@ -66,10 +66,12 @@ function nvLogin(code, pin) {
     return r;
   }
   nvFailClear_(code);
+  /* ใส่ PIN ตอนล็อกอินครั้งเดียวพอ — ไม่มีหน้ายืนยันซ้ำอีกแล้ว
+     และไม่เก็บ PIN ไว้ในเซสชันด้วย (ไม่มีอะไรต้องเอาไปเทียบแล้ว) */
   var prof = {
     code: r.code, name: r.name, role: r.role || 'พนักงาน',
     company: r.company || 'STT', dept: r.dept || '', deptMain: r.deptMain || '',
-    pin: pin, confirmed: false
+    confirmed: true
   };
   return {
     ok: true, token: nvPutSess_(prof),
@@ -77,18 +79,9 @@ function nvLogin(code, pin) {
   };
 }
 
-/** ยืนยัน PIN อีกครั้งที่หน้าคีย์แพด (ด่านที่ 2 กันคนมาแอบใช้เครื่องที่เปิดค้างไว้) */
-function nvConfirmPin(token, pin) {
-  var s = nvGetSess_(token);
-  if (!s) return { ok: false, message: 'เซสชันหมดอายุ — กรุณาเข้าสู่ระบบใหม่' };
-  if (String(pin || '') !== String(s.pin)) {
-    var n = nvFailAdd_(s.code);
-    if (n >= NV_FAIL_MAX) { nvLogout(token); return { ok: false, message: 'ผิดเกินกำหนด — ออกจากระบบแล้ว' }; }
-    return { ok: false, message: 'PIN ไม่ถูกต้อง (ผิดครั้งที่ ' + n + '/' + NV_FAIL_MAX + ')' };
-  }
-  nvFailClear_(s.code);
-  s.confirmed = true; nvTouchSess_(token, s);
-  return { ok: true };
+/** เก็บไว้เผื่อโค้ดเก่าเรียก — ตอนนี้ยืนยันตั้งแต่ตอนล็อกอินแล้ว ไม่มีหน้าคีย์แพดอีก */
+function nvConfirmPin(token) {
+  return nvGetSess_(token) ? { ok: true } : { ok: false, message: 'เซสชันหมดอายุ — กรุณาเข้าสู่ระบบใหม่' };
 }
 
 /** ลงทะเบียนครั้งแรก — ระบบออก PIN 6 หลักให้ */

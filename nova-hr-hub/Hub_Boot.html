@@ -90,19 +90,21 @@ function afterLogin(){
   go('company');
 }
 
-/* ---------- ④ เลือกบริษัท → ยืนยัน PIN อีกครั้ง → ดึงข้อมูลตามสิทธิ์ ---------- */
+/* ---------- ④ เลือกบริษัท → ดึงข้อมูลตามสิทธิ์ → เข้าแอป ----------
+   ไม่มีหน้ายืนยัน PIN ซ้ำแล้ว — ใส่ PIN ตอนล็อกอินครั้งเดียวพอ
+   (เดิมมี 2 ด่านเพราะยังไม่ได้ต่อ Auth จริง พอต่อแล้วมันซ้ำซ้อนเปล่าๆ)      */
 function loadDataAndEnter(){
-  msg('pinMsg','กำลังโหลดข้อมูล…', true);
+  msg('coMsg','กำลังโหลดข้อมูล… (ครั้งแรกหลังอัปเดตอาจนานถึง 1 นาที)', true);
   google.script.run
     .withSuccessHandler(s=>{
-      let p; try{ p = JSON.parse(s); }catch(e){ msg('pinMsg','ข้อมูลเสียหาย'); return; }
-      if(p.error){ msg('pinMsg', p.error); return; }
-      msg('pinMsg','');
+      let p; try{ p = JSON.parse(s); }catch(e){ msg('coMsg','ข้อมูลเสียหาย'); return; }
+      if(p.error){ msg('coMsg', p.error); return; }
+      msg('coMsg','');
       initData(p);
       applyRoleUI();
       enterApp();
     })
-    .withFailureHandler(e=>msg('pinMsg','ดึงข้อมูลไม่ได้ — '+e.message))
+    .withFailureHandler(e=>msg('coMsg','ดึงข้อมูลไม่ได้ — '+e.message))
     .nvData(TOKEN);
 }
 
@@ -112,40 +114,22 @@ function applyRoleUI(){
   if(st.role==='พนักงาน'){ st.mod='myacc'; }
 }
 
+/* เลือกบริษัทแล้วเข้าเลย (แทนที่ pickCompany เดิมใน Hub_Shell ที่พาไปหน้า PIN) */
+function pickCompany(c){
+  st.co=c; document.body.setAttribute('data-company',c);
+  if(!HAS_SERVER){ initData(DATA_EMBEDDED); enterApp(); return; }   /* โหมด Mockup */
+  if(!TOKEN){ msg('coMsg','เซสชันหมดอายุ — กรุณาเข้าสู่ระบบใหม่'); setTimeout(doLogout,1200); return; }
+  loadDataAndEnter();
+}
+
 function doLogout(){
   if(HAS_SERVER && TOKEN) google.script.run.nvLogout(TOKEN);
   ME=null; TOKEN=null; D=null;
   const c=document.getElementById('lgCode'), p=document.getElementById('lgPin');
   if(c)c.value=''; if(p)p.value='';
-  msg('lgMsg',''); msg('pinMsg','');
+  msg('lgMsg',''); msg('coMsg','');
   go('login');
 }
-
-/* ---------- คีย์แพด PIN ---------- */
-(function(){
-  const kp=document.getElementById('keypad');let n='';
-  const draw=()=>document.querySelectorAll('#pinRow .d').forEach((d,i)=>{d.classList.toggle('filled',i<n.length);d.textContent=i<n.length?'●':'';});
-  kp.innerHTML=[1,2,3,4,5,6,7,8,9,'ล้าง',0,'✓'].map(k=>`<button data-k="${k}">${k}</button>`).join('');
-  kp.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.k;
-    if(k==='ล้าง'){n='';draw();msg('pinMsg','');return;}
-    if(k==='✓'){ submitPin(n); return; }
-    if(n.length>=6) return;
-    n+=k; draw();
-    if(n.length===6) setTimeout(()=>submitPin(n),200);});
-  function submitPin(v){
-    if(!HAS_SERVER){ initData(DATA_EMBEDDED); enterApp(); return; }   /* โหมด Mockup */
-    if(v.length!==6){ msg('pinMsg','ใส่ PIN ให้ครบ 6 หลัก'); return; }
-    if(!ME || !TOKEN){ msg('pinMsg','เซสชันหมดอายุ — กรุณาเข้าสู่ระบบใหม่'); setTimeout(doLogout,1200); return; }
-    msg('pinMsg','กำลังตรวจสอบ…', true);
-    google.script.run
-      .withSuccessHandler(r=>{
-        if(!r || !r.ok){ n=''; draw(); msg('pinMsg',(r&&r.message)||'PIN ไม่ถูกต้อง'); return; }
-        n=''; draw(); loadDataAndEnter();
-      })
-      .withFailureHandler(e=>{ n=''; draw(); msg('pinMsg','ติดต่อเซิร์ฟเวอร์ไม่ได้ — '+e.message); })
-      .nvConfirmPin(TOKEN, v);
-  }
-})();
 
 function enterApp(){
   document.querySelectorAll('#coSwitch button').forEach(x=>x.classList.toggle('on',x.dataset.co===st.co));

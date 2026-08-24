@@ -79,6 +79,39 @@ function pick_(row, names, dflt) {
 }
 
 /**
+ * อ่านแท็บโดย "ระบุชื่อคอลัมน์ที่ต้องมีจริง"
+ * ⚠ จำเป็นมาก: หลายแท็บมีแถวหัวเรื่องที่ผสานช่องไว้ข้างบน เช่น PAYROLL_ACTUAL
+ *   แถวบนเขียนว่า  5.สรุปตารางเงินเดือน… | Oth.Income | Benefit Fix | Benefit Non-Fix
+ *   ตัวเดาแถวหัวแบบเดิม (นับช่องที่เป็นข้อความ >= 3) จะไปจับแถวนั้น
+ *   ผลคือ "อ่านได้ 0 แถว เงียบๆ" โดยไม่มี error — ยอดเงินหายไปทั้งคอลัมน์
+ */
+function nvReadSheetBy_(sh, mustHave) {
+  if (!sh) return { head: [], rows: [], headRow: -1 };
+  var vals = sh.getDataRange().getValues();
+  if (!vals.length) return { head: [], rows: [], headRow: -1 };
+  var hr = -1;
+  for (var i = 0; i < Math.min(vals.length, 25) && hr < 0; i++) {
+    var row = vals[i].map(function (x) { return String(x).trim(); });
+    var okAll = true;
+    for (var k = 0; k < mustHave.length; k++) if (row.indexOf(mustHave[k]) < 0) { okAll = false; break; }
+    if (okAll) hr = i;
+  }
+  if (hr < 0) return { head: [], rows: [], headRow: -1 };
+  var head = vals[hr].map(function (h) { return String(h).trim(); });
+  var rows = [];
+  for (var r = hr + 1; r < vals.length; r++) {
+    var o = {}, empty = true;
+    for (var c = 0; c < head.length; c++) {
+      if (!head[c] || o.hasOwnProperty(head[c])) continue;
+      o[head[c]] = vals[r][c];
+      if (vals[r][c] !== '' && vals[r][c] !== null) empty = false;
+    }
+    if (!empty) rows.push(o);
+  }
+  return { head: head, rows: rows, headRow: hr + 1 };
+}
+
+/**
  * หยิบค่าจากคอลัมน์ด้วย "รูปแบบชื่อ" แทนชื่อเป๊ะๆ
  * จำเป็นเพราะไฟล์จริงสะกดไม่เหมือนกันทุกเดือน เช่น ไฟล์ Bplus เดือน 1 เขียนว่า
  * "รืมรูดบัตร" (ร) ไม่ใช่ "ลืมรูดบัตร" (ล) — ถ้าจับชื่อเป๊ะจะได้ 0 เงียบๆ โดยไม่มีใครรู้

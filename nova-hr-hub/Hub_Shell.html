@@ -4,7 +4,7 @@
    ========================================================================= */
 function go(s){document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));
   document.getElementById('sc-'+s).classList.add('active');window.scrollTo(0,0);}
-function pickCompany(c){st.co=c;document.body.setAttribute('data-company',c);go('pin');}
+/* pickCompany ย้ายไปอยู่ 08_boot.js — เลือกบริษัทแล้วโหลดข้อมูลเข้าแอปเลย ไม่ผ่านหน้า PIN */
 
 const MODULES=[
   {id:'payroll',name:'ค่าแรง·ต้นทุน',icon:'M3 3v18h18M7 15l4-5 3 3 5-7'},
