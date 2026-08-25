@@ -17,11 +17,13 @@
  */
 
 var RC = {
-  VER      : 'v5.6 (2569-08-25)',   /* ★ เลขนี้จะพิมพ์ในทุก log — ใช้เช็กว่ารันโค้ดตัวไหน */
+  VER      : 'v5.7 (2569-08-25)',   /* ★ เลขนี้จะพิมพ์ในทุก log — ใช้เช็กว่ารันโค้ดตัวไหน */
   LOG_ID   : '1ZPl3uVRtM5r4sPA-yX1OwTyp34XCTIcKRC0Sx8qsr9s',  // JOBTRACK_Job_Log 2026
   DB_ID    : '1MYWORYN3sOjov3Gxv3UqCV1jRSxgxwGi1tRomFUGSr0',  // ฐานข้อมูลพนักงาน
   TAB      : '',            /* เว้นว่าง = หาแท็บงวดปัจจุบันเอง · ใส่ชื่อถ้าจะเจาะจงงวดเก่า */
   HALF     : true,          /* true = ปัดเวลาเป็นครึ่งชั่วโมง เข้าปัดขึ้น ออกปัดลง */
+  MIN_UNIT : 30,            /* งานที่ปัดแล้วเหลือ 0 ให้ขั้นต่ำเท่านี้ (นาที) */
+  MIN_SCAN : 5,             /* สแกนเข้า-ออกห่างน้อยกว่านี้ = สแกนพลาด ไม่ใช่งานจริง */
   CAL_TAB  : 'ประเภทวันทำงาน',
   /* ตำแหน่งคอลัมน์ (0-based) — ตรงกับ JOBTRACK */
   C: { DATE:1, IN:2, OUT:3, HOURS:4, JOB:5, EMP:7, NAME:8, DEPT:9, TYPE:10,
@@ -155,7 +157,7 @@ function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved, dayTy
   var r = { hNormal:0, ot1:0, ot15:0, ot2:0, ot3:0, lunch:0,
             /* แตกตามช่วงของวันด้วย — ไว้โชว์ให้ HR เห็นว่าชั่วโมงมาจากช่วงไหน */
             amOT:0, amWork:0, pmWork:0, pmOT:0, lunchOT:0,
-            inUse:'', outUse:'', crossLunch:false, err:'' };
+            inUse:'', outUse:'', crossLunch:false, minApplied:false, err:'' };
 
   var i0 = rcMin_(inRaw), o0 = rcMin_(outRaw);
   if (i0 < 0) { r.err = 'ไม่มีเวลาเข้า'; return r; }
@@ -171,7 +173,17 @@ function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved, dayTy
   /* ข้ามเที่ยงคืนจริงหรือไม่ ต้องดูจาก "เวลาดิบ" ไม่ใช่เวลาที่ปัดแล้ว
      ไม่งั้นเคสออก 12:01 กลับเข้า 12:15 (ปัดเป็น 12:00 กับ 13:00) จะถูกนับเป็น 23 ชม. */
   if (o0 < i0) oM += 1440;
-  if (oM <= iM) { r.err = 'ปัดแล้วออกก่อนเข้า'; return r; }
+
+  /* ★ งานสั้นกว่าครึ่งชั่วโมง ปัดแล้วจะเหลือศูนย์ — ต้องไม่ทิ้งไปเฉย ๆ
+     สแกนห่างน้อยกว่า MIN_SCAN นาที = สแกนพลาด → ขึ้นธง
+     นอกนั้นเป็นงานจริง → ให้ขั้นต่ำครึ่งชั่วโมง */
+  var rawDur = (o0 < i0 ? o0 + 1440 : o0) - i0;
+  if (oM <= iM) {
+    if (rawDur < RC.MIN_SCAN) { r.err = 'สแกนเข้า-ออกห่างแค่ ' + rawDur + ' นาที'; return r; }
+    oM = iM + RC.MIN_UNIT;
+    r.outUse = rcHHMM_(oM);        /* โชว์เวลาออกที่ใช้จริงหลังให้ขั้นต่ำ */
+    r.minApplied = true;
+  }
 
   var cursor = iM, guard = 0;
   while (cursor < oM && guard < 8) {

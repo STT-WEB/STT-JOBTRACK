@@ -28,7 +28,7 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v3.0 (2569-08-25)';
+var AP_VER = 'apply v3.2 (2569-08-25)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
@@ -136,7 +136,8 @@ function runApply() {
     else if (r.crossLunch && !tick)  stat = '⚠ คร่อมเที่ยง — รอติ๊ก';
     else if (H(r.ot15 + r.ot3) > 12) stat = '⚠ OT สูงผิดปกติ';
     /* ไม่ใช่ปัญหา แต่บอกไว้ให้หายสงสัยว่าทำไมชั่วโมงน้อยกว่านาฬิกา */
-    else if (n > 1)                  stat = 'แบ่ง ' + n + ' จ๊อบ · หาร ' + n;
+    else if (r.minApplied)           stat = 'งานสั้น · คิดขั้นต่ำ 0.5 ชม.';
+    else if (n > 1)                  stat = '✓ หารให้แล้ว · งานนี้ลง ' + n + ' จ๊อบ';
     else                             stat = '';
     if (stat.charAt(0) === '⛔' || stat.charAt(0) === '⚠') S.flag++;
     if (r.err) S.err++;
@@ -258,7 +259,8 @@ function apRecalcRow_(sh, row) {
   if (r.err)                       stat = '⛔ ' + r.err;
   else if (r.crossLunch && !tick)  stat = '⚠ คร่อมเที่ยง — รอติ๊ก';
   else if (H(r.ot15 + r.ot3) > 12) stat = '⚠ OT สูงผิดปกติ';
-  else if (n > 1)                  stat = 'แบ่ง ' + n + ' จ๊อบ · หาร ' + n;
+  else if (r.minApplied)           stat = 'งานสั้น · คิดขั้นต่ำ 0.5 ชม.';
+  else if (n > 1)                  stat = '✓ หารให้แล้ว · งานนี้ลง ' + n + ' จ๊อบ';
   else                             stat = '';
 
   var amH = H(r.amOT + r.amWork);
