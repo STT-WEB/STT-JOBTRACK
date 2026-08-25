@@ -17,7 +17,7 @@
  */
 
 var RC = {
-  VER      : 'v5.2 (2569-08-25)',   /* ★ เลขนี้จะพิมพ์ในทุก log — ใช้เช็กว่ารันโค้ดตัวไหน */
+  VER      : 'v5.4 (2569-08-25)',   /* ★ เลขนี้จะพิมพ์ในทุก log — ใช้เช็กว่ารันโค้ดตัวไหน */
   LOG_ID   : '1ZPl3uVRtM5r4sPA-yX1OwTyp34XCTIcKRC0Sx8qsr9s',  // JOBTRACK_Job_Log 2026
   DB_ID    : '1MYWORYN3sOjov3Gxv3UqCV1jRSxgxwGi1tRomFUGSr0',  // ฐานข้อมูลพนักงาน
   TAB      : 'Job_Log_2569_08',                                // งวด 26 ก.ค. – 25 ส.ค. 69
@@ -66,6 +66,35 @@ function rcSnapOut_(m, inSnapped) {
 }
 
 /* ------------------------------------------------------ ปฏิทินประเภทวัน */
+/**
+ *  ★ กุญแจวันที่ต้องปกติเป็นรูปแบบเดียว "d/m/พ.ศ." เสมอ
+ *  เพราะข้อมูลในไฟล์ปนกัน 3 แบบ:
+ *    - ชีต Job_Log  : Date object ที่ปีเป็น พ.ศ. อยู่แล้ว (เช่น Thu Jul 27 "2569")
+ *    - ชีตปฏิทิน    : Date object ปี ค.ศ. ปกติ (2026)
+ *    - บางเซลล์     : ข้อความ "27/7/2569"
+ *  ถ้าไม่ปกติให้เหมือนกัน กุญแจจะไม่ตรง แล้ว "วันหยุด" จะถูกคิดเป็นวันทำงานปกติทั้งหมด
+ */
+function rcKey_(v) {
+  if (v instanceof Date && !isNaN(v.getTime())) {
+    var y = v.getFullYear();
+    if (y < 2400) y += 543;                       /* ค.ศ. → พ.ศ. */
+    return v.getDate() + '/' + (v.getMonth() + 1) + '/' + y;
+  }
+  var s = String(v || '').trim();
+  var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) {
+    var yy = parseInt(m[3], 10);
+    if (yy < 2400) yy += 543;
+    return parseInt(m[1], 10) + '/' + parseInt(m[2], 10) + '/' + yy;
+  }
+  var d2 = new Date(s);
+  if (!isNaN(d2.getTime())) {
+    var y2 = d2.getFullYear();
+    if (y2 < 2400) y2 += 543;
+    return d2.getDate() + '/' + (d2.getMonth() + 1) + '/' + y2;
+  }
+  return s;
+}
 function rcLoadCal_() {
   var map = {};
   var sh = SpreadsheetApp.openById(RC.DB_ID).getSheetByName(RC.CAL_TAB);
@@ -73,9 +102,7 @@ function rcLoadCal_() {
   var v = sh.getDataRange().getValues();
   for (var i = 1; i < v.length; i++) {
     if (!v[i][0]) continue;
-    var d = new Date(v[i][0]);
-    if (isNaN(d.getTime())) continue;
-    map[d.toLocaleDateString('th-TH')] = String(v[i][2] || '').trim();
+    map[rcKey_(v[i][0])] = String(v[i][2] || '').trim();
   }
   return map;
 }
@@ -86,12 +113,12 @@ function rcKind_(s) {
   return 'ปกติ';
 }
 /* บวกวันจากสตริง d/m/พ.ศ. */
-function rcAddDay_(dateStr, n) {
-  var p = String(dateStr).split('/');
-  if (p.length < 3) return dateStr;
+function rcAddDay_(dateVal, n) {
+  var p = rcKey_(dateVal).split('/');
+  if (p.length < 3) return rcKey_(dateVal);
   var d = new Date(parseInt(p[2], 10) - 543, parseInt(p[1], 10) - 1, parseInt(p[0], 10));
   d.setDate(d.getDate() + n);
-  return d.toLocaleDateString('th-TH');
+  return d.getDate() + '/' + (d.getMonth() + 1) + '/' + (d.getFullYear() + 543);
 }
 
 /* =========================================================== เครื่องคิดชั่วโมง v5
@@ -102,8 +129,15 @@ function rcAddDay_(dateStr, n) {
  *    ot2     OT ×2  วันหยุด รายวัน    (ในกรอบ 08–17)
  *    ot3     OT ×3  OT ในวันหยุด      (ก่อน 08 · หลัง 17)
  */
-function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved) {
+function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved, dayType0) {
+  /* dayType0 = ค่าในคอลัมน์ T ของแถวนั้น — เชื่อถือได้กว่าไปหาในปฏิทิน ใช้เป็นตัวหลักของวันแรก */
+  var rcDay = function (off, key) {
+    if (off === 0 && dayType0 && String(dayType0).trim()) return rcKind_(dayType0);
+    return rcKind_(calMap[key] || '');
+  };
   var r = { hNormal:0, ot1:0, ot15:0, ot2:0, ot3:0, lunch:0,
+            /* แตกตามช่วงของวันด้วย — ไว้โชว์ให้ HR เห็นว่าชั่วโมงมาจากช่วงไหน */
+            amOT:0, amWork:0, pmWork:0, pmOT:0, lunchOT:0,
             inUse:'', outUse:'', crossLunch:false, err:'' };
 
   var i0 = rcMin_(inRaw), o0 = rcMin_(outRaw);
@@ -126,9 +160,8 @@ function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved) {
     var off  = Math.floor(cursor / 1440);
     var base = off * 1440;
     var segEnd = Math.min(oM, base + 1440);
-    var dStr = off === 0 ? dateStr : rcAddDay_(dateStr, off);
-    var kind = rcKind_(calMap[dStr] || '');
-    var holiday = (kind !== 'ปกติ');
+    var dStr = off === 0 ? rcKey_(dateStr) : rcAddDay_(dateStr, off);
+    var holiday = (rcDay(off, dStr) !== 'ปกติ');
 
     var lo = cursor - base, hi = segEnd - base;
     var bands = [
@@ -144,10 +177,12 @@ function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved) {
       var mins = z - a;
       if (bands[b].z === 'LUNCH') { r.lunch += mins; continue; }   // ★ พักเที่ยงไม่นับ
       if (bands[b].z === 'NORMAL') {
+        if (bands[b].f < 720) r.amWork += mins; else r.pmWork += mins;
         if (!holiday)        r.hNormal += mins;
         else if (isMonthly)  r.ot1     += mins;
         else                 r.ot2     += mins;
       } else {
+        if (bands[b].f < 720) r.amOT += mins; else r.pmOT += mins;
         if (!holiday) r.ot15 += mins; else r.ot3 += mins;
       }
     }
@@ -156,7 +191,8 @@ function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved) {
 
   /* OT ผ่าเที่ยง — ให้เต็ม 1.00 ชม. เมื่ออนุมัติ และต้องคร่อมเที่ยงจริง */
   if (lunchApproved && r.crossLunch) {
-    if (rcKind_(calMap[dateStr] || '') === 'ปกติ') r.ot15 += 60; else r.ot3 += 60;
+    r.lunchOT = 60;
+    if (rcDay(0, rcKey_(dateStr)) === 'ปกติ') r.ot15 += 60; else r.ot3 += 60;
   }
   return r;
 }
@@ -352,7 +388,7 @@ function rcCalcMode_(inRaw, outRaw, dateStr, isMonthly, calMap, snapMode, lunchA
   while (cursor < oM && guard < 8) {
     var off = Math.floor(cursor / 1440), base = off * 1440;
     var segEnd = Math.min(oM, base + 1440);
-    var dStr = off === 0 ? dateStr : rcAddDay_(dateStr, off);
+    var dStr = off === 0 ? rcKey_(dateStr) : rcAddDay_(dateStr, off);
     var holiday = rcKind_(calMap[dStr] || '') !== 'ปกติ';
     var lo = cursor - base, hi = segEnd - base;
     var bands = [[0,480,'OT'],[480,720,'N'],[720,780,'L'],[780,1020,'N'],[1020,1440,'OT']];
