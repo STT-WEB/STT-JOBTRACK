@@ -130,10 +130,13 @@ function runApply() {
 
     var stat;
     if (r.err)                       stat = '⛔ ' + r.err;
+    else if (n !== pCol)             stat = '⚠ แถวซ้ำ — รอบนี้มี ' + n + ' แถว แต่คอลัมน์ P บอก ' + pCol;
     else if (r.crossLunch && !tick)  stat = '⚠ คร่อมเที่ยง — รอติ๊ก';
     else if (H(r.ot15 + r.ot3) > 12) stat = '⚠ OT สูงผิดปกติ';
+    /* ไม่ใช่ปัญหา แต่บอกไว้ให้หายสงสัยว่าทำไมชั่วโมงน้อยกว่านาฬิกา */
+    else if (n > 1)                  stat = 'แบ่ง ' + n + ' จ๊อบ · หาร ' + n;
     else                             stat = '';
-    if (stat) S.flag++;
+    if (stat.charAt(0) === '⛔' || stat.charAt(0) === '⚠') S.flag++;
     if (r.err) S.err++;
     if (r.crossLunch) S.cross++;
 
@@ -250,6 +253,7 @@ function apRecalcRow_(sh, row) {
   if (r.err)                       stat = '⛔ ' + r.err;
   else if (r.crossLunch && !tick)  stat = '⚠ คร่อมเที่ยง — รอติ๊ก';
   else if (H(r.ot15 + r.ot3) > 12) stat = '⚠ OT สูงผิดปกติ';
+  else if (n > 1)                  stat = 'แบ่ง ' + n + ' จ๊อบ · หาร ' + n;
   else                             stat = '';
 
   sh.getRange(row, AC_.IN, 1, 6).setValues([[
