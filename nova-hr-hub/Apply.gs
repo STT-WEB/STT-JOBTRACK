@@ -39,7 +39,7 @@ var AC_ = {
 var AP_HEAD = [
   'เวลาเข้า (ปัดแล้ว)', 'เวลาออก (ปัดแล้ว)',
   'ชม. OT ×1', 'ชม. OT ×1.5', 'ชม. OT ×2', 'ชม. OT ×3',
-  '☑ OT ผ่าเที่ยง', 'สถานะ', 'หมายเหตุ'
+  '☑ OT ผ่าเที่ยง (แก้ได้)', 'สถานะ', 'หมายเหตุ (แก้ได้)'
 ];
 var AP_N = AP_HEAD.length;          /* 9 */
 
@@ -65,11 +65,29 @@ function runApply() {
 
   /* 2. หัวตาราง */
   if (sh.getMaxColumns() < AC_.NOTE) sh.insertColumnsAfter(sh.getMaxColumns(), AC_.NOTE - sh.getMaxColumns());
+
+  /* ★ ล้างของค้างจากเวอร์ชันก่อน (คอลัมน์ AH เป็นต้นไป) ให้เกลี้ยง */
+  var maxC = sh.getMaxColumns();
+  if (maxC > AC_.NOTE) sh.getRange(1, AC_.NOTE + 1, sh.getMaxRows(), maxC - AC_.NOTE).clear();
+
   sh.getRange(1, AC_.IN, 1, AP_N).setValues([AP_HEAD]).setFontWeight('bold').setWrap(true);
   sh.getRange(1, 22).setValue('ชม.ทำงานปกติ');
   sh.getRange(1, 23).setValue('ชม.OT รวม');
   sh.getRange(1,  5).setValue('ชม.รวม (ปกติ+OT)');
+  sh.getRange(1,  3).setValue('เวลาเข้า (แก้ได้)');
+  sh.getRange(1,  4).setValue('เวลาออก (แก้ได้)');
   sh.getRange(1, 24).setValue('ชม.คิดค่าแรง (เลิกใช้)');
+  /* ซ่อน ไม่ลบ — JOBTRACK เขียนคอลัมน์ที่ 24 อยู่ ถ้าลบแล้วตำแหน่งจะเลื่อนทั้งแถว */
+  sh.hideColumns(24);
+
+  /* คำอธิบายติดหัวคอลัมน์ — เอาเมาส์ชี้แล้วเห็นเลยว่าช่องไหนแก้ได้ */
+  var EDIT_NOTE = '✏️ ช่องนี้แก้ได้\nพิมพ์เวลาใหม่ลงไปได้เลย ระบบจะคำนวณชั่วโมงใหม่ให้ทันที\n(ต้องรัน installRecalcTrigger ครั้งเดียวก่อน)';
+  sh.getRange(1, 3).setNote(EDIT_NOTE);
+  sh.getRange(1, 4).setNote(EDIT_NOTE);
+  sh.getRange(1, AC_.TICK).setNote('✏️ ช่องนี้แก้ได้\nติ๊กเมื่อพนักงานทำงานผ่านช่วงพักเที่ยงจริง\nติ๊กแล้วได้ OT เพิ่ม 1 ชั่วโมงเต็ม');
+  sh.getRange(1, AC_.NOTE).setNote('✏️ ช่องนี้แก้ได้\nเขียนว่าทำไมถึงแก้เวลา เช่น "ลืมสแกนออก หัวหน้ายืนยันแล้ว"');
+  sh.getRange(1, 25).setNote('🔒 ผลคำนวณ — ห้ามแก้\nเวลาที่ระบบใช้จริงหลังปัดตามกฎ\nถ้าไม่ถูก ให้ไปแก้ช่อง "เวลาเข้า (แก้ได้)" แทน');
+  sh.getRange(1, 26).setNote('🔒 ผลคำนวณ — ห้ามแก้\nถ้าไม่ถูก ให้ไปแก้ช่อง "เวลาออก (แก้ได้)" แทน');
 
   /* 3. คำนวณใหม่ทั้งงวด */
   var v = sh.getDataRange().getValues();
@@ -265,4 +283,47 @@ function undoApply() {
     '\n  2) เปลี่ยนชื่อ ' + names[0] + ' → ' + RC.TAB +
     '\n  3) ตรวจว่าข้อมูลครบ แล้วค่อยลบแท็บ _ทิ้ง');
   return names;
+}
+
+
+/* ============================================================================
+ *  ⑤ buildDailySummary() — ตารางเทียบ "1 คน 1 วัน" (แบบ Pivot)
+ *
+ *  Job_Log มอง 1 แถว = 1 จ๊อบ  แต่ HR คิดเงินเป็น 1 คน 1 วัน
+ *  คนหนึ่งอาจมี 5 แถวในวันเดียว จะดูว่าครบ 8 ชม.ไหมต้องบวกมือ
+ *  แท็บนี้บวกให้ ด้วยสูตร QUERY ล้วน ไม่มีสคริปต์ ไม่กระทบข้อมูลเดิม
+ *  ลบแท็บทิ้งได้ตลอด ของเดิมไม่พัง
+ * ========================================================================== */
+var AP_SUM_TAB = 'สรุปรายคน–รายวัน';
+
+function buildDailySummary() {
+  var ss = SpreadsheetApp.openById(RC.LOG_ID);
+  var sh = ss.getSheetByName(AP_SUM_TAB);
+  if (sh) ss.deleteSheet(sh);
+  sh = ss.insertSheet(AP_SUM_TAB);
+
+  var T = "'" + RC.TAB + "'";
+  sh.getRange('A1').setFormula(
+    '=QUERY(' + T + '!A2:AG,' +
+    '"select B, H, I, J, count(F), sum(V), sum(AA), sum(AB), sum(AC), sum(AD), sum(E) ' +
+    'where Q = \'Check Out\' group by B, H, I, J order by B, H ' +
+    'label B \'วันที่\', H \'รหัส\', I \'ชื่อ\', J \'แผนก\', count(F) \'จ๊อบ\', ' +
+    'sum(V) \'ปกติ\', sum(AA) \'OT×1\', sum(AB) \'OT×1.5\', sum(AC) \'OT×2\', ' +
+    'sum(AD) \'OT×3\', sum(E) \'รวมทั้งวัน\'",0)');
+
+  /* คอลัมน์ L — เทียบเกณฑ์ 8 ชม. ต่อจากผล QUERY */
+  sh.getRange('L1').setValue('เทียบ 8 ชม.');
+  sh.getRange('L2').setFormula(
+    '=ARRAYFORMULA(IF(K2:K="","",' +
+    'IF(ABS(K2:K-8)<=0.17,"✅ ครบ",' +
+    'IF(K2:K<8,"⚠ ขาด "&TEXT(8-K2:K,"0.00"),"ℹ เกิน "&TEXT(K2:K-8,"0.00")))))');
+
+  sh.setFrozenRows(1);
+  sh.getRange('A1:L1').setFontWeight('bold');
+  sh.setColumnWidth(3, 190);
+
+  Logger.log('สร้างแท็บ "' + AP_SUM_TAB + '" แล้ว — 1 แถว = 1 คน 1 วัน' +
+    '\nอัปเดตเองทุกครั้งที่ Job_Log เปลี่ยน ไม่ต้องกดอะไร' +
+    '\nไม่ชอบก็ลบแท็บทิ้งได้ ของเดิมไม่กระทบ');
+  return AP_SUM_TAB;
 }
