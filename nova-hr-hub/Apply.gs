@@ -28,24 +28,26 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v2.0 (2569-08-25)';
+var AP_VER = 'apply v3.0 (2569-08-25)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
   IN:25, OUT:26,                    /* Y  Z   เวลาที่ปัดแล้ว */
-  OT1:27, OT15:28, OT2:29, OT3:30,  /* AA–AD ชั่วโมงแยกตามตัวคูณ */
-  TICK:31, STAT:32, NOTE:33         /* AE AF AG */
+  AM:27, PM:28, WORK:29,            /* AA AB AC  ช่วงเช้า · ช่วงบ่าย · รวม */
+  OT1:30, OT15:31, OT2:32, OT3:33,  /* AD–AG ชั่วโมงแยกตามตัวคูณ */
+  TICK:34, STAT:35, NOTE:36         /* AH AI AJ */
 };
 var AP_HEAD = [
   'เวลาเข้า (ปัดแล้ว)', 'เวลาออก (ปัดแล้ว)',
+  'ชม. ช่วงเช้า', 'ชม. ช่วงบ่าย', 'รวม ชม.ทำงาน',
   'ชม. OT ×1', 'ชม. OT ×1.5', 'ชม. OT ×2', 'ชม. OT ×3',
   '☑ OT ผ่าเที่ยง (แก้ได้)', 'สถานะ', 'หมายเหตุ (แก้ได้)'
 ];
 var AP_N = AP_HEAD.length;          /* 9 */
 
 function apSheet_() {
-  var sh = SpreadsheetApp.openById(RC.LOG_ID).getSheetByName(RC.TAB);
-  if (!sh) throw new Error('ไม่พบแท็บ ' + RC.TAB);
+  var sh = SpreadsheetApp.openById(RC.LOG_ID).getSheetByName(rcTab_());
+  if (!sh) throw new Error('ไม่พบแท็บ ' + rcTab_());
   return sh;
 }
 function apTicked_(v) {
@@ -58,8 +60,8 @@ function runApply() {
   var sh = apSheet_();
 
   /* 1. สำรองก่อนเสมอ */
-  var bk = RC.TAB + '_backup', k = 1;
-  while (ss.getSheetByName(bk) && k < 50) { k++; bk = RC.TAB + '_backup' + k; }
+  var bk = rcTab_() + '_backup', k = 1;
+  while (ss.getSheetByName(bk) && k < 50) { k++; bk = rcTab_() + '_backup' + k; }
   if (k >= 50) throw new Error('แท็บสำรองเกิน 50 อัน — ลบของเก่าก่อน');
   sh.copyTo(ss).setName(bk);
 
@@ -93,7 +95,7 @@ function runApply() {
   var v = sh.getDataRange().getValues();
   var calMap = rcLoadCal_(), C = RC.C;
   var last = v.length, nR = last - 1;
-  var block = [], vNormal = [];
+  var block = [];
   var S = { rows:0, flag:0, cross:0, err:0, split:0 };
 
   /* ★ นับจำนวนแถวจริงของแต่ละรอบ Check In (คอลัมน์ L = รหัสรอบงาน)
@@ -110,10 +112,10 @@ function runApply() {
   for (var i = 1; i < last; i++) {
     var row = v[i];
     var tick = apTicked_(row[AC_.TICK - 1]);
-    var line = ['', '', '', '', '', '', tick, '', row[AC_.NOTE - 1] || ''];
+    var line = ['', '', '', '', '', '', '', '', '', tick, '', row[AC_.NOTE - 1] || ''];
 
     if (String(row[C.STATUS]).trim() !== 'Check Out') {
-      block.push(line); vNormal.push(['']); continue;
+      block.push(line); continue;
     }
     S.rows++;
 
@@ -140,34 +142,37 @@ function runApply() {
     if (r.err) S.err++;
     if (r.crossLunch) S.cross++;
 
-    line[0] = r.err ? '' : r.inUse;
-    line[1] = r.err ? '' : r.outUse;
-    line[2] = H(r.ot1);
-    line[3] = H(r.ot15);
-    line[4] = H(r.ot2);
-    line[5] = H(r.ot3);
-    line[7] = stat;
+    var amH = H(r.amOT + r.amWork);                    /* ทุกชั่วโมงก่อนเที่ยง */
+    var pmH = H(r.pmWork + r.pmOT + r.lunchOT);        /* ตั้งแต่เที่ยงเป็นต้นไป */
+    line[0]  = r.err ? '' : r.inUse;
+    line[1]  = r.err ? '' : r.outUse;
+    line[2]  = amH;
+    line[3]  = pmH;
+    line[4]  = Math.round((amH + pmH) * 100) / 100;
+    line[5]  = H(r.ot1);
+    line[6]  = H(r.ot15);
+    line[7]  = H(r.ot2);
+    line[8]  = H(r.ot3);
+    line[10] = stat;
     block.push(line);
-    vNormal.push([r.err ? '' : H(r.hNormal)]);
   }
 
-  if (block.length) {
-    sh.getRange(2, AC_.IN, block.length, AP_N).setValues(block);
-    sh.getRange(2, 22, vNormal.length, 1).setValues(vNormal);       /* V ชม.ทำงานปกติ */
-  }
+  if (block.length) sh.getRange(2, AC_.IN, block.length, AP_N).setValues(block);
 
   /* 4. สูตร W และ E — ตรวจด้วยตาได้ */
   if (nR > 0) {
-    var fW = [], fE = [];
+    var fW = [], fE = [], fV = [];
     for (var r2 = 2; r2 <= last; r2++) {
-      fW.push(['=IF($Q' + r2 + '<>"Check Out","",AA' + r2 + '+AB' + r2 + '+AC' + r2 + '+AD' + r2 + ')']);
-      fE.push(['=IF($Q' + r2 + '<>"Check Out","",V' + r2 + '+W' + r2 + ')']);
+      fW.push(['=IF($Q' + r2 + '<>"Check Out","",AD' + r2 + '+AE' + r2 + '+AF' + r2 + '+AG' + r2 + ')']);
+      fE.push(['=IF($Q' + r2 + '<>"Check Out","",AC' + r2 + ')']);
+      fV.push(['=IF($Q' + r2 + '<>"Check Out","",ROUND(AC' + r2 + '-W' + r2 + ',2))']);
     }
     sh.getRange(2, 23, nR, 1).setFormulas(fW);
     sh.getRange(2,  5, nR, 1).setFormulas(fE);
+    sh.getRange(2, 22, nR, 1).setFormulas(fV);   /* V = รวมงาน − OT */
     sh.getRange(2,  5, nR, 1).setNumberFormat('0.00');
     sh.getRange(2, 22, nR, 2).setNumberFormat('0.00');
-    sh.getRange(2, AC_.OT1, nR, 4).setNumberFormat('0.00');
+    sh.getRange(2, AC_.AM, nR, 7).setNumberFormat('0.00');
 
     /* ★ ช่องติ๊กจริง คลิกได้เลย ไม่ต้องพิมพ์ */
     var tickRange = sh.getRange(2, AC_.TICK, nR, 1);
@@ -181,7 +186,7 @@ function runApply() {
   sh.setFrozenRows(1);
 
   var msg = '\n===== ' + AP_VER + ' =====' +
-    '\nแท็บ           : ' + RC.TAB +
+    '\nแท็บ           : ' + rcTab_() +
     '\nสำรองไว้ที่    : ' + bk +
     '\nแถว Check Out  : ' + S.rows +
     '\nแถวขึ้นธง      : ' + S.flag + '   (⛔ คิดไม่ได้ ' + S.err + ')' +
@@ -230,7 +235,7 @@ function onEditRecalc(e) {
   try {
     if (!e || !e.range) return;
     var sh = e.range.getSheet();
-    if (sh.getName() !== RC.TAB) return;
+    if (sh.getName() !== rcTab_()) return;
     var col = e.range.getColumn(), row = e.range.getRow();
     if (row < 2) return;
     if (col !== 3 && col !== 4 && col !== AC_.TICK) return;   /* C · D · AE */
@@ -256,17 +261,19 @@ function apRecalcRow_(sh, row) {
   else if (n > 1)                  stat = 'แบ่ง ' + n + ' จ๊อบ · หาร ' + n;
   else                             stat = '';
 
-  sh.getRange(row, AC_.IN, 1, 6).setValues([[
+  var amH = H(r.amOT + r.amWork);
+  var pmH = H(r.pmWork + r.pmOT + r.lunchOT);
+  sh.getRange(row, AC_.IN, 1, 9).setValues([[
     r.err ? '' : r.inUse, r.err ? '' : r.outUse,
+    amH, pmH, Math.round((amH + pmH) * 100) / 100,
     H(r.ot1), H(r.ot15), H(r.ot2), H(r.ot3)]]);
   sh.getRange(row, AC_.STAT).setValue(stat);
-  sh.getRange(row, 22).setValue(r.err ? '' : H(r.hNormal));
 }
 
 /* ==================================== ④ แก้วันที่เก่าให้เป็นมาตรฐานเดียวกัน */
 function normalizeDates() {
   var ss = SpreadsheetApp.openById(RC.LOG_ID);
-  if (!ss.getSheets().some(function (s) { return s.getName().indexOf(RC.TAB + '_backup') === 0; }))
+  if (!ss.getSheets().some(function (s) { return s.getName().indexOf(rcTab_() + '_backup') === 0; }))
     throw new Error('ยังไม่มีแท็บสำรอง — รัน runApply() ก่อน');
 
   var sh = apSheet_(), last = sh.getLastRow();
@@ -298,12 +305,12 @@ function normalizeDates() {
 function undoApply() {
   var ss = SpreadsheetApp.openById(RC.LOG_ID);
   var names = ss.getSheets().map(function (s) { return s.getName(); })
-    .filter(function (nm) { return nm.indexOf(RC.TAB + '_backup') === 0; }).sort();
+    .filter(function (nm) { return nm.indexOf(rcTab_() + '_backup') === 0; }).sort();
   if (!names.length) throw new Error('ไม่พบแท็บสำรอง');
   Logger.log('แท็บสำรองที่มี: ' + names.join(', ') +
     '\n\nวิธีย้อนกลับ (ทำมือ 3 ขั้น — ผมตั้งใจไม่ให้สคริปต์ลบแท็บเอง):' +
-    '\n  1) เปลี่ยนชื่อ ' + RC.TAB + ' → ' + RC.TAB + '_ทิ้ง' +
-    '\n  2) เปลี่ยนชื่อ ' + names[0] + ' → ' + RC.TAB +
+    '\n  1) เปลี่ยนชื่อ ' + rcTab_() + ' → ' + rcTab_() + '_ทิ้ง' +
+    '\n  2) เปลี่ยนชื่อ ' + names[0] + ' → ' + rcTab_() +
     '\n  3) ตรวจว่าข้อมูลครบ แล้วค่อยลบแท็บ _ทิ้ง');
   return names;
 }
@@ -325,7 +332,7 @@ function buildDailySummary() {
   if (sh) ss.deleteSheet(sh);
   sh = ss.insertSheet(AP_SUM_TAB);
 
-  var T = "'" + RC.TAB + "'";
+  var T = "'" + rcTab_() + "'";
   sh.getRange('A1').setFormula(
     '=QUERY(' + T + '!A2:AG,' +
     '"select B, H, I, J, count(F), sum(V), sum(AA), sum(AB), sum(AC), sum(AD), sum(E) ' +

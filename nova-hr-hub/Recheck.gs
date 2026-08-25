@@ -17,17 +17,34 @@
  */
 
 var RC = {
-  VER      : 'v5.5 (2569-08-25)',   /* ★ เลขนี้จะพิมพ์ในทุก log — ใช้เช็กว่ารันโค้ดตัวไหน */
+  VER      : 'v5.6 (2569-08-25)',   /* ★ เลขนี้จะพิมพ์ในทุก log — ใช้เช็กว่ารันโค้ดตัวไหน */
   LOG_ID   : '1ZPl3uVRtM5r4sPA-yX1OwTyp34XCTIcKRC0Sx8qsr9s',  // JOBTRACK_Job_Log 2026
   DB_ID    : '1MYWORYN3sOjov3Gxv3UqCV1jRSxgxwGi1tRomFUGSr0',  // ฐานข้อมูลพนักงาน
-  TAB      : 'Job_Log_2569_08',                                // งวด 26 ก.ค. – 25 ส.ค. 69
+  TAB      : '',            /* เว้นว่าง = หาแท็บงวดปัจจุบันเอง · ใส่ชื่อถ้าจะเจาะจงงวดเก่า */
+  HALF     : true,          /* true = ปัดเวลาเป็นครึ่งชั่วโมง เข้าปัดขึ้น ออกปัดลง */
   CAL_TAB  : 'ประเภทวันทำงาน',
   /* ตำแหน่งคอลัมน์ (0-based) — ตรงกับ JOBTRACK */
   C: { DATE:1, IN:2, OUT:3, HOURS:4, JOB:5, EMP:7, NAME:8, DEPT:9, TYPE:10,
        SESSION:11, PCOUNT:15, STATUS:16, DAYTYPE:19, HNORM:21, HOT:22, HPAY:23 }
 };
 
+/**
+ *  ชื่อแท็บงวดปัจจุบัน — ใช้กติกาเดียวกับ JOBTRACK เป๊ะ (ตัดงวดวันที่ 26)
+ *  พอถึง 26 ก.ย. มันจะชี้ไปที่ Job_Log_2569_09 ให้เอง ไม่ต้องมาแก้โค้ด
+ */
+function rcTab_() {
+  if (RC.TAB) return RC.TAB;
+  var d = new Date(), day = d.getDate();
+  var mo = d.getMonth() + 1, yr = d.getFullYear() + 543;
+  if (day >= 26) { mo += 1; if (mo > 12) { mo = 1; yr += 1; } }
+  return 'Job_Log_' + yr + '_' + ('0' + mo).slice(-2);
+}
+
 /* ---------------------------------------------------------------- ตัวช่วยเวลา */
+/** ปัดเป็นครึ่งชั่วโมง — เข้างานปัดขึ้น เลิกงานปัดลง (เสียประโยชน์ให้บริษัทเสมอ) */
+function rcHalfIn_(m)  { return RC.HALF ? Math.ceil(m / 30) * 30  : m; }
+function rcHalfOut_(m) { return RC.HALF ? Math.floor(m / 30) * 30 : m; }
+
 function rcMin_(t) {
   if (t instanceof Date && !isNaN(t.getTime())) return t.getHours() * 60 + t.getMinutes();
   var s = String(t || '').trim();
@@ -148,7 +165,8 @@ function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved, dayTy
   var o0abs0 = o0 < i0 ? o0 + 1440 : o0;
   if (i0 <= 720 && o0abs0 >= 780) r.crossLunch = true;   // ต้องอยู่คร่อมเที่ยงเต็มชั่วโมงจริง
 
-  var iM = rcSnapIn_(i0), oM = rcSnapOut_(o0, iM);
+  var iM = rcHalfIn_(rcSnapIn_(i0));
+  var oM = rcHalfOut_(rcSnapOut_(o0, iM));
   r.inUse = rcHHMM_(iM); r.outUse = rcHHMM_(oM);
   /* ข้ามเที่ยงคืนจริงหรือไม่ ต้องดูจาก "เวลาดิบ" ไม่ใช่เวลาที่ปัดแล้ว
      ไม่งั้นเคสออก 12:01 กลับเข้า 12:15 (ปัดเป็น 12:00 กับ 13:00) จะถูกนับเป็น 23 ชม. */
@@ -200,8 +218,8 @@ function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved, dayTy
 /* ================================================================== รันรายงาน */
 function runRecheck() {
   var t0 = new Date().getTime();
-  var sh = SpreadsheetApp.openById(RC.LOG_ID).getSheetByName(RC.TAB);
-  if (!sh) throw new Error('ไม่พบแท็บ ' + RC.TAB + ' — เช็กชื่อแท็บอีกที');
+  var sh = SpreadsheetApp.openById(RC.LOG_ID).getSheetByName(rcTab_());
+  if (!sh) throw new Error('ไม่พบแท็บ ' + rcTab_() + ' — เช็กชื่อแท็บอีกที');
   var v = sh.getDataRange().getValues();
   var calMap = rcLoadCal_();
   var C = RC.C;
@@ -269,7 +287,7 @@ function runRecheck() {
   }
 
   /* ---------- สร้างไฟล์รายงานใหม่ (ไม่แตะไฟล์เดิม) ---------- */
-  var ss = SpreadsheetApp.create('รายงานทดลอง JOBTRACK v5 — งวด ' + RC.TAB.replace('Job_Log_',''));
+  var ss = SpreadsheetApp.create('รายงานทดลอง JOBTRACK v5 — งวด ' + rcTab_().replace('Job_Log_',''));
   var d1 = ss.getSheets()[0].setName('รายแถว');
   d1.getRange(1, 1, out.length, out[0].length).setValues(out);
   d1.setFrozenRows(1); d1.getRange(1, 1, 1, out[0].length).setFontWeight('bold');
@@ -290,7 +308,7 @@ function runRecheck() {
 
   var sum = [
     ['รายงานทดลอง — กฎคิดชั่วโมง v5', ''],
-    ['แท็บต้นทาง', RC.TAB],
+    ['แท็บต้นทาง', rcTab_()],
     ['สร้างเมื่อ', new Date()],
     ['', ''],
     ['แถวทั้งหมด', S.rows],
@@ -322,7 +340,7 @@ function runRecheck() {
 
   var msg =
     '\n========== รายงานทดลอง กฎคิดชั่วโมง ' + RC.VER + ' ==========' +
-    '\nแท็บต้นทาง       : ' + RC.TAB +
+    '\nแท็บต้นทาง       : ' + rcTab_() +
     '\nแถวทั้งหมด       : ' + S.rows + '   (Check Out ' + S.done + ')' +
     '\nแถวที่เปลี่ยน     : ' + S.changed +
     '\nแถวมีปัญหา ⛔    : ' + S.err +
@@ -465,7 +483,7 @@ function runRecheckDetail() {
   var R = function (x) { return Math.round(x * 100) / 100; };
 
   var msg =
-    '\n========== ตรวจสาเหตุส่วนต่าง ' + RC.VER + ' — งวด ' + RC.TAB.replace('Job_Log_','') + ' ==========' +
+    '\n========== ตรวจสาเหตุส่วนต่าง ' + RC.VER + ' — งวด ' + rcTab_().replace('Job_Log_','') + ' ==========' +
     '\n(ถ้าไม่ขึ้น v5.2 แปลว่ายังรันโค้ดเก่า — clasp push ยังไม่ขึ้น)' +
     '\n\n[ ด่าน 0 ] เครื่องคิดของผมตรงกับระบบเดิมไหม (ฐานเทียบ = ไม่ปัดเวลา)' +
     '\n  ตรงเป๊ะ   : ' + same + ' แถว' +
