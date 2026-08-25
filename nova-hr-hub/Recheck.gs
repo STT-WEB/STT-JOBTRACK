@@ -296,3 +296,142 @@ function runRecheck() {
   Logger.log(msg);
   return msg;
 }
+
+/* ============================================================================
+ *  ส่วนที่ 2 — ตรวจหาสาเหตุของส่วนต่าง (โหมดอ่านอย่างเดียวเหมือนเดิม)
+ *
+ *  ทำไมต้องมี : รายงานแรกบอกว่า "ต่าง −118.37 ชม." แต่บอกไม่ได้ว่ามาจากอะไร
+ *  ตัวนี้แยกให้เป็น 3 สาเหตุ + ตรวจสอบตัวเองก่อนว่าเครื่องคิดตรงกับของเดิมจริงไหม
+ * ============================================================================ */
+
+/* ---- กฎปัดเวลา "ของเดิม" (คัดลอกจาก jobtrack_apps_script.gs v4.2 ตรง ๆ) ---- */
+function rcOldSnapIn_(m) {
+  if (m <= 420) return m;
+  if (m <= 495) return 480;
+  if (m <  715) return m;
+  if (m <= 725) return 720;
+  if (m <  770) return m;
+  if (m <= 795) return 780;
+  return m;
+}
+function rcOldSnapOut_(m) {
+  if (m <= 720)  return m;
+  if (m <= 774)  return 720;
+  if (m <= 785)  return 780;
+  if (m <  1015) return m;
+  if (m <= 1049) return 1020;
+  return m;
+}
+
+/* เครื่องคิดแบบยืดหยุ่น : เลือกได้ว่าใช้กฎปัดชุดไหน และนับพักเที่ยงเป็น OT หรือไม่นับ */
+function rcCalcMode_(inRaw, outRaw, dateStr, isMonthly, calMap, useOldSnap, lunchAsOT) {
+  var r = { n:0, o:0, lunch:0, err:'' };
+  var i0 = rcMin_(inRaw), o0 = rcMin_(outRaw);
+  if (i0 < 0) { r.err = 'ไม่มีเวลาเข้า'; return r; }
+  if (o0 < 0) { r.err = 'ไม่มีเวลาออก'; return r; }
+
+  var iM = useOldSnap ? rcOldSnapIn_(i0)  : rcSnapIn_(i0);
+  var oM = useOldSnap ? rcOldSnapOut_(o0) : rcSnapOut_(o0);
+
+  if (useOldSnap) { if (oM < iM) oM += 1440; }        /* ของเดิมดูจากเวลาที่ปัดแล้ว */
+  else            { if (o0 < i0) oM += 1440; }        /* ของใหม่ดูจากเวลาดิบ */
+  if (oM <= iM) { r.err = 'ปัดแล้วออกก่อนเข้า'; return r; }
+
+  var cursor = iM, guard = 0;
+  while (cursor < oM && guard < 8) {
+    var off = Math.floor(cursor / 1440), base = off * 1440;
+    var segEnd = Math.min(oM, base + 1440);
+    var dStr = off === 0 ? dateStr : rcAddDay_(dateStr, off);
+    var holiday = rcKind_(calMap[dStr] || '') !== 'ปกติ';
+    var lo = cursor - base, hi = segEnd - base;
+    var bands = [[0,480,'OT'],[480,720,'N'],[720,780,'L'],[780,1020,'N'],[1020,1440,'OT']];
+    for (var b = 0; b < bands.length; b++) {
+      var a = Math.max(lo, bands[b][0]), z = Math.min(hi, bands[b][1]);
+      if (z <= a) continue;
+      var mins = z - a, zone = bands[b][2];
+      if (zone === 'L') { r.lunch += mins; if (lunchAsOT) r.o += mins; continue; }
+      if (zone === 'N') { if (holiday && !isMonthly) r.n += mins; else r.n += mins; }
+      else r.o += mins;
+    }
+    cursor = segEnd; guard++;
+  }
+  return r;
+}
+
+function runRecheckDetail() {
+  var sh = SpreadsheetApp.openById(RC.LOG_ID).getSheetByName(RC.TAB);
+  var v = sh.getDataRange().getValues();
+  var calMap = rcLoadCal_(), C = RC.C;
+
+  var same = 0, diffPort = 0, portWorst = [];
+  var hErr = 0, hLunch = 0, hSnap = 0, errRows = [], top = [];
+
+  for (var i = 1; i < v.length; i++) {
+    var row = v[i];
+    if (String(row[C.STATUS]).trim() !== 'Check Out') continue;
+    var n = Number(row[C.PCOUNT]) || 1; if (n < 1) n = 1;
+    var isMonthly = String(row[C.TYPE] || '').indexOf('รายเดือน') >= 0;
+    var dateStr = String(row[C.DATE] || '').trim();
+    var IN = row[C.IN], OUT = row[C.OUT];
+
+    var oldSheet = (Number(row[C.HNORM]) || 0) + (Number(row[C.HOT]) || 0);
+
+    var A = rcCalcMode_(IN, OUT, dateStr, isMonthly, calMap, true,  true);   /* กฎเดิมล้วน */
+    var B = rcCalcMode_(IN, OUT, dateStr, isMonthly, calMap, true,  false);  /* เดิม + ตัดพักเที่ยง */
+    var D = rcCalcMode_(IN, OUT, dateStr, isMonthly, calMap, false, false);  /* ใหม่ทั้งหมด */
+
+    var tA = rcDec_((A.n + A.o) / n), tB = rcDec_((B.n + B.o) / n), tD = rcDec_((D.n + D.o) / n);
+
+    /* ด่าน 0 : เครื่องคิดของผม (กฎเดิม) ต้องตรงกับเลขที่อยู่ในชีตอยู่แล้ว */
+    var gap = Math.round((tA - oldSheet) * 100) / 100;
+    if (Math.abs(gap) <= 0.02) same++;
+    else {
+      diffPort++;
+      if (portWorst.length < 10)
+        portWorst.push('  แถว ' + (i+1) + ' ' + dateStr + ' ' + String(row[C.EMP]) +
+                       ' ' + String(IN) + '-' + String(OUT) +
+                       ' | ชีต ' + oldSheet + ' | ผมคิดได้ ' + tA + ' | ต่าง ' + gap);
+    }
+
+    if (D.err) {
+      hErr += (0 - oldSheet);
+      if (errRows.length < 25)
+        errRows.push('  แถว ' + (i+1) + ' ' + dateStr + ' ' + String(row[C.EMP]) + ' ' +
+                     String(row[C.NAME]||'').substring(0,18) +
+                     ' | เข้า ' + (String(IN)||'ว่าง') + ' ออก ' + (String(OUT)||'ว่าง') +
+                     ' | เดิมมี ' + oldSheet + ' ชม. | ' + D.err);
+      continue;
+    }
+    hLunch += (tB - tA);
+    hSnap  += (tD - tB);
+
+    var dd = Math.round((tD - oldSheet) * 100) / 100;
+    if (Math.abs(dd) >= 0.01)
+      top.push({ s: '  แถว ' + (i+1) + ' ' + dateStr + ' ' + String(row[C.EMP]) +
+                    ' ' + String(IN) + '-' + String(OUT) +
+                    ' | เดิม ' + oldSheet + ' → ใหม่ ' + tD + ' | ' + dd, d: Math.abs(dd) });
+  }
+
+  top.sort(function (a, b) { return b.d - a.d; });
+  var R = function (x) { return Math.round(x * 100) / 100; };
+
+  var msg =
+    '\n========== ตรวจสาเหตุส่วนต่าง — งวด ' + RC.TAB.replace('Job_Log_','') + ' ==========' +
+    '\n\n[ ด่าน 0 ] เครื่องคิดของผมตรงกับระบบเดิมไหม' +
+    '\n  ตรงเป๊ะ   : ' + same + ' แถว' +
+    '\n  ไม่ตรง    : ' + diffPort + ' แถว' +
+    (diffPort ? '\n  ⚠ ถ้าเลขนี้เยอะ แปลว่าผมอ่านกฎเดิมผิด อย่าเพิ่งเชื่อรายงาน\n' + portWorst.join('\n') : '  ✅') +
+    '\n\n[ ส่วนต่างแยกตามสาเหตุ ] หน่วย: ชั่วโมง' +
+    '\n  ① แถวที่คิดไม่ได้ (⛔)   : ' + R(hErr) +
+    '\n  ② ตัดพักเที่ยงออก        : ' + R(hLunch) +
+    '\n  ③ กฎปัดเวลาใหม่          : ' + R(hSnap) +
+    '\n  ─────────────────────────────────' +
+    '\n  รวม                      : ' + R(hErr + hLunch + hSnap) +
+    '\n\n[ แถวที่คิดไม่ได้ ⛔ ] — ต้องแก้มือก่อน ไม่ใช่ของหาย' +
+    '\n' + (errRows.join('\n') || '  ไม่มี') +
+    '\n\n[ 15 แถวที่เปลี่ยนเยอะสุด ]' +
+    '\n' + top.slice(0, 15).map(function (x) { return x.s; }).join('\n') +
+    '\n=====================================================\n';
+  Logger.log(msg);
+  return msg;
+}
