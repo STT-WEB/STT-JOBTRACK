@@ -17,6 +17,7 @@
  */
 
 var RC = {
+  VER      : 'v5.2 (2569-08-25)',   /* ★ เลขนี้จะพิมพ์ในทุก log — ใช้เช็กว่ารันโค้ดตัวไหน */
   LOG_ID   : '1ZPl3uVRtM5r4sPA-yX1OwTyp34XCTIcKRC0Sx8qsr9s',  // JOBTRACK_Job_Log 2026
   DB_ID    : '1MYWORYN3sOjov3Gxv3UqCV1jRSxgxwGi1tRomFUGSr0',  // ฐานข้อมูลพนักงาน
   TAB      : 'Job_Log_2569_08',                                // งวด 26 ก.ค. – 25 ส.ค. 69
@@ -28,14 +29,16 @@ var RC = {
 
 /* ---------------------------------------------------------------- ตัวช่วยเวลา */
 function rcMin_(t) {
-  if (t instanceof Date) return t.getHours() * 60 + t.getMinutes();
+  if (t instanceof Date && !isNaN(t.getTime())) return t.getHours() * 60 + t.getMinutes();
   var s = String(t || '').trim();
-  if (!s || s.length < 3) return -1;
-  if (s.indexOf('T') > -1) s = s.split('T')[1];
-  var p = s.split(':');
-  var h = parseInt(p[0], 10), m = parseInt(p[1], 10);
-  if (isNaN(h) || isNaN(m)) return -1;
-  return h * 60 + m;
+  if (!s) return -1;
+  /* คว้ารูปแบบ HH:MM ตัวแรกที่เจอ — ทนได้ทั้ง "08:30", "2026-08-24T08:30",
+     และเซลล์เพี้ยนแบบ "Sat Dec 30 1899 12:00:00 GMT+0642" */
+  var mm = s.match(/(\d{1,2}):(\d{2})/);
+  if (!mm) return -1;
+  var h = parseInt(mm[1], 10), mi = parseInt(mm[2], 10);
+  if (isNaN(h) || isNaN(mi) || h > 23 || mi > 59) return -1;
+  return h * 60 + mi;
 }
 function rcHHMM_(m) { m = ((m % 1440) + 1440) % 1440;
   return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2); }
@@ -49,9 +52,14 @@ function rcSnapIn_(m) {
   if (m <= 795) return 780;               // 11:55–13:15 → 13:00   ★ กฎใหม่
   return m;                               // ≥13:16 ใช้จริง
 }
-function rcSnapOut_(m) {
+function rcSnapOut_(m, inSnapped) {
   if (m <  715)  return m;                // ≤11:54 ใช้จริง
-  if (m <= 795)  return 720;              // 11:55–13:15 → 12:00   ★ กฎใหม่
+  if (m <= 795) {                         // 11:55–13:15
+    /* ดึงกลับไป 12:00 ได้เฉพาะกรณี "ปิดรอบเช้า" คือเข้างานก่อนเที่ยง
+       ถ้าเข้ามาแล้วตั้งแต่เที่ยงหรือบ่าย (เช่น เข้า 13:00 เลิก 13:07)
+       ห้ามดึงกลับ ไม่งั้นเวลาออกจะมาก่อนเวลาเข้า */
+    return (inSnapped !== undefined && inSnapped >= 720) ? m : 720;
+  }
   if (m <  1015) return m;                // 13:16–16:54 ใช้จริง
   if (m <= 1049) return 1020;             // 16:55–17:29 → 17:00
   return m;                               // ≥17:30 ใช้จริง
@@ -106,7 +114,7 @@ function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved) {
   var o0abs0 = o0 < i0 ? o0 + 1440 : o0;
   if (i0 <= 720 && o0abs0 >= 780) r.crossLunch = true;   // ต้องอยู่คร่อมเที่ยงเต็มชั่วโมงจริง
 
-  var iM = rcSnapIn_(i0), oM = rcSnapOut_(o0);
+  var iM = rcSnapIn_(i0), oM = rcSnapOut_(o0, iM);
   r.inUse = rcHHMM_(iM); r.outUse = rcHHMM_(oM);
   /* ข้ามเที่ยงคืนจริงหรือไม่ ต้องดูจาก "เวลาดิบ" ไม่ใช่เวลาที่ปัดแล้ว
      ไม่งั้นเคสออก 12:01 กลับเข้า 12:15 (ปัดเป็น 12:00 กับ 13:00) จะถูกนับเป็น 23 ชม. */
@@ -277,7 +285,7 @@ function runRecheck() {
   d3.setColumnWidth(1, 300); d3.setColumnWidth(2, 220);
 
   var msg =
-    '\n========== รายงานทดลอง กฎคิดชั่วโมง v5 ==========' +
+    '\n========== รายงานทดลอง กฎคิดชั่วโมง ' + RC.VER + ' ==========' +
     '\nแท็บต้นทาง       : ' + RC.TAB +
     '\nแถวทั้งหมด       : ' + S.rows + '   (Check Out ' + S.done + ')' +
     '\nแถวที่เปลี่ยน     : ' + S.changed +
@@ -324,17 +332,20 @@ function rcOldSnapOut_(m) {
 }
 
 /* เครื่องคิดแบบยืดหยุ่น : เลือกได้ว่าใช้กฎปัดชุดไหน และนับพักเที่ยงเป็น OT หรือไม่นับ */
-function rcCalcMode_(inRaw, outRaw, dateStr, isMonthly, calMap, useOldSnap, lunchAsOT) {
+function rcCalcMode_(inRaw, outRaw, dateStr, isMonthly, calMap, snapMode, lunchAsOT) {
   var r = { n:0, o:0, lunch:0, err:'' };
   var i0 = rcMin_(inRaw), o0 = rcMin_(outRaw);
   if (i0 < 0) { r.err = 'ไม่มีเวลาเข้า'; return r; }
   if (o0 < 0) { r.err = 'ไม่มีเวลาออก'; return r; }
 
-  var iM = useOldSnap ? rcOldSnapIn_(i0)  : rcSnapIn_(i0);
-  var oM = useOldSnap ? rcOldSnapOut_(o0) : rcSnapOut_(o0);
+  /* snapMode : 'none' = ไม่ปัดเลย (แบบที่ระบบจริงทำ)  'old' = กฎเดิม  'new' = กฎ v5 */
+  var iM, oM;
+  if      (snapMode === 'none') { iM = i0;              oM = o0; }
+  else if (snapMode === 'old')  { iM = rcOldSnapIn_(i0); oM = rcOldSnapOut_(o0); }
+  else                          { iM = rcSnapIn_(i0);    oM = rcSnapOut_(o0, iM); }
 
-  if (useOldSnap) { if (oM < iM) oM += 1440; }        /* ของเดิมดูจากเวลาที่ปัดแล้ว */
-  else            { if (o0 < i0) oM += 1440; }        /* ของใหม่ดูจากเวลาดิบ */
+  if (snapMode === 'new') { if (o0 < i0) oM += 1440; }   /* ของใหม่ดูจากเวลาดิบ */
+  else                    { if (oM < iM) oM += 1440; }   /* ของเดิมดูจากเวลาที่เก็บในชีต */
   if (oM <= iM) { r.err = 'ปัดแล้วออกก่อนเข้า'; return r; }
 
   var cursor = iM, guard = 0;
@@ -376,9 +387,11 @@ function runRecheckDetail() {
 
     var oldSheet = (Number(row[C.HNORM]) || 0) + (Number(row[C.HOT]) || 0);
 
-    var A = rcCalcMode_(IN, OUT, dateStr, isMonthly, calMap, true,  true);   /* กฎเดิมล้วน */
-    var B = rcCalcMode_(IN, OUT, dateStr, isMonthly, calMap, true,  false);  /* เดิม + ตัดพักเที่ยง */
-    var D = rcCalcMode_(IN, OUT, dateStr, isMonthly, calMap, false, false);  /* ใหม่ทั้งหมด */
+    /* ★ ระบบจริงปัดเวลา "ตอนสแกน" แล้วเก็บเวลาที่ปัดแล้วลงชีต
+          ตอนคำนวณชั่วโมงมันไม่ปัดซ้ำ → ด่าน 0 จึงต้องเทียบกับโหมด 'none' */
+    var A = rcCalcMode_(IN, OUT, dateStr, isMonthly, calMap, 'none', true);   /* = ระบบจริง */
+    var B = rcCalcMode_(IN, OUT, dateStr, isMonthly, calMap, 'none', false);  /* + ตัดพักเที่ยง */
+    var D = rcCalcMode_(IN, OUT, dateStr, isMonthly, calMap, 'new',  false);  /* + กฎปัดใหม่ */
 
     var tA = rcDec_((A.n + A.o) / n), tB = rcDec_((B.n + B.o) / n), tD = rcDec_((D.n + D.o) / n);
 
@@ -416,8 +429,9 @@ function runRecheckDetail() {
   var R = function (x) { return Math.round(x * 100) / 100; };
 
   var msg =
-    '\n========== ตรวจสาเหตุส่วนต่าง — งวด ' + RC.TAB.replace('Job_Log_','') + ' ==========' +
-    '\n\n[ ด่าน 0 ] เครื่องคิดของผมตรงกับระบบเดิมไหม' +
+    '\n========== ตรวจสาเหตุส่วนต่าง ' + RC.VER + ' — งวด ' + RC.TAB.replace('Job_Log_','') + ' ==========' +
+    '\n(ถ้าไม่ขึ้น v5.2 แปลว่ายังรันโค้ดเก่า — clasp push ยังไม่ขึ้น)' +
+    '\n\n[ ด่าน 0 ] เครื่องคิดของผมตรงกับระบบเดิมไหม (ฐานเทียบ = ไม่ปัดเวลา)' +
     '\n  ตรงเป๊ะ   : ' + same + ' แถว' +
     '\n  ไม่ตรง    : ' + diffPort + ' แถว' +
     (diffPort ? '\n  ⚠ ถ้าเลขนี้เยอะ แปลว่าผมอ่านกฎเดิมผิด อย่าเพิ่งเชื่อรายงาน\n' + portWorst.join('\n') : '  ✅') +
