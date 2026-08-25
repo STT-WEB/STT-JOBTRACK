@@ -94,7 +94,18 @@ function runApply() {
   var calMap = rcLoadCal_(), C = RC.C;
   var last = v.length, nR = last - 1;
   var block = [], vNormal = [];
-  var S = { rows:0, flag:0, cross:0, err:0 };
+  var S = { rows:0, flag:0, cross:0, err:0, split:0 };
+
+  /* ★ นับจำนวนแถวจริงของแต่ละรอบ Check In (คอลัมน์ L = รหัสรอบงาน)
+     ห้ามเชื่อเลขในคอลัมน์ P เพราะถ้าแถวคู่หายไป ชั่วโมงจะถูกหารหายโดยไม่มีใครรู้
+     เช่น P=2 แต่มีแถวเดียว → เดิมหาร 2 ชั่วโมงหายครึ่งนึง */
+  var seen = {};
+  for (var q = 1; q < last; q++) {
+    if (String(v[q][C.STATUS]).trim() !== 'Check Out') continue;
+    var sid = String(v[q][C.SESSION] || '').trim();
+    if (!sid) continue;
+    seen[sid] = (seen[sid] || 0) + 1;
+  }
 
   for (var i = 1; i < last; i++) {
     var row = v[i];
@@ -106,7 +117,13 @@ function runApply() {
     }
     S.rows++;
 
-    var n = Number(row[C.PCOUNT]) || 1; if (n < 1) n = 1;
+    /* หารด้วย "จำนวนแถวจริง" ของรอบงานนี้ ถ้าหาไม่เจอค่อยใช้เลขในคอลัมน์ P */
+    var sid2 = String(row[C.SESSION] || '').trim();
+    var pCol = Number(row[C.PCOUNT]) || 1; if (pCol < 1) pCol = 1;
+    var n = (sid2 && seen[sid2]) ? seen[sid2] : pCol;
+    if (n < 1) n = 1;
+    if (n !== pCol) S.split++;
+
     var isMonthly = String(row[C.TYPE] || '').indexOf('รายเดือน') >= 0;
     var r = rcCalc_(row[C.IN], row[C.OUT], row[C.DATE], isMonthly, calMap, tick, row[C.DAYTYPE]);
     var H = function (m) { return rcDec_(m / n); };
@@ -166,6 +183,8 @@ function runApply() {
     '\nแถว Check Out  : ' + S.rows +
     '\nแถวขึ้นธง      : ' + S.flag + '   (⛔ คิดไม่ได้ ' + S.err + ')' +
     '\nแถวคร่อมเที่ยง  : ' + S.cross + '  ← ติ๊กช่อง AE ได้เลย' +
+    '\nแถวที่คอลัมน์ P ไม่ตรงจำนวนแถวจริง : ' + S.split +
+    (S.split ? '  ← เดิมชั่วโมงหายไป รอบนี้แก้ให้แล้ว' : '') +
     '\n\nคอลัมน์ใหม่ : Y–AG (9 ช่อง)' +
     '\nคนแก้ได้    : C · D เวลาเข้า–ออก | AE ติ๊ก | AG หมายเหตุ  (พื้นเขียว)' +
     '\n\nขั้นต่อไป : normalizeDates() → runApply() อีกรอบ' +
@@ -221,7 +240,7 @@ function apRecalcRow_(sh, row) {
   var v = sh.getRange(row, 1, 1, AC_.NOTE).getValues()[0];
   if (String(v[C.STATUS]).trim() !== 'Check Out') return;
 
-  var n = Number(v[C.PCOUNT]) || 1; if (n < 1) n = 1;
+  var n = apRowsInSession_(sh, String(v[C.SESSION] || '').trim(), Number(v[C.PCOUNT]) || 1);
   var isMonthly = String(v[C.TYPE] || '').indexOf('รายเดือน') >= 0;
   var tick = apTicked_(v[AC_.TICK - 1]);
   var r = rcCalc_(v[C.IN], v[C.OUT], v[C.DATE], isMonthly, rcLoadCal_(), tick, v[C.DAYTYPE]);
@@ -326,4 +345,59 @@ function buildDailySummary() {
     '\nอัปเดตเองทุกครั้งที่ Job_Log เปลี่ยน ไม่ต้องกดอะไร' +
     '\nไม่ชอบก็ลบแท็บทิ้งได้ ของเดิมไม่กระทบ');
   return AP_SUM_TAB;
+}
+
+
+/** นับว่ารอบงานนี้ (รหัสรอบเดียวกัน) มีแถว Check Out จริงกี่แถว */
+function apRowsInSession_(sh, sid, fallback) {
+  if (!sid) return Math.max(1, fallback || 1);
+  var C = RC.C, last = sh.getLastRow();
+  var col = sh.getRange(2, C.SESSION + 1, last - 1, 1).getValues();
+  var st  = sh.getRange(2, C.STATUS + 1,  last - 1, 1).getValues();
+  var cnt = 0;
+  for (var i = 0; i < col.length; i++)
+    if (String(col[i][0]).trim() === sid && String(st[i][0]).trim() === 'Check Out') cnt++;
+  return Math.max(1, cnt || fallback || 1);
+}
+
+/* ============================================================================
+ *  ⑥ checkProcessRows() — ตรวจว่ามีแถวหายไหม (อ่านอย่างเดียว)
+ *
+ *  JOBTRACK ตอน Check Out ที่ลงหลาย Process จะ "เพิ่มแถวใหม่" ให้ Process ที่ 2, 3, ...
+ *  ถ้าแถวพวกนั้นหายไป (เพิ่มไม่สำเร็จ หรือมีคนลบ) ชั่วโมงจะถูกหารหายเงียบ ๆ
+ *  ตัวนี้ไล่นับให้ดูว่ามีกี่รอบงานที่แถวไม่ครบ
+ * ========================================================================== */
+function checkProcessRows() {
+  var sh = apSheet_(), v = sh.getDataRange().getValues(), C = RC.C;
+  var g = {};
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][C.STATUS]).trim() !== 'Check Out') continue;
+    var sid = String(v[i][C.SESSION] || '').trim();
+    if (!sid) continue;
+    if (!g[sid]) g[sid] = { rows:0, p:Number(v[i][C.PCOUNT]) || 1,
+                            emp:String(v[i][C.EMP]), name:String(v[i][C.NAME] || ''),
+                            d:rcKey_(v[i][C.DATE]), t:String(v[i][C.IN]), first:i + 1 };
+    g[sid].rows++;
+  }
+  var bad = [], okCnt = 0;
+  for (var k in g) {
+    if (g[k].rows === g[k].p) { okCnt++; continue; }
+    bad.push(g[k]);
+  }
+  bad.sort(function (a, b) { return a.first - b.first; });
+
+  var lines = bad.slice(0, 25).map(function (x) {
+    return '  แถว ' + x.first + ' | ' + x.d + ' | ' + x.emp + ' ' + x.name.substring(0, 16) +
+           ' | เข้า ' + x.t + ' | คอลัมน์ P บอก ' + x.p + ' แต่มีจริง ' + x.rows + ' แถว';
+  });
+  Logger.log('\n===== ตรวจแถวหาย =====' +
+    '\nรอบงานทั้งหมด : ' + (okCnt + bad.length) +
+    '\n  ครบ         : ' + okCnt +
+    '\n  ไม่ครบ      : ' + bad.length +
+    '\n' + (lines.join('\n') || '  ไม่มีปัญหา') +
+    (bad.length > 25 ? '\n  ... และอีก ' + (bad.length - 25) + ' รอบ' : '') +
+    '\n\nรอบที่ไม่ครบ = ชั่วโมงเคยถูกหารหายไป — runApply() รอบใหม่แก้ให้แล้ว' +
+    '\n(หารด้วยจำนวนแถวจริง ไม่ใช่เลขในคอลัมน์ P)' +
+    '\n=======================\n');
+  return bad.length;
 }

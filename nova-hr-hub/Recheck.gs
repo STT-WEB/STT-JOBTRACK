@@ -17,14 +17,14 @@
  */
 
 var RC = {
-  VER      : 'v5.4 (2569-08-25)',   /* ★ เลขนี้จะพิมพ์ในทุก log — ใช้เช็กว่ารันโค้ดตัวไหน */
+  VER      : 'v5.5 (2569-08-25)',   /* ★ เลขนี้จะพิมพ์ในทุก log — ใช้เช็กว่ารันโค้ดตัวไหน */
   LOG_ID   : '1ZPl3uVRtM5r4sPA-yX1OwTyp34XCTIcKRC0Sx8qsr9s',  // JOBTRACK_Job_Log 2026
   DB_ID    : '1MYWORYN3sOjov3Gxv3UqCV1jRSxgxwGi1tRomFUGSr0',  // ฐานข้อมูลพนักงาน
   TAB      : 'Job_Log_2569_08',                                // งวด 26 ก.ค. – 25 ส.ค. 69
   CAL_TAB  : 'ประเภทวันทำงาน',
   /* ตำแหน่งคอลัมน์ (0-based) — ตรงกับ JOBTRACK */
   C: { DATE:1, IN:2, OUT:3, HOURS:4, JOB:5, EMP:7, NAME:8, DEPT:9, TYPE:10,
-       PCOUNT:15, STATUS:16, DAYTYPE:19, HNORM:21, HOT:22, HPAY:23 }
+       SESSION:11, PCOUNT:15, STATUS:16, DAYTYPE:19, HNORM:21, HOT:22, HPAY:23 }
 };
 
 /* ---------------------------------------------------------------- ตัวช่วยเวลา */
