@@ -28,7 +28,7 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v3.2 (2569-08-25)';
+var AP_VER = 'apply v4.1 (2569-08-26)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
@@ -55,15 +55,13 @@ function apTicked_(v) {
 }
 
 /* ============================================================ ① ลง template */
-function runApply() {
+function runApply(opts) {
+  opts = opts || {};
   var ss = SpreadsheetApp.openById(RC.LOG_ID);
   var sh = apSheet_();
 
-  /* 1. สำรองก่อนเสมอ */
-  var bk = rcTab_() + '_backup', k = 1;
-  while (ss.getSheetByName(bk) && k < 50) { k++; bk = rcTab_() + '_backup' + k; }
-  if (k >= 50) throw new Error('แท็บสำรองเกิน 50 อัน — ลบของเก่าก่อน');
-  sh.copyTo(ss).setName(bk);
+  /* 1. ไม่สำรองอัตโนมัติแล้ว — ถ้าอยากได้ ให้รัน backupNow() เอง */
+  var bk = '(ปิดการสำรองอัตโนมัติ)';
 
   /* 2. หัวตาราง */
   if (sh.getMaxColumns() < AC_.NOTE) sh.insertColumnsAfter(sh.getMaxColumns(), AC_.NOTE - sh.getMaxColumns());
@@ -188,7 +186,7 @@ function runApply() {
 
   var msg = '\n===== ' + AP_VER + ' =====' +
     '\nแท็บ           : ' + rcTab_() +
-    '\nสำรองไว้ที่    : ' + bk +
+    (opts.auto ? '\n(รันอัตโนมัติโดยตัวตั้งเวลา)' : '') +
     '\nแถว Check Out  : ' + S.rows +
     '\nแถวขึ้นธง      : ' + S.flag + '   (⛔ คิดไม่ได้ ' + S.err + ')' +
     '\nแถวคร่อมเที่ยง  : ' + S.cross + '  ← ติ๊กช่อง AE ได้เลย' +
@@ -413,4 +411,78 @@ function checkProcessRows() {
     '\n(หารด้วยจำนวนแถวจริง ไม่ใช่เลขในคอลัมน์ P)' +
     '\n=======================\n');
   return bad.length;
+}
+
+
+/* ============================================================================
+ *  ⑦ ตัวรันอัตโนมัติ — แก้ปัญหา "งวดใหม่แล้วฟอร์มไม่ตามมา"
+ *
+ *  ทำไมต้องมี : ระบบมีจุดที่ onEdit ตามไม่ทัน 2 จุด
+ *    ① JOBTRACK สร้างแท็บงวดใหม่เองทุกวันที่ 26 — แท็บนั้นเกิดมาไม่มีคอลัมน์ใหม่
+ *    ② แถวที่ JOBTRACK เขียนตอน Check Out — onEdit ไม่ยิง เพราะสคริปต์เขียน ไม่ใช่คนพิมพ์
+ *  ผลคือแถวใหม่ทุกแถวจะว่างจนกว่าจะมีคนรัน runApply มือ
+ *
+ *  ตัวนี้รันเองทุกชั่วโมง ลง template ให้แท็บงวดปัจจุบันเสมอ
+ *  งวดใหม่มาเมื่อไหร่ ฟอร์มตามไปเองภายใน 1 ชั่วโมง ไม่ต้องรอใครกด
+ * ========================================================================== */
+function installAutoApply() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'autoApply') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('autoApply').timeBased().everyHours(1).create();
+
+  /* ติดตั้งตัวคำนวณสดตอนแก้มือไปพร้อมกันเลย จะได้ไม่ลืม */
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'onEditRecalc') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('onEditRecalc')
+    .forSpreadsheet(SpreadsheetApp.openById(RC.LOG_ID)).onEdit().create();
+
+  var msg = 'ติดตั้งเรียบร้อย — ต่อจากนี้ไม่ต้องรันมืออีกเลย\n' +
+    '  · ทุกชั่วโมง : ลง template + คำนวณแถวใหม่ให้แท็บงวดปัจจุบัน\n' +
+    '  · งวดใหม่    : ฟอร์มตามไปเองภายใน 1 ชั่วโมง\n' +
+    '  · แก้เวลามือ : คำนวณใหม่ทันที\n' +
+    '  · ไม่สำรองอัตโนมัติ (อยากได้ให้รัน backupNow เอง)';
+  Logger.log(msg);
+  return msg;
+}
+
+/** ตัวที่ตัวตั้งเวลาเรียก — ห้ามให้ error หลุดออกไป ไม่งั้น Google จะปิดตัวตั้งเวลาทิ้ง */
+function autoApply() {
+  try {
+    runApply({ auto: true });
+    if (!SpreadsheetApp.openById(RC.LOG_ID).getSheetByName(AP_SUM_TAB)) buildDailySummary();
+  } catch (e) {
+    Logger.log('autoApply ข้ามรอบนี้: ' + e.message);
+  }
+}
+
+/** ดูว่ามีตัวตั้งเวลาอะไรทำงานอยู่บ้าง */
+function listTriggers() {
+  var t = ScriptApp.getProjectTriggers().map(function (x) {
+    return '  · ' + x.getHandlerFunction() + '  [' + x.getEventType() + ']';
+  });
+  Logger.log('ตัวตั้งเวลาที่ทำงานอยู่:\n' + (t.join('\n') || '  ไม่มีเลย'));
+  return t.length;
+}
+
+
+/** สำรองแท็บงวดปัจจุบันด้วยมือ — เรียกเองเมื่อต้องการเท่านั้น */
+function backupNow() {
+  var ss = SpreadsheetApp.openById(RC.LOG_ID);
+  var nm = rcTab_() + '_backup_' + Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyMMdd_HHmm');
+  apSheet_().copyTo(ss).setName(nm);
+  Logger.log('สำรองเป็นแท็บ "' + nm + '" แล้ว');
+  return nm;
+}
+
+/** ลบแท็บสำรองเก่าทั้งหมด — ยืนยันด้วยการพิมพ์ true ตอนเรียก */
+function deleteAllBackups() {
+  var ss = SpreadsheetApp.openById(RC.LOG_ID), gone = [];
+  ss.getSheets().forEach(function (s) {
+    if (s.getName().indexOf('_backup') > 0) { gone.push(s.getName()); ss.deleteSheet(s); }
+  });
+  Logger.log(gone.length ? 'ลบแท็บสำรองแล้ว ' + gone.length + ' แท็บ:\n  ' + gone.join('\n  ')
+                         : 'ไม่มีแท็บสำรองให้ลบ');
+  return gone.length;
 }
