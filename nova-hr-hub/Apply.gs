@@ -28,7 +28,7 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v4.6 (2569-08-26)';
+var AP_VER = 'apply v4.7 (2569-08-26)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
@@ -286,7 +286,8 @@ function apRecalcRow_(sh, row) {
   var v = sh.getRange(row, 1, 1, AC_.NOTE).getValues()[0];
   if (String(v[C.STATUS]).trim() !== 'Check Out') return;
 
-  var n = apRowsInSession_(sh, String(v[C.SESSION] || '').trim(), Number(v[C.PCOUNT]) || 1);
+  var n = apRowsInSession_(sh, String(v[C.SESSION] || '').trim(), Number(v[C.PCOUNT]) || 1,
+                           String(v[C.EMP] || '').trim());
   var isMonthly = String(v[C.TYPE] || '').indexOf('รายเดือน') >= 0;
   var tick = apTicked_(v[AC_.TICK - 1]);
   var r = rcCalc_(v[C.IN], v[C.OUT], v[C.DATE], isMonthly, rcLoadCal_(), tick, v[C.DAYTYPE]);
@@ -428,16 +429,82 @@ function apDressSummary_(sh, nCol, headRow) {
   sh.setColumnWidth(4, 150);
 }
 
-function apRowsInSession_(sh, sid, fallback) {
+/* นับแถวในรอบงานเดียวกัน — ต้องนับเฉพาะของพนักงานคนนี้เท่านั้น
+   รหัสรอบงานเดี่ยว ๆ เชื่อไม่ได้ ของเก่าที่ JOBTRACK เขียนชนกันไว้ยังอยู่ในชีต
+   ถ้านับรวมคนอื่นไปด้วย พอ HR แก้เวลามือทีเดียว ชั่วโมงจะโดนหารครึ่งอีกรอบ */
+function apRowsInSession_(sh, sid, fallback, empId) {
   if (!sid) return Math.max(1, fallback || 1);
   var C = RC.C, last = sh.getLastRow();
   var col = sh.getRange(2, C.SESSION + 1, last - 1, 1).getValues();
   var st  = sh.getRange(2, C.STATUS + 1,  last - 1, 1).getValues();
+  var em  = sh.getRange(2, C.EMP + 1,     last - 1, 1).getValues();
+  var want = String(empId || '').trim();
   var cnt = 0;
-  for (var i = 0; i < col.length; i++)
-    if (String(col[i][0]).trim() === sid && String(st[i][0]).trim() === 'Check Out') cnt++;
+  for (var i = 0; i < col.length; i++) {
+    if (String(col[i][0]).trim() !== sid) continue;
+    if (String(st[i][0]).trim() !== 'Check Out') continue;
+    if (want && String(em[i][0]).trim() !== want) continue;
+    cnt++;
+  }
   return Math.max(1, cnt || fallback || 1);
 }
+
+/* ============================================================================
+ *  ⑤½ fixSessionClash() — ซ่อมรหัสรอบงานที่ JOBTRACK เขียนชนกันไว้ (ของเก่า)
+ *
+ *  รหัสรอบงานมีรูปแบบ S-<รหัสพนักงาน>-<วันเวลา> ถ้ารหัสที่ฝังอยู่ข้างในไม่ตรง
+ *  กับรหัสพนักงานของแถวนั้น แปลว่าแถวนี้โดนของคนอื่นเขียนทับ ไม่มีทางถูกต้องได้
+ *  ตัวนี้เปลี่ยนเฉพาะรหัสพนักงานที่ฝังอยู่ ให้ตรงกับเจ้าของแถว ส่วนวันเวลาคงเดิม
+ *
+ *  ปลอดภัย : ไม่แตะเวลา ไม่แตะชั่วโมง ไม่แตะแถวที่รหัสตรงอยู่แล้ว
+ *  ไม่แก้ให้ : เวลาเข้าที่ถูกทับไปแล้ว — อันนั้นต้องดูรูปสแกนแล้วแก้มือเท่านั้น
+ *  สคริปต์เขียนผ่านการป้องกันชีตได้ ไม่ต้องปลด NOVA lock
+ * ========================================================================== */
+function fixSessionClash(dryRun) {
+  var sh = apSheet_(), C = RC.C, last = sh.getLastRow();
+  if (last < 2) return 'ไม่มีข้อมูล';
+  var rng = sh.getRange(2, C.SESSION + 1, last - 1, 1);
+  var sid = rng.getValues();
+  var emp = sh.getRange(2, C.EMP + 1,  last - 1, 1).getValues();
+  var nam = sh.getRange(2, C.NAME + 1, last - 1, 1).getValues();
+  var fixed = [], changed = false;
+
+  for (var i = 0; i < sid.length; i++) {
+    var s = String(sid[i][0] || '').trim();
+    var e = String(emp[i][0] || '').trim();
+    var m = s.match(/^S-(\d+)-(.+)$/);
+    if (!s || !e || !m || m[1] === e) continue;      /* ปกติ ไม่ต้องยุ่ง */
+    var ns = 'S-' + e + '-' + m[2];
+    fixed.push({ row: i + 2, name: String(nam[i][0] || '').substring(0, 18),
+                 from: s, to: ns, wrongEmp: m[1] });
+    sid[i][0] = ns;
+    changed = true;
+  }
+
+  if (changed && !dryRun) {
+    rng.setNumberFormat('@STRING@').setValues(sid);
+    SpreadsheetApp.flush();
+  }
+
+  var lines = fixed.slice(0, 30).map(function (f) {
+    return '  แถว ' + f.row + ' | ' + f.name +
+           '\n      เดิม ' + f.from + '  (เป็นของ ' + f.wrongEmp + ')' +
+           '\n      ใหม่ ' + f.to;
+  });
+  Logger.log('\n===== ซ่อมรหัสรอบงานที่ชนกัน =====' +
+    '\nแท็บ    : ' + sh.getName() +
+    '\nพบและ' + (dryRun ? 'จะแก้' : 'แก้แล้ว') + ' : ' + fixed.length + ' แถว\n' +
+    (lines.join('\n') || '  ไม่มีแถวไหนต้องแก้ — สะอาดแล้ว') +
+    (fixed.length > 30 ? '\n  ... และอีก ' + (fixed.length - 30) + ' แถว' : '') +
+    (fixed.length ? '\n\nเหลืออีกอย่าง : เวลาเข้าของแถวพวกนี้อาจถูกทับไปแล้ว' +
+                    '\nให้เปิดรูปสแกนคอลัมน์ S เทียบ ถ้าไม่ตรงให้แก้ที่ช่อง C ได้เลย' : '') +
+    '\n==============================\n');
+  return fixed.length;
+}
+
+/* ดูก่อนว่าจะแก้อะไรบ้าง โดยยังไม่เขียนลงชีต */
+function previewSessionClash() { return fixSessionClash(true); }
+
 
 /* ============================================================================
  *  ⑥ checkProcessRows() — ตรวจว่ามีแถวหายไหม (อ่านอย่างเดียว)
