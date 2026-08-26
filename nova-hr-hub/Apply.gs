@@ -28,7 +28,7 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v4.2 (2569-08-26)';
+var AP_VER = 'apply v4.4 (2569-08-26)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
@@ -207,7 +207,7 @@ function runApply(opts) {
     (opts.auto ? '\n(รันอัตโนมัติโดยตัวตั้งเวลา)' : '') +
     '\nแถว Check Out  : ' + S.rows +
     '\nแถวขึ้นธง      : ' + S.flag + '   (⛔ คิดไม่ได้ ' + S.err + ')' +
-    '\nแถวคร่อมเที่ยง  : ' + S.cross + '  ← ติ๊กช่อง AE ได้เลย' +
+    '\nแถวคร่อมเที่ยง  : ' + S.cross + '  ← ติ๊กช่อง AH ได้เลย' +
     '\nแถวที่คอลัมน์ P ไม่ตรงจำนวนแถวจริง : ' + S.split +
     (S.split ? '  ← เดิมชั่วโมงหายไป รอบนี้แก้ให้แล้ว' : '') +
     '\n\nคอลัมน์ใหม่ : Y–AJ (12 ช่อง)' +
@@ -341,42 +341,71 @@ function undoApply() {
  *  แท็บนี้บวกให้ ด้วยสูตร QUERY ล้วน ไม่มีสคริปต์ ไม่กระทบข้อมูลเดิม
  *  ลบแท็บทิ้งได้ตลอด ของเดิมไม่พัง
  * ========================================================================== */
-var AP_SUM_TAB = 'สรุปรายคน–รายวัน';
+var AP_SUM_TAB  = 'สรุปรายคน–รายวัน';
+var AP_PER_TAB  = 'สรุปรายคน–ทั้งงวด';
+
+/* หัวตารางสรุป — ใช้ร่วมกันทั้งสองแท็บ */
+var QQ = String.fromCharCode(34);      /* เครื่องหมาย " ในสูตร */
+var CO = String.fromCharCode(39) + 'Check Out' + String.fromCharCode(39);
+var AP_SUM_LBL =
+  "label B 'วันที่', H 'รหัส', I 'ชื่อ', J 'แผนก', count(F) 'จ๊อบ', " +
+  "sum(V) 'ชม.ทำงาน', sum(AD) 'OT×1', sum(AE) 'OT×1.5', sum(AF) 'OT×2', " +
+  "sum(AG) 'OT×3', sum(W) 'รวม OT', sum(E) 'รวมทั้งวัน'";
 
 function buildDailySummary() {
   var ss = SpreadsheetApp.openById(RC.LOG_ID);
+  var T  = "'" + rcTab_() + "'";
+
+  /* ---------- ① รายคน–รายวัน ---------- */
   var sh = ss.getSheetByName(AP_SUM_TAB);
   if (sh) ss.deleteSheet(sh);
-  sh = ss.insertSheet(AP_SUM_TAB);
-
-  var T = "'" + rcTab_() + "'";
+  sh = ss.insertSheet(AP_SUM_TAB, 0);
   sh.getRange('A1').setFormula(
-    '=QUERY(' + T + '!A2:AG,' +
-    '"select B, H, I, J, count(F), sum(V), sum(AA), sum(AB), sum(AC), sum(AD), sum(E) ' +
-    'where Q = \'Check Out\' group by B, H, I, J order by B, H ' +
-    'label B \'วันที่\', H \'รหัส\', I \'ชื่อ\', J \'แผนก\', count(F) \'จ๊อบ\', ' +
-    'sum(V) \'ปกติ\', sum(AA) \'OT×1\', sum(AB) \'OT×1.5\', sum(AC) \'OT×2\', ' +
-    'sum(AD) \'OT×3\', sum(E) \'รวมทั้งวัน\'",0)');
+    '=QUERY(' + T + '!A2:AJ,' + QQ
+    + 'select B, H, I, J, count(F), sum(V), sum(AD), sum(AE), sum(AF), sum(AG), sum(W), sum(E) '
+    + 'where Q = ' + CO + ' group by B, H, I, J order by B desc, H ' + AP_SUM_LBL + QQ + ',0)');
+  sh.getRange('M1').setValue('เทียบ 8 ชม.');
+  sh.getRange('M2').setFormula(
+    '=ARRAYFORMULA(IF(L2:L="","",IF(ABS(L2:L-8)<=0.17,"ครบ",' +
+    'IF(L2:L<8,"ขาด "&TEXT(8-L2:L,"0.00"),"เกิน "&TEXT(L2:L-8,"0.00")))))');
+  apDressSummary_(sh, 13);
 
-  /* คอลัมน์ L — เทียบเกณฑ์ 8 ชม. ต่อจากผล QUERY */
-  sh.getRange('L1').setValue('เทียบ 8 ชม.');
-  sh.getRange('L2').setFormula(
-    '=ARRAYFORMULA(IF(K2:K="","",' +
-    'IF(ABS(K2:K-8)<=0.17,"✅ ครบ",' +
-    'IF(K2:K<8,"⚠ ขาด "&TEXT(8-K2:K,"0.00"),"ℹ เกิน "&TEXT(K2:K-8,"0.00")))))');
+  /* ---------- ② รายคน–ทั้งงวด (ตัวที่เอาไปทำเงินเดือน) ---------- */
+  var sp = ss.getSheetByName(AP_PER_TAB);
+  if (sp) ss.deleteSheet(sp);
+  sp = ss.insertSheet(AP_PER_TAB, 1);
+  sp.getRange('A1').setValue('งวด ' + rcTab_().replace('Job_Log_', ''));
+  var LBL2 = "label H 'รหัส', I 'ชื่อ', J 'แผนก', K 'ประเภท', count(F) 'จ๊อบ', "
+    + "sum(V) 'ชม.ทำงาน', sum(AD) 'OT×1', sum(AE) 'OT×1.5', sum(AF) 'OT×2', "
+    + "sum(AG) 'OT×3', sum(W) 'รวม OT', sum(E) 'รวมทั้งงวด'";
+  sp.getRange('A2').setFormula(
+    '=QUERY(' + T + '!A2:AJ,' + QQ
+    + 'select H, I, J, K, count(F), sum(V), sum(AD), sum(AE), sum(AF), sum(AG), sum(W), sum(E) '
+    + 'where Q = ' + CO + ' group by H, I, J, K order by H ' + LBL2 + QQ + ',0)');
+  sp.getRange('M2').setValue('วันที่ทำงาน');
+  sp.getRange('M3').setFormula(
+    '=ARRAYFORMULA(IF(A3:A="","",COUNTUNIQUEIFS(' + T + '!$B$2:$B,' + T + '!$H$2:$H,A3:A,' +
+    T + '!$Q$2:$Q,"Check Out")))');
+  sp.getRange('A1').setFontWeight('bold').setFontSize(12);
+  apDressSummary_(sp, 13, 2);
 
-  sh.setFrozenRows(1);
-  sh.getRange('A1:L1').setFontWeight('bold');
-  sh.setColumnWidth(3, 190);
-
-  Logger.log('สร้างแท็บ "' + AP_SUM_TAB + '" แล้ว — 1 แถว = 1 คน 1 วัน' +
-    '\nอัปเดตเองทุกครั้งที่ Job_Log เปลี่ยน ไม่ต้องกดอะไร' +
-    '\nไม่ชอบก็ลบแท็บทิ้งได้ ของเดิมไม่กระทบ');
-  return AP_SUM_TAB;
+  Logger.log('สร้างแท็บสรุปแล้ว 2 แท็บ' +
+    '\n  · ' + AP_SUM_TAB + '   1 แถว = 1 คน 1 วัน' +
+    '\n  · ' + AP_PER_TAB + '  1 แถว = 1 คน ทั้งงวด  ← ตัวที่เอาไปทำเงินเดือน' +
+    '\nอัปเดตเองทุกครั้งที่ Job_Log เปลี่ยน ไม่ต้องกดอะไร');
+  return [AP_SUM_TAB, AP_PER_TAB];
 }
 
+/** จัดหน้าตาแท็บสรุปให้อ่านง่าย */
+function apDressSummary_(sh, nCol, headRow) {
+  headRow = headRow || 1;
+  sh.setFrozenRows(headRow);
+  sh.getRange(headRow, 1, 1, nCol).setFontWeight('bold').setBackground('#F2EDED').setWrap(true);
+  sh.getRange(headRow + 1, 6, sh.getMaxRows() - headRow, 7).setNumberFormat('0.00');
+  sh.setColumnWidth(3, 200);
+  sh.setColumnWidth(4, 150);
+}
 
-/** นับว่ารอบงานนี้ (รหัสรอบเดียวกัน) มีแถว Check Out จริงกี่แถว */
 function apRowsInSession_(sh, sid, fallback) {
   if (!sid) return Math.max(1, fallback || 1);
   var C = RC.C, last = sh.getLastRow();
@@ -459,6 +488,7 @@ function installAutoApply() {
     '  · ทุกชั่วโมง : ลง template + คำนวณแถวใหม่ให้แท็บงวดปัจจุบัน\n' +
     '  · งวดใหม่    : ฟอร์มตามไปเองภายใน 1 ชั่วโมง\n' +
     '  · แก้เวลามือ : คำนวณใหม่ทันที\n' +
+    '  · ขึ้นงวดใหม่ : แช่แข็งสรุปงวดเก่าเก็บเป็นแท็บ สรุป_YYYY_MM ให้เอง\n' +
     '  · ไม่สำรองอัตโนมัติ (อยากได้ให้รัน backupNow เอง)';
   Logger.log(msg);
   return msg;
@@ -468,7 +498,15 @@ function installAutoApply() {
 function autoApply() {
   try {
     runApply({ auto: true });
-    if (!SpreadsheetApp.openById(RC.LOG_ID).getSheetByName(AP_SUM_TAB)) buildDailySummary();
+    /* ขึ้นงวดใหม่ → แช่แข็งสรุปงวดเก่าเก็บไว้ก่อน แล้วค่อยสร้างของงวดใหม่ */
+    var ss2 = SpreadsheetApp.openById(RC.LOG_ID);
+    var per = ss2.getSheetByName(AP_PER_TAB);
+    var tag = 'งวด ' + rcTab_().replace('Job_Log_', '');
+    var old = per ? String(per.getRange('A1').getValue()) : '';
+    if (!ss2.getSheetByName(AP_SUM_TAB) || !per || old !== tag) {
+      if (per && old && old !== tag) apArchive_(ss2, old.replace('งวด ', ''));
+      buildDailySummary();
+    }
   } catch (e) {
     Logger.log('autoApply ข้ามรอบนี้: ' + e.message);
   }
@@ -502,4 +540,56 @@ function deleteAllBackups() {
   Logger.log(gone.length ? 'ลบแท็บสำรองแล้ว ' + gone.length + ' แท็บ:\n  ' + gone.join('\n  ')
                          : 'ไม่มีแท็บสำรองให้ลบ');
   return gone.length;
+}
+
+
+/* ============================================================================
+ *  ⑧ แช่แข็งสรุปงวด — พอขึ้นงวดใหม่ ตัวเลขงวดเก่าจะไม่หายไปไหน
+ *
+ *  แท็บ "สรุปรายคน–ทั้งงวด" เป็นสูตร QUERY ที่ชี้แท็บงวดปัจจุบัน
+ *  พอถึงวันที่ 26 มันจะเปลี่ยนไปชี้งวดใหม่ ตัวเลขงวดเก่าก็หายจากหน้าจอ
+ *  ตัวนี้ก๊อปตัวเลข (ไม่เอาสูตร) เก็บเป็นแท็บ "สรุป_2569_09" ให้อัตโนมัติ
+ *  ใช้อ้างอิงตอนจ่ายเงินเดือนย้อนหลังได้ตลอด
+ * ========================================================================== */
+function apArchive_(ss, tagOld) {
+  if (!tagOld) return null;
+  var src = ss.getSheetByName(AP_PER_TAB);
+  if (!src) return null;
+
+  var name = 'สรุป_' + tagOld;
+  if (ss.getSheetByName(name)) return name;          /* เก็บไว้แล้ว ไม่ทำซ้ำ */
+
+  var v = src.getDataRange().getValues();
+  if (v.length < 3) return null;                     /* ยังไม่มีข้อมูล ไม่ต้องเก็บ */
+
+  var t = ss.insertSheet(name, ss.getNumSheets());
+  t.getRange(1, 1, v.length, v[0].length).setValues(v);   /* setValues = ได้ตัวเลข ไม่ติดสูตรมา */
+  t.getRange(1, 1).setValue('สรุปงวด ' + tagOld + '  (ปิดงวดแล้ว · ตัวเลขแช่แข็ง)')
+                  .setFontWeight('bold').setFontSize(12);
+  t.setFrozenRows(2);
+  t.getRange(2, 1, 1, v[0].length).setFontWeight('bold').setBackground('#F2EDED');
+  t.getRange(3, 6, Math.max(1, v.length - 2), 7).setNumberFormat('0.00');
+  t.setColumnWidth(2, 200);
+  Logger.log('แช่แข็งสรุปงวด ' + tagOld + ' เป็นแท็บ "' + name + '" แล้ว');
+  return name;
+}
+
+/** แช่แข็งสรุปงวดปัจจุบันด้วยมือ — ใช้ตอนจะปิดงวดก่อนกำหนด */
+function archiveThisPeriod() {
+  var ss = SpreadsheetApp.openById(RC.LOG_ID);
+  var per = ss.getSheetByName(AP_PER_TAB);
+  if (!per) throw new Error('ยังไม่มีแท็บสรุป — รัน buildDailySummary() ก่อน');
+  var tag = String(per.getRange('A1').getValue()).replace('งวด ', '').trim();
+  var nm = apArchive_(ss, tag);
+  Logger.log(nm ? 'เก็บเป็นแท็บ "' + nm + '" แล้ว' : 'ไม่มีข้อมูลให้เก็บ');
+  return nm;
+}
+
+/** ดูว่าเก็บสรุปงวดไหนไว้แล้วบ้าง */
+function listArchives() {
+  var a = SpreadsheetApp.openById(RC.LOG_ID).getSheets()
+    .map(function (s) { return s.getName(); })
+    .filter(function (n) { return n.indexOf('สรุป_') === 0; }).sort();
+  Logger.log('สรุปงวดที่เก็บไว้แล้ว:\n  ' + (a.join('\n  ') || 'ยังไม่มี'));
+  return a;
 }
