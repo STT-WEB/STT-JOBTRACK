@@ -28,7 +28,7 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v4.1 (2569-08-26)';
+var AP_VER = 'apply v4.2 (2569-08-26)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
@@ -57,6 +57,7 @@ function apTicked_(v) {
 /* ============================================================ ① ลง template */
 function runApply(opts) {
   opts = opts || {};
+  var C0 = RC.C, dFixMsg = 0;
   var ss = SpreadsheetApp.openById(RC.LOG_ID);
   var sh = apSheet_();
 
@@ -88,6 +89,23 @@ function runApply(opts) {
   sh.getRange(1, AC_.NOTE).setNote('✏️ ช่องนี้แก้ได้\nเขียนว่าทำไมถึงแก้เวลา เช่น "ลืมสแกนออก หัวหน้ายืนยันแล้ว"');
   sh.getRange(1, 25).setNote('🔒 ผลคำนวณ — ห้ามแก้\nเวลาที่ระบบใช้จริงหลังปัดตามกฎ\nถ้าไม่ถูก ให้ไปแก้ช่อง "เวลาเข้า (แก้ได้)" แทน');
   sh.getRange(1, 26).setNote('🔒 ผลคำนวณ — ห้ามแก้\nถ้าไม่ถูก ให้ไปแก้ช่อง "เวลาออก (แก้ได้)" แทน');
+
+  /* 2.5 ปกติวันที่ทุกรอบ — JOBTRACK ยังเขียนแถวใหม่เป็น Date ปี 2569 อยู่
+         ถ้าไม่ปกติ ชนิดข้อมูลจะปนกัน แล้ว QUERY ในแท็บสรุปจะแยกคนคนเดียวเป็น 2 แถว */
+  var lastR = sh.getLastRow();
+  if (lastR > 1) {
+    var dR = sh.getRange(2, C0.DATE + 1, lastR - 1, 1);
+    var dV = dR.getValues(), dOut = [], dFix = 0;
+    for (var z = 0; z < dV.length; z++) {
+      var cur = dV[z][0];
+      if (cur === '' || cur === null) { dOut.push(['']); continue; }
+      var kk = rcKey_(cur);
+      if (String(cur) !== kk) dFix++;
+      dOut.push([kk]);
+    }
+    if (dFix) dR.setNumberFormat('@STRING@').setValues(dOut);
+    dFixMsg = dFix;
+  }
 
   /* 3. คำนวณใหม่ทั้งงวด */
   var v = sh.getDataRange().getValues();
@@ -192,10 +210,9 @@ function runApply(opts) {
     '\nแถวคร่อมเที่ยง  : ' + S.cross + '  ← ติ๊กช่อง AE ได้เลย' +
     '\nแถวที่คอลัมน์ P ไม่ตรงจำนวนแถวจริง : ' + S.split +
     (S.split ? '  ← เดิมชั่วโมงหายไป รอบนี้แก้ให้แล้ว' : '') +
-    '\n\nคอลัมน์ใหม่ : Y–AG (9 ช่อง)' +
-    '\nคนแก้ได้    : C · D เวลาเข้า–ออก | AE ติ๊ก | AG หมายเหตุ  (พื้นเขียว)' +
-    '\n\nขั้นต่อไป : normalizeDates() → runApply() อีกรอบ' +
-    '\nไม่พอใจ   : undoApply()' +
+    '\n\nคอลัมน์ใหม่ : Y–AJ (12 ช่อง)' +
+    '\nคนแก้ได้    : C · D เวลาเข้า–ออก | AH ติ๊ก | AJ หมายเหตุ  (พื้นเขียว)' +
+    (dFixMsg ? '\nปกติวันที่ให้ : ' + dFixMsg + ' แถว' : '') +
     '\n==============================\n';
   Logger.log(msg);
   return msg;
