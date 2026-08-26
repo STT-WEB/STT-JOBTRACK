@@ -423,9 +423,35 @@ function checkOpenJob(empId) {
 }
 
 // ============================================================
+// เพิ่มแถวใหม่แบบปลอดภัย — ห้ามใช้ appendRow + getLastRow อีกเด็ดขาด
+//
+// ทำไม : appendRow กับ getLastRow เป็นคนละคำสั่ง ระหว่างสองคำสั่งนี้
+//        คนอื่นแทรกแถวเข้ามาได้ getLastRow จะคืนเลขแถวของ "คนที่มาทีหลัง"
+//        แล้วเราจะเอาข้อมูลของเราไปเขียนทับแถวเขา
+//        เคสจริง 26/8/2569 08:01:30 : รหัสรอบงานของ 1069018 ไปตกบนแถวของ 4900044
+//
+// ตัวนี้ต้องเรียกใต้ LockService เท่านั้น จองเลขแถว เขียนรวดเดียว แล้วคืนเลขแถวไปเลย
+// จะได้ไม่มีใครต้องเรียก getLastRow ซ้ำอีก
+// ============================================================
+function appendRowSafe_(sheet, row) {
+  var r = sheet.getLastRow() + 1;
+  var w = row.slice();
+  while (w.length < 29) w.push('');
+  // ตั้งรูปแบบเป็นข้อความก่อนเขียน ค่าจะได้ไม่โดน Sheets แปลงเป็นเวลา/ตัวเลข
+  // (นี่คือสาเหตุที่เวลาเข้าบางแถวขึ้น 8:00 ชิดขวา แทนที่จะเป็น 08:00 ชิดซ้าย)
+  sheet.getRange(r, COL.TIME_IN + 1).setNumberFormat('@STRING@');
+  sheet.getRange(r, COL.TIME_OUT + 1).setNumberFormat('@STRING@');
+  sheet.getRange(r, COL.SESSION + 1).setNumberFormat('@STRING@');
+  sheet.getRange(r, COL.PROC_SUB + 1).setNumberFormat('@STRING@');
+  sheet.getRange(r, 1, 1, w.length).setValues([w]);
+  return r;
+}
+
+// ============================================================
 // CHECK IN
 // ============================================================
 function doCheckIn(data) {
+  // ตรวจงานค้างก่อนเข้าล็อก — ส่วนนี้อ่านอย่างเดียวและช้า ไม่ควรถือล็อกไว้
   var status=checkOpenJob(data.emp_id);
   if (status.hasOpen) return {ok:false,blocked:true,message:'OPEN_JOB_EXISTS',openJob:status.openJob};
   var sheet=getJobLogSheet(); var now=new Date(); var timeStr=minToStr(snapCheckIn(now.getHours()*60+now.getMinutes())); var dateStr=formatDate(now); var dayType=getDayType(dateStr);
@@ -439,13 +465,19 @@ function doCheckIn(data) {
   row[COL.EMP_TYPE]=getEmployeeType(String(data.emp_id||''));
   row[COL.SESSION]=sessionId; row[COL.PROC_SUB]=procRaw; row[COL.PROC_COUNT]=procCount;
   row[COL.STATUS]='Check In'; row[COL.LANG]=String(data.lang||'th'); row[COL.DAY_TYPE]=dayType;
-  sheet.appendRow(row);
-  var lastRow=sheet.getLastRow();
-  colorStatus(sheet,lastRow,'Check In');
-  sheet.getRange(lastRow,COL.TIME_IN+1).setNumberFormat('@STRING@').setValue(timeStr);
-  sheet.getRange(lastRow,COL.PROC_SUB+1).setNumberFormat('@STRING@').setValue(procRaw);
-  sheet.getRange(lastRow,COL.SESSION+1).setNumberFormat('@STRING@').setValue(sessionId);
-  return {ok:true,action:'CHECK_IN',time_in:timeStr,date:dateStr,session:sessionId};
+
+  // ★ ล็อกเฉพาะตอนเขียน — ใช้ล็อกตัวเดียวกับ doCheckOut จะได้ไม่แย่งแถวข้ามกัน
+  //   ถือล็อกสั้น ๆ แค่ครึ่งวินาที คนสแกนพร้อมกันหลายคนจึงต่อคิวได้ทัน
+  var _lock=LockService.getScriptLock();
+  try{ _lock.waitLock(30000); }catch(e){ return {ok:false,message:'BUSY'}; }
+  var lastRow;
+  try{
+    lastRow=appendRowSafe_(sheet,row);
+    colorStatus(sheet,lastRow,'Check In');
+    SpreadsheetApp.flush();   // ต้อง commit ก่อนปล่อยล็อก ไม่งั้นคิวถัดไปมองไม่เห็นแถวนี้
+  }finally{ try{_lock.releaseLock();}catch(e){} }
+
+  return {ok:true,action:'CHECK_IN',time_in:timeStr,date:dateStr,session:sessionId,row:lastRow};
 }
 // ============================================================
 // CHECK OUT
@@ -494,11 +526,12 @@ function doCheckOut(data) {
   writeCheckoutRow(sheet, targetRow, timeOut, procs[0], n, dayTypeVal, bd, scale);
   // process ที่ 2..N = เพิ่มแถวใหม่ (คัดลอกข้อมูลฐานจากแถวเช็คอิน)
   for (var pi = 1; pi < n; pi++) {
-    sheet.appendRow(baseRow);
-    writeCheckoutRow(sheet, sheet.getLastRow(), timeOut, procs[pi], n, dayTypeVal, bd, scale, baseRow[COL.TIME_IN]);
+    var newRow = appendRowSafe_(sheet, baseRow);   /* จองเลขแถวมาเลย ห้ามถาม getLastRow ซ้ำ */
+    writeCheckoutRow(sheet, newRow, timeOut, procs[pi], n, dayTypeVal, bd, scale, baseRow[COL.TIME_IN]);
   }
 
   updateDailyHourAlert(sheet, values, String(data.emp_id), startDate, targetRow);
+  SpreadsheetApp.flush();   // commit ก่อนปล่อยล็อก คิวถัดไปจะได้เห็นแถวที่เพิ่งเพิ่ม
 
   var totMin = bd.byCodeMin['1']+bd.byCodeMin['2A']+bd.byCodeMin['2B']+bd.byCodeMin['3']+bd.byCodeMin['4'];
   Logger.log('CHECK OUT v4.2: '+data.emp_id+' ['+empType+'] '+n+' proc ÷'+n+' ('+timeInStr+'-'+timeOut+') รวม='+minutesToHHMM(Math.round(totMin))+' payHrs='+bd.payHours);
