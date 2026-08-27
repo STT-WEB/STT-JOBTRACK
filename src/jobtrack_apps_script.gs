@@ -133,14 +133,17 @@ function dayKindOf(dayTypeStr) {
 
 // แผนที่ time-band ของแต่ละประเภทวัน → [{from,to,code}] (นาที 0..1440)
 function getDayTypeBands(dayKind) {
-  var normalCode, otCode, lunchCode = '3';   // 12:00-13:00 = Code 3 เสมอ
+  var normalCode, otCode;
   if (dayKind === 'นักขัตฤกษ์') { normalCode = '2B'; otCode = '4'; }
   else if (dayKind === 'หยุด')  { normalCode = '2A'; otCode = '4'; }
   else                          { normalCode = '1';  otCode = '3'; }
+  // ★ ไม่มี band ของ 12:00-13:00 อีกแล้ว = ตัดพักเที่ยงทิ้งอัตโนมัติเสมอ
+  //   ของเดิมตั้งเป็น Code 3 (OT ×1.5) คนที่ลืมสแกนออกตอนเที่ยงเลยได้ OT ฟรีทุกคน
+  //   ถ้าทำงานผ่าเที่ยงจริง ให้ HR ติ๊กช่อง AH เอง แล้วเครื่องคำนวณจะบวกคืนให้
   return [
     { from: 0,      to: T_0800, code: otCode },     // ก่อน 08:00 = OT
     { from: T_0800, to: T_1200, code: normalCode }, // 08:00-12:00 ทำงานปกติ
-    { from: T_1200, to: T_1300, code: lunchCode },  // 12:00-13:00 OT ผ่าเที่ยง
+    /* 12:00-13:00 พักเที่ยง — ไม่นับให้ทุกกรณี ต้องติ๊กอนุมัติถึงจะได้ */
     { from: T_1300, to: T_1700, code: normalCode }, // 13:00-17:00 ทำงานปกติ
     { from: T_1700, to: 1440,   code: otCode },     // 17:00-24:00 OT (OT gate จัดการที่ snapCheckOut)
   ];
@@ -454,7 +457,15 @@ function doCheckIn(data) {
   // ตรวจงานค้างก่อนเข้าล็อก — ส่วนนี้อ่านอย่างเดียวและช้า ไม่ควรถือล็อกไว้
   var status=checkOpenJob(data.emp_id);
   if (status.hasOpen) return {ok:false,blocked:true,message:'OPEN_JOB_EXISTS',openJob:status.openJob};
-  var sheet=getJobLogSheet(); var now=new Date(); var timeStr=minToStr(snapCheckIn(now.getHours()*60+now.getMinutes())); var dateStr=formatDate(now); var dayType=getDayType(dateStr);
+  var sheet=getJobLogSheet(); var now=new Date();
+  // ★ เก็บ "เวลาจริง" ลงชีต ไม่ปัดตั้งแต่ตอนสแกน
+  //   ของเดิมปัดแล้วเขียนทับเวลาจริงทิ้งเลย พอ HR เปิดคอลัมน์ C มาก็เห็นแต่เวลาที่ปัดแล้ว
+  //   ตรวจสอบย้อนหลังไม่ได้ และขัดกับที่ตกลงกันว่า C·D = เวลาจริง / Y·Z = เวลาที่ปัด
+  //   เวลาที่ปัดให้เครื่องคำนวณ (Recheck) ทำตอนคำนวณแทน จะแก้กฎเมื่อไหร่ก็ได้ไม่ต้องแก้ข้อมูลเก่า
+  var nowMin=now.getHours()*60+now.getMinutes();
+  var timeStr=formatTime(now);                      /* เวลาจริง → ลงชีต */
+  var timeSnap=minToStr(snapCheckIn(nowMin));       /* เวลาที่ปัด → โชว์บนหน้าจอพนักงาน */
+  var dateStr=formatDate(now); var dayType=getDayType(dateStr);
   var procRaw=String(data.process||'');
   var procCount=procRaw.split(' || ').map(function(x){return x.trim();}).filter(Boolean).length || 1;
   var sessionId='S-'+String(data.emp_id||'')+'-'+Utilities.formatDate(now,'Asia/Bangkok','yyMMddHHmmss');
@@ -477,7 +488,9 @@ function doCheckIn(data) {
     SpreadsheetApp.flush();   // ต้อง commit ก่อนปล่อยล็อก ไม่งั้นคิวถัดไปมองไม่เห็นแถวนี้
   }finally{ try{_lock.releaseLock();}catch(e){} }
 
-  return {ok:true,action:'CHECK_IN',time_in:timeStr,date:dateStr,session:sessionId,row:lastRow};
+  /* หน้าจอพนักงานยังโชว์เวลาที่ปัดเหมือนเดิม จะได้ไม่งงว่าทำไมไม่ใช่ 08:00
+     ส่วน time_in_raw คือเวลาจริงที่บันทึกลงชีต เผื่อหน้าเว็บอยากโชว์ทั้งคู่ */
+  return {ok:true,action:'CHECK_IN',time_in:timeSnap,time_in_raw:timeStr,date:dateStr,session:sessionId,row:lastRow};
 }
 // ============================================================
 // CHECK OUT
@@ -490,7 +503,11 @@ function doCheckOut(data) {
   if (openResult.hasOpen&&openResult.openJob.sheet_name) sheet=SpreadsheetApp.openById(LOG_SHEET_ID).getSheetByName(openResult.openJob.sheet_name);
   else sheet=getJobLogSheet();
   values=sheet.getDataRange().getValues();
-  var now=new Date(); var timeOut=minToStr(snapCheckOut(now.getHours()*60+now.getMinutes())); var targetRow=-1;
+  // ★ เหมือนตอน Check In — เก็บเวลาจริงลงชีต ส่วนเวลาที่ปัดใช้เฉพาะคำนวณกับโชว์หน้าจอ
+  var now=new Date(); var nowMinOut=now.getHours()*60+now.getMinutes();
+  var timeOut=formatTime(now);                          /* เวลาจริง → ลงชีต */
+  var timeOutSnap=minToStr(snapCheckOut(nowMinOut));    /* เวลาที่ปัด → ใช้คำนวณ */
+  var targetRow=-1;
   for (var i=values.length-1;i>=1;i--) {
     var r=values[i];
     if (String(r[COL.EMP_ID]).trim()===String(data.emp_id).trim()&&String(r[COL.JOB_ID]).trim()===String(data.job_id).trim()&&String(r[COL.STATUS])==='Check In'&&String(r[COL.TIME_OUT]).trim()==='') {
@@ -513,7 +530,10 @@ function doCheckOut(data) {
   var dayTypeVal = String(values[targetRow-1][COL.DAY_TYPE] || getDayType(startDate));
   var empType = String(values[targetRow-1][COL.EMP_TYPE] || getEmployeeType(String(data.emp_id)));
 
-  var bd = calcWorkBreakdown(timeInStr, timeOut, startDate, empType);
+  /* คอลัมน์ C เก็บเวลาจริงแล้ว ต้องปัดตอนนี้ก่อนเอาไปคำนวณ
+     (แถวเก่าที่เก็บเวลาปัดไว้แล้ว ปัดซ้ำได้ค่าเดิม ไม่เพี้ยน) */
+  var timeInSnap = minToStr(snapCheckIn(toMinutes(timeInStr)));
+  var bd = calcWorkBreakdown(timeInSnap, timeOutSnap, startDate, empType);
 
   // ── แยก Process (เลือกได้หลายงาน คั่นด้วย ' || ') → หารเฉลี่ยชั่วโมง ÷ N ──
   var baseRow = values[targetRow-1].slice();
@@ -531,10 +551,14 @@ function doCheckOut(data) {
   //   HR เปิดมาเห็นแถวเดียวก็นึกว่าอีก Process หายไป แล้วไปเจอทีหลังก็นึกว่าลงซ้ำ
   //   แทรกติดกันแบบนี้ 1 รอบงานจะอ่านได้จบในสายตาเดียว
   //   ปลอดภัยเพราะอยู่ใต้ LockService และแทรก "ใต้" targetRow เลขแถวแรกไม่ขยับ
+  //   ★ Timestamp ต้องบังคับเป็นข้อความ ไม่งั้นแถวที่ก๊อปมาจะเหลือแต่วันที่ เวลาจริงหายไป
+  //     (คอลัมน์ A คือที่เดียวที่เก็บวินาทีของการสแกนไว้ ห้ามให้หาย)
+  var stampTxt = String(values[targetRow-1][COL.TIMESTAMP] || '');
   for (var pi = 1; pi < n; pi++) {
     var at = targetRow + pi;
     sheet.insertRowAfter(at - 1);
     sheet.getRange(at, 1, 1, baseRow.length).setValues([baseRow]);
+    sheet.getRange(at, COL.TIMESTAMP + 1).setNumberFormat('@STRING@').setValue(stampTxt);
     writeCheckoutRow(sheet, at, timeOut, procs[pi], n, dayTypeVal, bd, scale, baseRow[COL.TIME_IN]);
   }
 

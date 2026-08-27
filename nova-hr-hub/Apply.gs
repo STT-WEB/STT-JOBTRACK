@@ -28,7 +28,7 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v4.9 (2569-08-27)';
+var AP_VER = 'apply v5.0 (2569-08-27)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
@@ -179,18 +179,27 @@ function runApply(opts) {
     var r = rcCalc_(row[C.IN], row[C.OUT], row[C.DATE], isMonthly, calMap, tick, row[C.DAYTYPE]);
     var H = function (m) { return rcDec_(m / n); };
 
-    var stat;
-    if (r.err)                       stat = '⛔ ' + r.err;
-    else if (collide)                stat = '⛔ รหัสรอบงานชนกับพนักงานคนอื่น — เวลาเข้าอาจไม่ใช่ของคนนี้ ให้ตรวจจากรูปสแกน';
-    else if (n !== pCol)             stat = '⚠ แถวซ้ำ — รอบนี้มี ' + n + ' แถว แต่คอลัมน์ P บอก ' + pCol;
-    else if (r.crossLunch && !tick)  stat = '⚠ คร่อมเที่ยง — รอติ๊ก';
-    else if (H(r.ot15 + r.ot3) > 12) stat = '⚠ OT สูงผิดปกติ';
-    /* ไม่ใช่ปัญหา แต่บอกไว้ให้หายสงสัยว่าทำไมชั่วโมงน้อยกว่านาฬิกา */
-    else if (r.minApplied)           stat = 'งานสั้น · คิดขั้นต่ำ 0.5 ชม.';
-    else if (n > 1)                  stat = '✓ หารให้แล้ว · งานนี้ลง ' + n + ' จ๊อบ' +
-                                            apMateMsg_(rowsOf[key2], i + 1);
-    else                             stat = '';
-    if (stat.charAt(0) === '⛔' || stat.charAt(0) === '⚠') S.flag++;
+    /* ★ สถานะต้องบอก "ทุกเรื่อง" ของแถวนั้น ไม่ใช่เรื่องเดียวแล้วจบ
+       ของเดิมเป็น if-else ต่อกัน แถวที่คร่อมเที่ยงจะขึ้นแค่ "คร่อมเที่ยง"
+       แล้วกลบข้อความ "หารให้แล้ว 2 จ๊อบ" หายไป HR เลยนึกว่าระบบไม่ได้หารชั่วโมงให้
+       ตอนนี้เก็บทุกข้อความมาต่อกัน เรื่องร้ายแรงขึ้นก่อน */
+    var bad = [], info = [];
+    if (r.err)            bad.push('⛔ ' + r.err);
+    if (collide)          bad.push('⛔ รหัสรอบงานชนกับพนักงานคนอื่น — เวลาเข้าอาจไม่ใช่ของคนนี้ ให้ตรวจจากรูปสแกน');
+    if (n !== pCol)       bad.push('⚠ แถวซ้ำ — รอบนี้มี ' + n + ' แถว แต่คอลัมน์ P บอก ' + pCol);
+    if (H(r.ot15 + r.ot3) > 12) bad.push('⚠ OT สูงผิดปกติ');
+
+    /* ไม่ใช่ปัญหา แค่บอกให้หายสงสัย — ไม่นับเป็นแถวติดธง ไม่ต้องมีใครมาตาม */
+    if (r.crossLunch) {
+      info.push(tick ? '☑ อนุมัติ OT ผ่าเที่ยงแล้ว · บวกคืนให้ 1 ชม.'
+                     : 'ตัดพักเที่ยงให้แล้ว 1 ชม. · ถ้าทำงานจริงให้ติ๊กช่อง AH');
+    }
+    if (r.minApplied) info.push('งานสั้น · คิดขั้นต่ำ 0.5 ชม.');
+    if (n > 1)        info.push('✓ หารให้แล้ว · งานนี้ลง ' + n + ' จ๊อบ' +
+                                apMateMsg_(rowsOf[key2], i + 1));
+
+    var stat = bad.concat(info).join('  |  ');
+    if (bad.length) S.flag++;
     if (r.err) S.err++;
     if (r.crossLunch) S.cross++;
 
@@ -242,7 +251,7 @@ function runApply(opts) {
     (opts.auto ? '\n(รันอัตโนมัติโดยตัวตั้งเวลา)' : '') +
     '\nแถว Check Out  : ' + S.rows +
     '\nแถวขึ้นธง      : ' + S.flag + '   (⛔ คิดไม่ได้ ' + S.err + ')' +
-    '\nแถวคร่อมเที่ยง  : ' + S.cross + '  ← ติ๊กช่อง AH ได้เลย' +
+    '\nแถวคร่อมเที่ยง  : ' + S.cross + '  (ตัดพักเที่ยงให้แล้ว ไม่นับเป็นแถวติดธง · ถ้าทำงานจริงค่อยติ๊ก AH)' +
     '\nแถวที่คอลัมน์ P ไม่ตรงจำนวนแถวจริง : ' + S.split +
     (S.split ? '  ← เดิมชั่วโมงหายไป รอบนี้แก้ให้แล้ว' : '') +
     '\nแถวรหัสรอบงานชนกัน : ' + S.collide +
@@ -308,13 +317,17 @@ function apRecalcRow_(sh, row) {
   var r = rcCalc_(v[C.IN], v[C.OUT], v[C.DATE], isMonthly, rcLoadCal_(), tick, v[C.DAYTYPE]);
   var H = function (m) { return rcDec_(m / n); };
 
-  var stat;
-  if (r.err)                       stat = '⛔ ' + r.err;
-  else if (r.crossLunch && !tick)  stat = '⚠ คร่อมเที่ยง — รอติ๊ก';
-  else if (H(r.ot15 + r.ot3) > 12) stat = '⚠ OT สูงผิดปกติ';
-  else if (r.minApplied)           stat = 'งานสั้น · คิดขั้นต่ำ 0.5 ชม.';
-  else if (n > 1)                  stat = '✓ หารให้แล้ว · งานนี้ลง ' + n + ' จ๊อบ';
-  else                             stat = '';
+  /* ใช้กติกาเดียวกับ runApply — บอกทุกเรื่องของแถวนั้น ไม่ใช่เรื่องเดียวแล้วกลบที่เหลือ */
+  var bad = [], info = [];
+  if (r.err)                  bad.push('⛔ ' + r.err);
+  if (H(r.ot15 + r.ot3) > 12) bad.push('⚠ OT สูงผิดปกติ');
+  if (r.crossLunch) {
+    info.push(tick ? '☑ อนุมัติ OT ผ่าเที่ยงแล้ว · บวกคืนให้ 1 ชม.'
+                   : 'ตัดพักเที่ยงให้แล้ว 1 ชม. · ถ้าทำงานจริงให้ติ๊กช่อง AH');
+  }
+  if (r.minApplied) info.push('งานสั้น · คิดขั้นต่ำ 0.5 ชม.');
+  if (n > 1)        info.push('✓ หารให้แล้ว · งานนี้ลง ' + n + ' จ๊อบ');
+  var stat = bad.concat(info).join('  |  ');
 
   var amH = H(r.amOT + r.amWork);
   var pmH = H(r.pmWork + r.pmOT + r.lunchOT);
