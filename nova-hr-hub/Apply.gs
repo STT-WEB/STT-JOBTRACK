@@ -28,7 +28,7 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v4.7 (2569-08-26)';
+var AP_VER = 'apply v4.8 (2569-08-26)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
@@ -504,6 +504,77 @@ function fixSessionClash(dryRun) {
 
 /* ดูก่อนว่าจะแก้อะไรบ้าง โดยยังไม่เขียนลงชีต */
 function previewSessionClash() { return fixSessionClash(true); }
+
+
+/* ============================================================================
+ *  ⑤¾ fixRowProcess() — พิมพ์ Process ที่ถูกต้องกลับเข้าแถวที่โดนเขียนทับ
+ *
+ *  ตอนสแกนพร้อมกัน โค้ดเก่าเขียนทับ 3 ช่องพร้อมกันเสมอ :
+ *      C  เวลาเข้า · O ชื่องานย่อย · L รหัสรอบงาน
+ *  แล้วตอน Check Out ค่าใน O ยังไปสร้าง M (หมวด) กับ N (รหัสงาน) ต่ออีก
+ *  รวมเป็น 4 ช่องที่เพี้ยน : M · N · O และ C
+ *
+ *  Process ของจริงไม่มีเก็บไว้ที่ไหนในระบบ ต้องถามพนักงานหรือหัวหน้าแล้วพิมพ์กลับเข้าไป
+ *  ตัวนี้พิมพ์ให้ครบทั้ง 3 ช่องในครั้งเดียว จะได้ไม่ต้องไล่กรอกเอง และไม่ต้องปลด NOVA lock
+ *
+ *  วิธีใช้ :  fixRowProcess(9, 'E.2 พ่นสีภายนอก')
+ *            fixRowProcess(9, 'E.2 พ่นสีภายนอก', '08:15')   ← แก้เวลาเข้าไปด้วย
+ * ========================================================================== */
+var AP_PROC_MAIN = {
+  A:'FABRICATION & ASSEMBLY', B:'WELDING', C:'PART', D:'KEMREX', E:'PAINTING',
+  F:'SYSTEM', G:'PIPING & VALVES', H:'RE-INSTALLATION', I:'SUSPENSION',
+  J:'STICKER', K:'QC', L:'CLEANING'
+};
+function apParseProc_(label) {
+  label = String(label || '').trim();
+  var sp = label.indexOf(' ');
+  var code = sp > 0 ? label.substring(0, sp) : label;
+  var sub  = sp > 0 ? label.substring(sp + 1).trim() : '';
+  var letter = code.split('.')[0].toUpperCase();
+  return { code: code, sub: sub,
+           main: AP_PROC_MAIN[letter] ? (letter + ' · ' + AP_PROC_MAIN[letter]) : letter };
+}
+
+function fixRowProcess(rowNo, label, newTimeIn) {
+  rowNo = Number(rowNo);
+  if (!rowNo || rowNo < 2) throw new Error('ใส่เลขแถวด้วย เช่น fixRowProcess(9, "E.2 พ่นสีภายนอก")');
+  if (!String(label || '').trim()) throw new Error('ใส่ Process ด้วย เช่น "E.2 พ่นสีภายนอก"');
+
+  var sh = apSheet_(), C = RC.C;
+  var PMAIN = 13, PCODE = 14, PSUB = 15;          /* M · N · O (1-based) */
+  var before = sh.getRange(rowNo, 1, 1, AC_.NOTE).getValues()[0];
+  var who = String(before[C.EMP]) + ' ' + String(before[C.NAME] || '');
+  var job = String(before[C.JOB] || '');
+  var p = apParseProc_(label);
+
+  sh.getRange(rowNo, PMAIN).setNumberFormat('@STRING@').setValue(p.main);
+  sh.getRange(rowNo, PCODE).setNumberFormat('@STRING@').setValue(p.code);
+  sh.getRange(rowNo, PSUB ).setNumberFormat('@STRING@').setValue(p.sub);
+
+  var timeMsg = '(ไม่แก้)';
+  if (newTimeIn) {
+    sh.getRange(rowNo, C.IN + 1).setNumberFormat('@STRING@').setValue(String(newTimeIn).trim());
+    timeMsg = String(before[C.IN]) + '  →  ' + newTimeIn;
+  }
+
+  var note = String(before[AC_.NOTE - 1] || '').trim();
+  var mark = 'แก้ Process กลับตามที่ยืนยันแล้ว (แถวนี้เคยโดนเขียนทับตอนสแกนพร้อมกัน)';
+  if (note.indexOf(mark) < 0) note = note ? (note + ' · ' + mark) : mark;
+  sh.getRange(rowNo, AC_.NOTE).setValue(note);
+  SpreadsheetApp.flush();
+
+  var msg = '\n===== แก้ Process แถว ' + rowNo + ' =====' +
+    '\nพนักงาน : ' + who +
+    '\nจ๊อบ    : ' + job +
+    '\n  M หมวด Process : ' + before[PMAIN - 1] + '  →  ' + p.main +
+    '\n  N รหัสงาน      : ' + before[PCODE - 1] + '  →  ' + p.code +
+    '\n  O ชื่องานย่อย   : ' + before[PSUB  - 1] + '  →  ' + p.sub +
+    '\n  C เวลาเข้า      : ' + timeMsg +
+    '\n\nชั่วโมงไม่เปลี่ยน — Process มีผลกับต้นทุนต่อจ๊อบเท่านั้น' +
+    '\n===============================\n';
+  Logger.log(msg);
+  return msg;
+}
 
 
 /* ============================================================================

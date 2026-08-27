@@ -469,7 +469,7 @@ function doCheckIn(data) {
   // ★ ล็อกเฉพาะตอนเขียน — ใช้ล็อกตัวเดียวกับ doCheckOut จะได้ไม่แย่งแถวข้ามกัน
   //   ถือล็อกสั้น ๆ แค่ครึ่งวินาที คนสแกนพร้อมกันหลายคนจึงต่อคิวได้ทัน
   var _lock=LockService.getScriptLock();
-  try{ _lock.waitLock(30000); }catch(e){ return {ok:false,message:'BUSY'}; }
+  try{ _lock.waitLock(30000); }catch(e){ return {ok:false,code:'BUSY',message:'ระบบกำลังบันทึกของคนอื่นอยู่ กรุณากดสแกนอีกครั้งใน 5 วินาที'}; }
   var lastRow;
   try{
     lastRow=appendRowSafe_(sheet,row);
@@ -484,7 +484,7 @@ function doCheckIn(data) {
 // ============================================================
 function doCheckOut(data) {
   var _lock=LockService.getScriptLock();
-  try{ _lock.waitLock(15000); }catch(e){ return {ok:false,message:'BUSY'}; }
+  try{ _lock.waitLock(30000); }catch(e){ return {ok:false,code:'BUSY',message:'ระบบกำลังบันทึกของคนอื่นอยู่ กรุณากดสแกนอีกครั้งใน 5 วินาที'}; }
   try{
   var openResult=checkOpenJob(data.emp_id); var sheet,values;
   if (openResult.hasOpen&&openResult.openJob.sheet_name) sheet=SpreadsheetApp.openById(LOG_SHEET_ID).getSheetByName(openResult.openJob.sheet_name);
