@@ -525,9 +525,17 @@ function doCheckOut(data) {
   // แถวแรก = process แรก (อัปเดตแถวเดิม)
   writeCheckoutRow(sheet, targetRow, timeOut, procs[0], n, dayTypeVal, bd, scale);
   // process ที่ 2..N = เพิ่มแถวใหม่ (คัดลอกข้อมูลฐานจากแถวเช็คอิน)
+  // ★ แทรกแถวต่อจากแถวแรกทันที ไม่เอาไปต่อท้ายชีต
+  //   ของเดิมใช้ appendRow แถว Process ที่ 2 เลยไปโผล่ห่างจากแถวแรกเป็นสิบแถว
+  //   (ระหว่างที่คนนี้ทำงานอยู่ คนอื่นสแกนเข้ามาคั่นเรื่อย ๆ)
+  //   HR เปิดมาเห็นแถวเดียวก็นึกว่าอีก Process หายไป แล้วไปเจอทีหลังก็นึกว่าลงซ้ำ
+  //   แทรกติดกันแบบนี้ 1 รอบงานจะอ่านได้จบในสายตาเดียว
+  //   ปลอดภัยเพราะอยู่ใต้ LockService และแทรก "ใต้" targetRow เลขแถวแรกไม่ขยับ
   for (var pi = 1; pi < n; pi++) {
-    var newRow = appendRowSafe_(sheet, baseRow);   /* จองเลขแถวมาเลย ห้ามถาม getLastRow ซ้ำ */
-    writeCheckoutRow(sheet, newRow, timeOut, procs[pi], n, dayTypeVal, bd, scale, baseRow[COL.TIME_IN]);
+    var at = targetRow + pi;
+    sheet.insertRowAfter(at - 1);
+    sheet.getRange(at, 1, 1, baseRow.length).setValues([baseRow]);
+    writeCheckoutRow(sheet, at, timeOut, procs[pi], n, dayTypeVal, bd, scale, baseRow[COL.TIME_IN]);
   }
 
   updateDailyHourAlert(sheet, values, String(data.emp_id), startDate, targetRow);

@@ -28,7 +28,7 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v4.8 (2569-08-26)';
+var AP_VER = 'apply v4.9 (2569-08-27)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
@@ -52,6 +52,16 @@ function apSheet_() {
 }
 function apTicked_(v) {
   return v === true || String(v).trim() === '✓' || String(v).toUpperCase() === 'TRUE';
+}
+
+/* บอกว่าอีก Process ของรอบงานเดียวกันไปอยู่แถวไหน
+   จำเป็นเพราะ JOBTRACK เอาแถวที่ 2 ไปต่อท้ายชีต ไม่ได้วางติดกับแถวแรก */
+function apMateMsg_(rows, self) {
+  if (!rows || rows.length < 2) return '';
+  var other = [];
+  for (var i = 0; i < rows.length; i++) if (rows[i] !== self) other.push(rows[i]);
+  if (!other.length) return '';
+  return ' · อีกจ๊อบอยู่แถว ' + other.join(', ');
 }
 
 /* ============================================================ ① ลง template */
@@ -122,7 +132,7 @@ function runApply(opts) {
      JOBTRACK มีบั๊กแย่งแถวกันตอนสแกนพร้อมกัน (doCheckIn ไม่มี LockService)
      ทำให้รหัสรอบงานของคน A ไปตกอยู่บนแถวของคน B ได้
      ถ้าหารด้วยรหัสรอบงานเฉย ๆ ชั่วโมงของสองคนที่ไม่เกี่ยวกันจะโดนหารครึ่งทั้งคู่ */
-  var seen = {}, sidEmp = {};
+  var seen = {}, sidEmp = {}, rowsOf = {};
   for (var q = 1; q < last; q++) {
     if (String(v[q][C.STATUS]).trim() !== 'Check Out') continue;
     var sid = String(v[q][C.SESSION] || '').trim();
@@ -130,6 +140,10 @@ function runApply(opts) {
     var emp = String(v[q][C.EMP] || '').trim();
     var key = sid + '|' + emp;
     seen[key] = (seen[key] || 0) + 1;
+    /* จำเลขแถวไว้ด้วย — JOBTRACK เอาแถว Process ที่ 2 ไปต่อท้ายชีต ห่างจากแถวแรกเป็นสิบแถว
+       HR เปิดมาเห็นแถวเดียวแล้วนึกว่าอีก Process หายไป ต้องบอกเลขแถวคู่ให้ชัด */
+    if (!rowsOf[key]) rowsOf[key] = [];
+    rowsOf[key].push(q + 1);
     if (!sidEmp[sid]) sidEmp[sid] = {};
     sidEmp[sid][emp] = true;
   }
@@ -173,7 +187,8 @@ function runApply(opts) {
     else if (H(r.ot15 + r.ot3) > 12) stat = '⚠ OT สูงผิดปกติ';
     /* ไม่ใช่ปัญหา แต่บอกไว้ให้หายสงสัยว่าทำไมชั่วโมงน้อยกว่านาฬิกา */
     else if (r.minApplied)           stat = 'งานสั้น · คิดขั้นต่ำ 0.5 ชม.';
-    else if (n > 1)                  stat = '✓ หารให้แล้ว · งานนี้ลง ' + n + ' จ๊อบ';
+    else if (n > 1)                  stat = '✓ หารให้แล้ว · งานนี้ลง ' + n + ' จ๊อบ' +
+                                            apMateMsg_(rowsOf[key2], i + 1);
     else                             stat = '';
     if (stat.charAt(0) === '⛔' || stat.charAt(0) === '⚠') S.flag++;
     if (r.err) S.err++;
