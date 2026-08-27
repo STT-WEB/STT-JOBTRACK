@@ -28,7 +28,7 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v5.0 (2569-08-27)';
+var AP_VER = 'apply v5.1 (2569-08-27)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
@@ -532,6 +532,50 @@ function fixSessionClash(dryRun) {
 
 /* ดูก่อนว่าจะแก้อะไรบ้าง โดยยังไม่เขียนลงชีต */
 function previewSessionClash() { return fixSessionClash(true); }
+
+
+/* ============================================================================
+ *  ⑤⅘ listFlagged() — ไล่รายการแถวที่ติดธง พร้อมเหตุผล (อ่านอย่างเดียว)
+ *
+ *  runApply บอกแค่จำนวน เช่น "แถวขึ้นธง 8 (⛔ คิดไม่ได้ 3)" แต่ไม่บอกว่าแถวไหน
+ *  HR ต้องไปกรองคอลัมน์ AI เอง ตัวนี้พ่นออกมาให้เลย จะได้ไล่แก้ทีละแถว
+ *
+ *  ไม่นับแถวคร่อมเที่ยงที่ตัดพักเที่ยงให้แล้ว เพราะไม่ใช่ปัญหา
+ * ========================================================================== */
+function listFlagged() {
+  var sh = apSheet_(), C = RC.C, last = sh.getLastRow();
+  if (last < 2) return 'ไม่มีข้อมูล';
+  var v = sh.getRange(2, 1, last - 1, AC_.NOTE).getValues();
+  var stop = [], warn = [];
+
+  for (var i = 0; i < v.length; i++) {
+    var st = String(v[i][AC_.STAT - 1] || '').trim();
+    if (!st) continue;
+    var isStop = st.indexOf('⛔') >= 0, isWarn = st.indexOf('⚠') >= 0;
+    if (!isStop && !isWarn) continue;
+    /* เก็บเฉพาะข้อความที่เป็นปัญหาจริง ตัดข้อความบอกเฉย ๆ ที่ต่อท้ายออก */
+    var why = st.split('  |  ').filter(function (x) {
+      return x.indexOf('⛔') >= 0 || x.indexOf('⚠') >= 0;
+    }).join(' + ');
+    var item = '  แถว ' + (i + 2) + ' | ' + rcKey_(v[i][C.DATE]) +
+               ' | ' + String(v[i][C.EMP]) + ' ' + String(v[i][C.NAME] || '').substring(0, 18) +
+               ' | ' + rcHHMM_(rcMin_(v[i][C.IN])) + '–' + rcHHMM_(rcMin_(v[i][C.OUT])) +
+               ' | ' + String(v[i][C.JOB] || '') +
+               '\n      ' + why;
+    (isStop ? stop : warn).push(item);
+  }
+
+  Logger.log('\n===== แถวที่ต้องแก้ ' + AP_VER + ' =====' +
+    '\nแท็บ : ' + sh.getName() +
+    '\n\n⛔ คิดชั่วโมงไม่ได้ — ต้องแก้ก่อนปิดงวด : ' + stop.length + '\n' +
+    (stop.join('\n\n') || '  ไม่มี') +
+    '\n\n⚠ ต้องตรวจ : ' + warn.length + '\n' +
+    (warn.join('\n\n') || '  ไม่มี') +
+    '\n\nวิธีแก้ : พิมพ์เวลาจริงลงช่อง C หรือ D (พื้นเขียว) แล้วคำนวณใหม่ให้เองทันที' +
+    '\nดูเวลาสแกนจริงได้จากคอลัมน์ A (Timestamp) และรูปสแกนคอลัมน์ S' +
+    '\n==============================\n');
+  return stop.length + warn.length;
+}
 
 
 /* ============================================================================
