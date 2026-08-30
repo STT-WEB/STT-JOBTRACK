@@ -33,7 +33,7 @@ var WORK_START_HOUR   = 8;
 var WORK_HOURS        = 8;
 var BASE_URL          = 'https://stt-web.github.io/STT-JOBTRACK/job_checkin_app.html';
 var PHOTO_ROOT_FOLDER = 'JOBTRACK_Photos';   // โฟลเดอร์เก็บรูปใน Drive
-var PHOTO_RETENTION_DAYS = 31;               // เก็บรูปสูงสุด ~1 เดือน แล้วลบอัตโนมัติ
+var PHOTO_RETENTION_DAYS = 14;               // เก็บรูปสูงสุด 2 สัปดาห์ แล้วลบอัตโนมัติ (ลดจาก 31 — พื้นที่ Drive เต็มจนสแกนออกไม่ได้)
 
 // ── ขอบเขตช่วงเวลา (นาทีจากเที่ยงคืน) สำหรับ time-band ──
 var T_0800 = 8 * 60;    // 480
