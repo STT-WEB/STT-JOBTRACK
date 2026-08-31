@@ -33,6 +33,11 @@ var WORK_START_HOUR   = 8;
 var WORK_HOURS        = 8;
 var BASE_URL          = 'https://stt-web.github.io/STT-JOBTRACK/job_checkin_app.html';
 var PHOTO_ROOT_FOLDER = 'JOBTRACK_Photos';   // โฟลเดอร์เก็บรูปใน Drive
+/* ★★ กติกาสำคัญ : เวลารอคิวของเซิร์ฟเวอร์ (waitLock) ต้องน้อยกว่า
+   เวลาที่หน้าเว็บรอคำตอบ (apiPost timeout = 20 วินาที) เสมอ
+   ไม่งั้นหน้าเว็บจะขึ้น error ก่อนที่เซิร์ฟเวอร์จะทันตอบ
+   พนักงานเห็นว่า "ระบบไม่ออกให้" ทั้งที่บางครั้งเซิร์ฟเวอร์เขียนสำเร็จทีหลัง
+   ตอนนี้ : เซิร์ฟเวอร์ 12 วินาที < หน้าเว็บ 20 วินาที  ← ห้ามตั้งเกิน 15 */
 var PHOTO_RETENTION_DAYS = 14;               // เก็บรูปสูงสุด 2 สัปดาห์ แล้วลบอัตโนมัติ (ลดจาก 31 — พื้นที่ Drive เต็มจนสแกนออกไม่ได้)
 
 // ── ขอบเขตช่วงเวลา (นาทีจากเที่ยงคืน) สำหรับ time-band ──
@@ -480,7 +485,7 @@ function doCheckIn(data) {
   // ★ ล็อกเฉพาะตอนเขียน — ใช้ล็อกตัวเดียวกับ doCheckOut จะได้ไม่แย่งแถวข้ามกัน
   //   ถือล็อกสั้น ๆ แค่ครึ่งวินาที คนสแกนพร้อมกันหลายคนจึงต่อคิวได้ทัน
   var _lock=LockService.getScriptLock();
-  try{ _lock.waitLock(30000); }catch(e){ return {ok:false,code:'BUSY',message:'ระบบกำลังบันทึกของคนอื่นอยู่ กรุณากดสแกนอีกครั้งใน 5 วินาที'}; }
+  try{ _lock.waitLock(12000); }catch(e){ return {ok:false,code:'BUSY',message:'ระบบกำลังบันทึกของคนอื่นอยู่ กรุณากดสแกนอีกครั้งใน 5 วินาที'}; }
   var lastRow;
   try{
     lastRow=appendRowSafe_(sheet,row);
@@ -497,7 +502,7 @@ function doCheckIn(data) {
 // ============================================================
 function doCheckOut(data) {
   var _lock=LockService.getScriptLock();
-  try{ _lock.waitLock(30000); }catch(e){ return {ok:false,code:'BUSY',message:'ระบบกำลังบันทึกของคนอื่นอยู่ กรุณากดสแกนอีกครั้งใน 5 วินาที'}; }
+  try{ _lock.waitLock(12000); }catch(e){ return {ok:false,code:'BUSY',message:'ระบบกำลังบันทึกของคนอื่นอยู่ กรุณากดสแกนอีกครั้งใน 5 วินาที'}; }
   try{
   var openResult=checkOpenJob(data.emp_id); var sheet,values;
   if (openResult.hasOpen&&openResult.openJob.sheet_name) sheet=SpreadsheetApp.openById(LOG_SHEET_ID).getSheetByName(openResult.openJob.sheet_name);
