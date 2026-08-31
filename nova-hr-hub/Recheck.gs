@@ -614,6 +614,8 @@ function rcWriteRow_(sheet, row, r, n, dayTypeVal, statusText) {
        .setFormula('=IF($Q' + row + '<>"Check Out","",ROUND(AC' + row + '-W' + row + ',2))');
   sheet.getRange(row, RC_AC.W).setNumberFormat('0.00')
        .setFormula('=IF($Q' + row + '<>"Check Out","",AD' + row + '+AE' + row + '+AF' + row + '+AG' + row + ')');
+  /* X = "ชม.คิดค่าแรง (เลิกใช้)" ซ่อนอยู่ ไม่มีใครอ่านแล้ว
+     ให้สะท้อนค่าเดียวกับ E ไปเฉย ๆ — ห้ามใช้ AC+W เพราะ AC รวม OT อยู่แล้ว จะนับซ้ำ */
   sheet.getRange(row, RC_AC.X).setNumberFormat('0.00')
-       .setFormula('=IF($Q' + row + '<>"Check Out","",AC' + row + '+W' + row + ')');
+       .setFormula('=IF($Q' + row + '<>"Check Out","",AC' + row + ')');
 }
