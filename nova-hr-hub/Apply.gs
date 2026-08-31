@@ -28,7 +28,7 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v5.3 (2569-08-31)';
+var AP_VER = 'apply v6.0 (2569-08-31)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
@@ -76,25 +76,8 @@ function apMateMsg_(rows, self) {
  *    ot15    → 3   นอกกรอบเวลา วันทำงานปกติ
  *    ot3     → 4   นอกกรอบเวลา วันหยุด
  * ========================================================================== */
-var AP_HTYPE = {
-  '1':  '1. ชั่วโมงวันทำงานปกติ',
-  '3':  '3. ชั่วโมงทำงานโอทีวันทำงานปกติ',
-  '2A': '2A. ชั่วโมงวันทำงานหยุด (วันหยุดทั่วไป)',
-  '2B': '2B. ชั่วโมงวันทำงานหยุดนักขัตฤกษ์',
-  '4':  '4. ชั่วโมงทำงานโอทีวันหยุด/วันหยุดนักขัตฤกษ์ *3'
-};
-function apHourType_(r, dayTypeVal) {
-  if (!r || r.err) return '-';
-  var holidayCode = (rcKind_(dayTypeVal) === 'นักขัตฤกษ์') ? '2B' : '2A';
-  var got = {};
-  if (r.hNormal > 0)            got['1'] = true;
-  if (r.ot1 > 0 || r.ot2 > 0)   got[holidayCode] = true;
-  if (r.ot15 > 0)               got['3'] = true;
-  if (r.ot3 > 0)                got['4'] = true;
-  var parts = [];
-  ['1', '2A', '2B', '3', '4'].forEach(function (c) { if (got[c]) parts.push(AP_HTYPE[c]); });
-  return parts.join(' + ') || '-';
-}
+/* ป้ายประเภทชั่วโมง — ใช้ตัวกลางใน Recheck.gs ไม่เก็บสำเนาไว้ที่นี่ */
+function apHourType_(r, dayTypeVal) { return rcHourType_(r, dayTypeVal); }
 
 /* ============================================================ ① ลง template */
 function runApply(opts) {
@@ -377,23 +360,9 @@ function apRecalcRow_(sh, row) {
   if (n > 1)        info.push('✓ หารให้แล้ว · งานนี้ลง ' + n + ' จ๊อบ');
   var stat = bad.concat(info).join('  |  ');
 
-  var amH = H(r.amOT + r.amWork);
-  var pmH = H(r.pmWork + r.pmOT + r.lunchOT);
-  sh.getRange(row, AC_.IN, 1, 9).setValues([[
-    r.err ? '' : r.inUse, r.err ? '' : r.outUse,
-    amH, pmH, Math.round((amH + pmH) * 100) / 100,
-    H(r.ot1), H(r.ot15), H(r.ot2), H(r.ot3)]]);
-  sh.getRange(row, AC_.STAT).setValue(stat);
-  /* ★ ป้ายประเภทชั่วโมง U ต้องขยับตามด้วย ไม่งั้นจะค้างเป็นของเก่า */
-  sh.getRange(row, 21).setValue(apHourType_(r, v[C.DAYTYPE]));
-
-  /* ★ วางสูตรกลับลง E · V · W · X ทุกครั้ง
-     เผื่อแถวนี้เคยถูก JOBTRACK เวอร์ชันเก่าเขียนทับเป็นตัวเลขนิ่งไว้
-     พอวางสูตรคืน แก้ C/D ครั้งต่อไปมันจะขยับตามเองทันที */
-  sh.getRange(row,  5).setFormula('=IF($Q'+row+'<>"Check Out","",AC'+row+')');
-  sh.getRange(row, 22).setFormula('=IF($Q'+row+'<>"Check Out","",ROUND(AC'+row+'-W'+row+',2))');
-  sh.getRange(row, 23).setFormula('=IF($Q'+row+'<>"Check Out","",AD'+row+'+AE'+row+'+AF'+row+'+AG'+row+')');
-  sh.getRange(row, 24).setFormula('=IF($Q'+row+'<>"Check Out","",AC'+row+'+W'+row+')');
+  /* ★ เขียนผลผ่าน rcWriteRow_ ใน Recheck.gs — ทางเดียวกับที่ JOBTRACK ใช้
+     มีทางเขียนผลลัพธ์ทางเดียวทั้งระบบ จึงไม่มีวันเพี้ยนกันได้อีก */
+  rcWriteRow_(sh, row, r, n, v[C.DAYTYPE], stat);
 }
 
 /* ==================================== ④ แก้วันที่เก่าให้เป็นมาตรฐานเดียวกัน */
@@ -820,7 +789,10 @@ function installAutoApply() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'autoApply') ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('autoApply').timeBased().everyMinutes(5).create();   /* ★ จากทุกชั่วโมง → ทุก 5 นาที แถวใหม่จะไม่ค้างว่างนาน */
+  /* ★ ไม่กวาดทั้งชีตระหว่างวันอีกแล้ว — JOBTRACK คำนวณให้ตั้งแต่ตอนสร้างแถว
+     ตัวนี้เหลือเป็นแค่ "ตาข่ายกันพลาด" รันตี 3 วันละครั้ง
+     เก็บแถวตกหล่น + ตั้งฟอร์มให้แท็บงวดใหม่ตอนขึ้นวันที่ 26 */
+  ScriptApp.newTrigger('autoApply').timeBased().everyDays(1).atHour(3).create();
 
   /* ติดตั้งตัวคำนวณสดตอนแก้มือไปพร้อมกันเลย จะได้ไม่ลืม */
   ScriptApp.getProjectTriggers().forEach(function (t) {
@@ -830,8 +802,9 @@ function installAutoApply() {
     .forSpreadsheet(SpreadsheetApp.openById(RC.LOG_ID)).onEdit().create();
 
   var msg = 'ติดตั้งเรียบร้อย — ต่อจากนี้ไม่ต้องรันมืออีกเลย\n' +
-    '  · ทุก 5 นาที : ลง template + คำนวณแถวใหม่ให้แท็บงวดปัจจุบัน\n' +
-    '  · งวดใหม่    : ฟอร์มตามไปเองภายใน 5 นาที\n' +
+    '  · ตอนสแกนออก : JOBTRACK คำนวณชั่วโมงลงแถวนั้นให้ทันที\n' +
+    '  · ตี 3 ทุกวัน  : ตรวจทานเก็บแถวตกหล่น (ไม่กวนคนใช้งานระหว่างวัน)\n' +
+    '  · งวดใหม่    : ฟอร์มตามไปเองในรอบตี 3\n' +
     '  · แก้เวลามือ : คำนวณใหม่ทันที\n' +
     '  · ขึ้นงวดใหม่ : แช่แข็งสรุปงวดเก่าเก็บเป็นแท็บ สรุป_YYYY_MM ให้เอง\n' +
     '  · ไม่สำรองอัตโนมัติ (อยากได้ให้รัน backupNow เอง)';

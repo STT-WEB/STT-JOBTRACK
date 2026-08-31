@@ -9,6 +9,7 @@ echo.
 echo [1/4] Sync backend code -^> deploy ...
 copy /Y "src\jobtrack_apps_script.gs" "deploy\jobtrack_apps_script.gs" >nul
 copy /Y "src\appsscript.json" "deploy\appsscript.json" >nul
+copy /Y "nova-hr-hub\Recheck.gs" "deploy\Recheck.gs" >nul
 echo.
 
 echo [2/4] Backup to GitHub (skip if no git) ...

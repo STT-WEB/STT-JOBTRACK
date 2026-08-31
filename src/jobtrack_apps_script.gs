@@ -567,6 +567,29 @@ function doCheckOut(data) {
     writeCheckoutRow(sheet, at, timeOut, procs[pi], n, dayTypeVal, bd, scale, baseRow[COL.TIME_IN]);
   }
 
+  /* ★★★ คำนวณชั่วโมงด้วย "เครื่องคิดเลขตัวเดียวของระบบ" (rcCalc_ ใน Recheck.gs)
+     แล้วเขียนผลลงแถวเลย ตั้งแต่วินาทีที่พนักงานกดออกงาน
+
+     ทำไมต้องทำตรงนี้ : ของเดิม JOBTRACK คิดชั่วโมงเองด้วยกฎเก่า แล้วฝั่ง Hub
+     ต้องมากวาดทั้งชีตทุก 5 นาทีเพื่อคำนวณทับให้ถูก — ทั้งเปลืองและทำชีตกระตุก
+     พอ JOBTRACK ใช้เครื่องเดียวกันตั้งแต่แรก แถวก็ถูกตั้งแต่เกิด ไม่ต้องมีใครตามเก็บ
+
+     Recheck.gs เป็นไฟล์เดียวกับที่ Hub ใช้ ก๊อปขึ้นมาตอน deploy ต้นฉบับมีที่เดียว */
+  try {
+    var rcCal  = rcLoadCal_();
+    var rcIsM  = String(empType).indexOf('รายเดือน') >= 0;
+    for (var rq = 0; rq < n; rq++) {
+      var rcRow = targetRow + rq;                    /* แถวเรียงติดกันแล้ว */
+      var rcR   = rcCalc_(timeInStr, timeOut, startDate, rcIsM, rcCal, false, dayTypeVal);
+      var rcSt  = rcStatus_(rcR, n, n, false, false);
+      if (n > 1) rcSt.info.push('✓ หารให้แล้ว · งานนี้ลง ' + n + ' จ๊อบ');
+      rcWriteRow_(sheet, rcRow, rcR, n, dayTypeVal, rcSt.bad.concat(rcSt.info).join('  |  '));
+    }
+  } catch (eCalc) {
+    /* คิดไม่ได้ก็ไม่เป็นไร เวลาเข้า-ออกบันทึกไว้แล้ว รอบตรวจทานตี 3 จะเก็บให้ */
+    Logger.log('คำนวณชั่วโมงตอน Check Out ไม่สำเร็จ: ' + eCalc);
+  }
+
   updateDailyHourAlert(sheet, values, String(data.emp_id), startDate, targetRow);
   SpreadsheetApp.flush();   // commit ก่อนปล่อยล็อก คิวถัดไปจะได้เห็นแถวที่เพิ่งเพิ่ม
 
@@ -584,27 +607,13 @@ function writeCheckoutRow(sheet, rowIndex, timeOut, procLabel, count, dayTypeVal
   var pl = parseProcLabel(procLabel);
   if (timeInForNew !== undefined) sheet.getRange(rowIndex,COL.TIME_IN+1).setNumberFormat('@STRING@').setValue(String(timeInForNew));
   sheet.getRange(rowIndex,COL.TIME_OUT+1).setNumberFormat('@STRING@').setValue(timeOut);
-  /* ★★ E · V · W · X ไม่เขียนเป็นตัวเลขนิ่งอีกแล้ว — เขียนเป็น "สูตร" แทน
-     ของเดิมเขียนตัวเลขทับสูตรที่เครื่องคำนวณวางไว้ พอ HR แก้เวลาช่อง C/D
-     ตัวเลขก็ไม่ขยับ เพราะมันเป็นค่าตาย ไม่ใช่สูตร (สองระบบแย่งเขียนช่องเดียวกัน)
-     เขียนเป็นสูตรตั้งแต่ตอน Check Out เลย → ไม่มีช่องว่างแม้แต่วินาทีเดียว
-     และแก้ C/D เมื่อไหร่ ทั้งบรรทัดขยับตามทันที */
-  var R = rowIndex;
-  sheet.getRange(R, COL.HOURS+1).setNumberFormat('0.00')
-       .setFormula('=IF($Q'+R+'<>"Check Out","",AC'+R+')');
-  sheet.getRange(R, COL.HOURS_NORMAL_NUM+1).setNumberFormat('0.00')
-       .setFormula('=IF($Q'+R+'<>"Check Out","",ROUND(AC'+R+'-W'+R+',2))');
-  sheet.getRange(R, COL.HOURS_OT_NUM+1).setNumberFormat('0.00')
-       .setFormula('=IF($Q'+R+'<>"Check Out","",AD'+R+'+AE'+R+'+AF'+R+'+AG'+R+')');
-  sheet.getRange(R, COL.PAY_HOURS+1).setNumberFormat('0.00')
-       .setFormula('=IF($Q'+R+'<>"Check Out","",AC'+R+'+W'+R+')');
+  /* E · V · W · X และคอลัมน์ผลคำนวณทั้งหมด เขียนโดย rcWriteRow_ ที่เดียว (ดู doCheckOut) */
   sheet.getRange(rowIndex,COL.STATUS+1).setValue('Check Out');
   sheet.getRange(rowIndex,COL.PROC_MAIN+1).setNumberFormat('@STRING@').setValue(pl.main);
   sheet.getRange(rowIndex,COL.PROC_CODE+1).setNumberFormat('@STRING@').setValue(pl.code);
   sheet.getRange(rowIndex,COL.PROC_SUB+1).setNumberFormat('@STRING@').setValue(pl.sub);
   sheet.getRange(rowIndex,COL.PROC_COUNT+1).setValue(count);
   sheet.getRange(rowIndex,COL.DAY_TYPE+1).setValue(dayTypeVal);
-  sheet.getRange(rowIndex,COL.HOUR_TYPE+1).setValue(hourTypeVal);
   colorStatus(sheet, rowIndex, 'Check Out');
   var hoursCell = sheet.getRange(rowIndex,COL.HOURS+1);
   if ((nMin+oMin) > 480) hoursCell.setBackground('#FFF3CD').setFontColor('#856404');
