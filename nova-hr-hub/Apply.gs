@@ -28,7 +28,7 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v5.1 (2569-08-27)';
+var AP_VER = 'apply v5.3 (2569-08-31)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
@@ -62,6 +62,38 @@ function apMateMsg_(rows, self) {
   for (var i = 0; i < rows.length; i++) if (rows[i] !== self) other.push(rows[i]);
   if (!other.length) return '';
   return ' · อีกจ๊อบอยู่แถว ' + other.join(', ');
+}
+
+
+/* ============================================================================
+ *  ป้าย "ประเภทชั่วโมง" คอลัมน์ U — ใช้ถ้อยคำชุดเดียวกับ JOBTRACK เป๊ะ
+ *  ของเดิม JOBTRACK เขียนตอนสแกนแล้วจบ ไม่มีใครคำนวณใหม่ให้
+ *  พอ HR แก้เวลาช่อง C/D ป้ายนี้จึงค้างเป็นของเก่า ไม่ตรงกับชั่วโมงจริง
+ *
+ *  จับคู่จากผลของเครื่องคำนวณ :
+ *    hNormal → 1   ในกรอบ 08–17 วันทำงานปกติ
+ *    ot1/ot2 → 2A หรือ 2B   ในกรอบ 08–17 แต่เป็นวันหยุด (รายเดือน ×1 · รายวัน ×2)
+ *    ot15    → 3   นอกกรอบเวลา วันทำงานปกติ
+ *    ot3     → 4   นอกกรอบเวลา วันหยุด
+ * ========================================================================== */
+var AP_HTYPE = {
+  '1':  '1. ชั่วโมงวันทำงานปกติ',
+  '3':  '3. ชั่วโมงทำงานโอทีวันทำงานปกติ',
+  '2A': '2A. ชั่วโมงวันทำงานหยุด (วันหยุดทั่วไป)',
+  '2B': '2B. ชั่วโมงวันทำงานหยุดนักขัตฤกษ์',
+  '4':  '4. ชั่วโมงทำงานโอทีวันหยุด/วันหยุดนักขัตฤกษ์ *3'
+};
+function apHourType_(r, dayTypeVal) {
+  if (!r || r.err) return '-';
+  var holidayCode = (rcKind_(dayTypeVal) === 'นักขัตฤกษ์') ? '2B' : '2A';
+  var got = {};
+  if (r.hNormal > 0)            got['1'] = true;
+  if (r.ot1 > 0 || r.ot2 > 0)   got[holidayCode] = true;
+  if (r.ot15 > 0)               got['3'] = true;
+  if (r.ot3 > 0)                got['4'] = true;
+  var parts = [];
+  ['1', '2A', '2B', '3', '4'].forEach(function (c) { if (got[c]) parts.push(AP_HTYPE[c]); });
+  return parts.join(' + ') || '-';
 }
 
 /* ============================================================ ① ลง template */
@@ -123,6 +155,7 @@ function runApply(opts) {
   var last = v.length, nR = last - 1;
   var block = [];
   var S = { rows:0, flag:0, cross:0, err:0, split:0, collide:0 };
+  var uCol = [];   /* ป้ายประเภทชั่วโมง คอลัมน์ U — คำนวณใหม่ทุกแถว */
 
   /* ★ นับจำนวนแถวจริงของแต่ละรอบ Check In (คอลัมน์ L = รหัสรอบงาน)
      ห้ามเชื่อเลขในคอลัมน์ P เพราะถ้าแถวคู่หายไป ชั่วโมงจะถูกหารหายโดยไม่มีใครรู้
@@ -159,7 +192,7 @@ function runApply(opts) {
     var line = ['', '', '', '', '', '', '', '', '', tick, '', row[AC_.NOTE - 1] || ''];
 
     if (String(row[C.STATUS]).trim() !== 'Check Out') {
-      block.push(line); continue;
+      block.push(line); uCol.push([row[20] || '']);   /* แถวที่ยังไม่ Check Out — คงป้ายเดิมไว้ */ continue;
     }
     S.rows++;
 
@@ -216,9 +249,12 @@ function runApply(opts) {
     line[8]  = H(r.ot3);
     line[10] = stat;
     block.push(line);
+    uCol.push([apHourType_(r, row[C.DAYTYPE])]);
   }
 
   if (block.length) sh.getRange(2, AC_.IN, block.length, AP_N).setValues(block);
+  /* ★ เขียนป้ายประเภทชั่วโมง คอลัมน์ U ใหม่ทั้งงวด ให้ตรงกับชั่วโมงที่คิดได้จริง */
+  if (uCol.length) sh.getRange(2, 21, uCol.length, 1).setValues(uCol);
 
   /* 4. สูตร W และ E — ตรวจด้วยตาได้ */
   if (nR > 0) {
@@ -294,15 +330,27 @@ function installRecalcTrigger() {
 }
 
 function onEditRecalc(e) {
+  var sh = null, row = 0;
   try {
     if (!e || !e.range) return;
-    var sh = e.range.getSheet();
-    if (sh.getName() !== rcTab_()) return;
-    var col = e.range.getColumn(), row = e.range.getRow();
+    sh = e.range.getSheet();
+    /* ★ ของเดิมเช็ก getName() !== rcTab_() แล้ว return ทันที
+       แปลว่าถ้า HR แก้แถวในแท็บงวดเก่า (เช่น Job_Log_2569_08) จะไม่มีอะไรเกิดขึ้นเลย
+       และไม่มีข้อความบอกด้วย — คนแก้จึงนึกว่าสูตรพัง
+       ตอนนี้ให้ทำงานกับทุกแท็บที่ขึ้นต้นด้วย Job_Log_ */
+    if (sh.getName().indexOf('Job_Log_') !== 0) return;
+    var col = e.range.getColumn();
+    row = e.range.getRow();
     if (row < 2) return;
-    if (col !== 3 && col !== 4 && col !== AC_.TICK) return;   /* C · D · AE */
+    if (col !== 3 && col !== 4 && col !== AC_.TICK) return;   /* C · D · AH */
     apRecalcRow_(sh, row);
-  } catch (err) { Logger.log('onEditRecalc: ' + err); }
+  } catch (err) {
+    /* ★ ห้ามกลืน error เงียบ ๆ อีก — เขียนลงช่องสถานะให้คนแก้เห็นทันที */
+    Logger.log('onEditRecalc แถว ' + row + ': ' + err);
+    try {
+      if (sh && row > 1) sh.getRange(row, AC_.STAT).setValue('⛔ คำนวณใหม่ไม่สำเร็จ : ' + err);
+    } catch (e2) {}
+  }
 }
 
 function apRecalcRow_(sh, row) {
@@ -336,6 +384,16 @@ function apRecalcRow_(sh, row) {
     amH, pmH, Math.round((amH + pmH) * 100) / 100,
     H(r.ot1), H(r.ot15), H(r.ot2), H(r.ot3)]]);
   sh.getRange(row, AC_.STAT).setValue(stat);
+  /* ★ ป้ายประเภทชั่วโมง U ต้องขยับตามด้วย ไม่งั้นจะค้างเป็นของเก่า */
+  sh.getRange(row, 21).setValue(apHourType_(r, v[C.DAYTYPE]));
+
+  /* ★ วางสูตรกลับลง E · V · W · X ทุกครั้ง
+     เผื่อแถวนี้เคยถูก JOBTRACK เวอร์ชันเก่าเขียนทับเป็นตัวเลขนิ่งไว้
+     พอวางสูตรคืน แก้ C/D ครั้งต่อไปมันจะขยับตามเองทันที */
+  sh.getRange(row,  5).setFormula('=IF($Q'+row+'<>"Check Out","",AC'+row+')');
+  sh.getRange(row, 22).setFormula('=IF($Q'+row+'<>"Check Out","",ROUND(AC'+row+'-W'+row+',2))');
+  sh.getRange(row, 23).setFormula('=IF($Q'+row+'<>"Check Out","",AD'+row+'+AE'+row+'+AF'+row+'+AG'+row+')');
+  sh.getRange(row, 24).setFormula('=IF($Q'+row+'<>"Check Out","",AC'+row+'+W'+row+')');
 }
 
 /* ==================================== ④ แก้วันที่เก่าให้เป็นมาตรฐานเดียวกัน */
@@ -762,7 +820,7 @@ function installAutoApply() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'autoApply') ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('autoApply').timeBased().everyHours(1).create();
+  ScriptApp.newTrigger('autoApply').timeBased().everyMinutes(5).create();   /* ★ จากทุกชั่วโมง → ทุก 5 นาที แถวใหม่จะไม่ค้างว่างนาน */
 
   /* ติดตั้งตัวคำนวณสดตอนแก้มือไปพร้อมกันเลย จะได้ไม่ลืม */
   ScriptApp.getProjectTriggers().forEach(function (t) {
@@ -772,8 +830,8 @@ function installAutoApply() {
     .forSpreadsheet(SpreadsheetApp.openById(RC.LOG_ID)).onEdit().create();
 
   var msg = 'ติดตั้งเรียบร้อย — ต่อจากนี้ไม่ต้องรันมืออีกเลย\n' +
-    '  · ทุกชั่วโมง : ลง template + คำนวณแถวใหม่ให้แท็บงวดปัจจุบัน\n' +
-    '  · งวดใหม่    : ฟอร์มตามไปเองภายใน 1 ชั่วโมง\n' +
+    '  · ทุก 5 นาที : ลง template + คำนวณแถวใหม่ให้แท็บงวดปัจจุบัน\n' +
+    '  · งวดใหม่    : ฟอร์มตามไปเองภายใน 5 นาที\n' +
     '  · แก้เวลามือ : คำนวณใหม่ทันที\n' +
     '  · ขึ้นงวดใหม่ : แช่แข็งสรุปงวดเก่าเก็บเป็นแท็บ สรุป_YYYY_MM ให้เอง\n' +
     '  · ไม่สำรองอัตโนมัติ (อยากได้ให้รัน backupNow เอง)';

@@ -584,7 +584,20 @@ function writeCheckoutRow(sheet, rowIndex, timeOut, procLabel, count, dayTypeVal
   var pl = parseProcLabel(procLabel);
   if (timeInForNew !== undefined) sheet.getRange(rowIndex,COL.TIME_IN+1).setNumberFormat('@STRING@').setValue(String(timeInForNew));
   sheet.getRange(rowIndex,COL.TIME_OUT+1).setNumberFormat('@STRING@').setValue(timeOut);
-  sheet.getRange(rowIndex,COL.HOURS+1).setNumberFormat('0.00').setValue(minutesToDecimal(nMin+oMin));
+  /* ★★ E · V · W · X ไม่เขียนเป็นตัวเลขนิ่งอีกแล้ว — เขียนเป็น "สูตร" แทน
+     ของเดิมเขียนตัวเลขทับสูตรที่เครื่องคำนวณวางไว้ พอ HR แก้เวลาช่อง C/D
+     ตัวเลขก็ไม่ขยับ เพราะมันเป็นค่าตาย ไม่ใช่สูตร (สองระบบแย่งเขียนช่องเดียวกัน)
+     เขียนเป็นสูตรตั้งแต่ตอน Check Out เลย → ไม่มีช่องว่างแม้แต่วินาทีเดียว
+     และแก้ C/D เมื่อไหร่ ทั้งบรรทัดขยับตามทันที */
+  var R = rowIndex;
+  sheet.getRange(R, COL.HOURS+1).setNumberFormat('0.00')
+       .setFormula('=IF($Q'+R+'<>"Check Out","",AC'+R+')');
+  sheet.getRange(R, COL.HOURS_NORMAL_NUM+1).setNumberFormat('0.00')
+       .setFormula('=IF($Q'+R+'<>"Check Out","",ROUND(AC'+R+'-W'+R+',2))');
+  sheet.getRange(R, COL.HOURS_OT_NUM+1).setNumberFormat('0.00')
+       .setFormula('=IF($Q'+R+'<>"Check Out","",AD'+R+'+AE'+R+'+AF'+R+'+AG'+R+')');
+  sheet.getRange(R, COL.PAY_HOURS+1).setNumberFormat('0.00')
+       .setFormula('=IF($Q'+R+'<>"Check Out","",AC'+R+'+W'+R+')');
   sheet.getRange(rowIndex,COL.STATUS+1).setValue('Check Out');
   sheet.getRange(rowIndex,COL.PROC_MAIN+1).setNumberFormat('@STRING@').setValue(pl.main);
   sheet.getRange(rowIndex,COL.PROC_CODE+1).setNumberFormat('@STRING@').setValue(pl.code);
@@ -592,9 +605,6 @@ function writeCheckoutRow(sheet, rowIndex, timeOut, procLabel, count, dayTypeVal
   sheet.getRange(rowIndex,COL.PROC_COUNT+1).setValue(count);
   sheet.getRange(rowIndex,COL.DAY_TYPE+1).setValue(dayTypeVal);
   sheet.getRange(rowIndex,COL.HOUR_TYPE+1).setValue(hourTypeVal);
-  sheet.getRange(rowIndex,COL.HOURS_NORMAL_NUM+1).setNumberFormat('0.00').setValue(minutesToDecimal(nMin));
-  sheet.getRange(rowIndex,COL.HOURS_OT_NUM+1).setNumberFormat('0.00').setValue(minutesToDecimal(oMin));
-  sheet.getRange(rowIndex,COL.PAY_HOURS+1).setNumberFormat('0.00').setValue(Math.round(bd.payHours*scale*100)/100);
   colorStatus(sheet, rowIndex, 'Check Out');
   var hoursCell = sheet.getRange(rowIndex,COL.HOURS+1);
   if ((nMin+oMin) > 480) hoursCell.setBackground('#FFF3CD').setFontColor('#856404');
