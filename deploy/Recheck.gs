@@ -17,7 +17,7 @@
  */
 
 var RC = {
-  VER      : 'v6.0 (2569-08-31)',   /* ★ เลขนี้จะพิมพ์ในทุก log — ใช้เช็กว่ารันโค้ดตัวไหน */
+  VER      : 'v6.2 (2569-09-01)',   /* ★ เลขนี้จะพิมพ์ในทุก log — ใช้เช็กว่ารันโค้ดตัวไหน */
   LOG_ID   : '1ZPl3uVRtM5r4sPA-yX1OwTyp34XCTIcKRC0Sx8qsr9s',  // JOBTRACK_Job_Log 2026
   DB_ID    : '1MYWORYN3sOjov3Gxv3UqCV1jRSxgxwGi1tRomFUGSr0',  // ฐานข้อมูลพนักงาน
   TAB      : '',            /* เว้นว่าง = หาแท็บงวดปัจจุบันเอง · ใส่ชื่อถ้าจะเจาะจงงวดเก่า */
@@ -27,6 +27,22 @@ var RC = {
   MAX_SHIFT: 16,            /* ยาวเกินกี่ชั่วโมง = ลืมสแกนออก ไม่ใช่ทำงานจริง */
   NIGHT_IN : 1080,          /* กะข้ามคืนของจริง ต้องเข้างานตั้งแต่ 18:00 เป็นต้นไป */
   NIGHT_OUT: 480,           /* และออกไม่เกิน 08:00 ของวันรุ่งขึ้น */
+
+  /* ★ กรอบเวลา OT มาตรฐานของบริษัท (นาทีจากเที่ยงคืน)
+       17:00–19:30  = 2.5 ชม.
+       19:30–20:00  = พักเย็น ไม่นับให้ (ตัดอัตโนมัติเหมือนพักเที่ยง)
+       20:00–00:00  = 4.0 ชม.   (บล็อก 20:00–22:00 กับ 22:00–00:00 ต่อกัน)
+     รวมสูงสุด 6.5 ชม./เย็น — เกินกว่านี้แปลว่าเลยกรอบ ต้องขึ้นธงให้ HR เห็น */
+  BRK_FROM : 1170,          /* 19:30 */
+  BRK_TO   : 1200,          /* 20:00 */
+  OT_MAX   : 6.5,           /* เพดาน OT เย็นตามกรอบ (ชม.) */
+  /* บล็อก OT สุดท้ายจบที่ 00:00 พอดี — ถ้าไม่ยอมให้ข้ามเที่ยงคืนตรงนี้
+     คนที่ทำ OT เต็มกรอบแล้วสแกนออก 00:00 จะโดนธง ⛔ ทั้งที่ทำถูกกติกา
+     เปิดแคบ ๆ เฉพาะ เข้าตั้งแต่ 17:00 และออกไม่เกิน 02:00 เท่านั้น
+     (กว้างกว่านี้ = คนลืมสแกนออกข้ามคืนจะหลุดมาเป็นชั่วโมงจ่ายเงินได้) */
+  OTN_IN   : 1020,          /* 17:00 */
+  OTN_OUT  : 120,           /* 02:00 */
+
   CAL_TAB  : 'ประเภทวันทำงาน',
   /* ตำแหน่งคอลัมน์ (0-based) — ตรงกับ JOBTRACK */
   C: { DATE:1, IN:2, OUT:3, HOURS:4, JOB:5, EMP:7, NAME:8, DEPT:9, TYPE:10,
@@ -157,7 +173,7 @@ function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved, dayTy
     if (off === 0 && dayType0 && String(dayType0).trim()) return rcKind_(dayType0);
     return rcKind_(calMap[key] || '');
   };
-  var r = { hNormal:0, ot1:0, ot15:0, ot2:0, ot3:0, lunch:0,
+  var r = { hNormal:0, ot1:0, ot15:0, ot2:0, ot3:0, lunch:0, brk:0,
             /* แตกตามช่วงของวันด้วย — ไว้โชว์ให้ HR เห็นว่าชั่วโมงมาจากช่วงไหน */
             amOT:0, amWork:0, pmWork:0, pmOT:0, lunchOT:0,
             inUse:'', outUse:'', crossLunch:false, minApplied:false, err:'' };
@@ -172,7 +188,9 @@ function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved, dayTy
      (เวลาออก 12:00 มาจากกฎปัดของ JOBTRACK ที่ดึง 12:01–12:54 กลับไป 12:00)
      กะข้ามคืนของจริงต้องเข้างานตอนเย็นแล้วออกตอนเช้า ไม่ใช่เข้าเที่ยงออกเที่ยง
      นอกเงื่อนไขนั้นถือว่าข้อมูลผิด ขึ้นธงให้คนมาแก้ ห้ามคิดชั่วโมงให้ */
-  if (o0 < i0 && !(i0 >= RC.NIGHT_IN && o0 <= RC.NIGHT_OUT)) {
+  var crossOK = (i0 >= RC.NIGHT_IN  && o0 <= RC.NIGHT_OUT) ||   /* กะกลางคืนของจริง */
+                (i0 >= RC.OTN_IN    && o0 <= RC.OTN_OUT);       /* OT เย็นจบหลังเที่ยงคืน */
+  if (o0 < i0 && !crossOK) {
     r.err = 'เวลาออก ' + rcHHMM_(o0) + ' อยู่ก่อนเวลาเข้า ' + rcHHMM_(i0) + ' — ดูรูปสแกนแล้วแก้ช่อง C หรือ D';
     return r;
   }
@@ -219,13 +237,16 @@ function rcCalc_(inRaw, outRaw, dateStr, isMonthly, calMap, lunchApproved, dayTy
       { f:480,  t:720,  z:'NORMAL' },   // 08:00–12:00
       { f:720,  t:780,  z:'LUNCH'  },   // 12:00–13:00
       { f:780,  t:1020, z:'NORMAL' },   // 13:00–17:00
-      { f:1020, t:1440, z:'OT'     }    // 17:00–24:00
+      { f:1020, t:RC.BRK_FROM, z:'OT' },   // 17:00–19:30  OT บล็อก 1
+      { f:RC.BRK_FROM, t:RC.BRK_TO, z:'BREAK' }, // 19:30–20:00 พักเย็น ★ ไม่นับ
+      { f:RC.BRK_TO,  t:1440, z:'OT'   }    // 20:00–24:00  OT บล็อก 2+3
     ];
     for (var b = 0; b < bands.length; b++) {
       var a = Math.max(lo, bands[b].f), z = Math.min(hi, bands[b].t);
       if (z <= a) continue;
       var mins = z - a;
       if (bands[b].z === 'LUNCH') { r.lunch += mins; continue; }   // ★ พักเที่ยงไม่นับ
+      if (bands[b].z === 'BREAK') { r.brk   += mins; continue; }   // ★ พักเย็นไม่นับ
       if (bands[b].z === 'NORMAL') {
         if (bands[b].f < 720) r.amWork += mins; else r.pmWork += mins;
         if (!holiday)        r.hNormal += mins;
@@ -579,11 +600,23 @@ function rcStatus_(r, n, pCol, collide, tick) {
   if (r.err)   bad.push('⛔ ' + r.err);
   if (collide) bad.push('⛔ รหัสรอบงานชนกับพนักงานคนอื่น — เวลาเข้าอาจไม่ใช่ของคนนี้ ให้ตรวจจากรูปสแกน');
   if (pCol && n !== pCol) bad.push('⚠ แถวซ้ำ — รอบนี้มี ' + n + ' แถว แต่คอลัมน์ P บอก ' + pCol);
-  if (H(r.ot15 + r.ot3) > 12) bad.push('⚠ OT สูงผิดปกติ');
+  /* ★ OT เลยกรอบเวลา OT มาตรฐาน
+       กรอบของบริษัท : 17:00–19:30 (2.5) · พัก 19:30–20:00 · 20:00–00:00 (4.0) = 6.5 ชม.
+       ทุกอย่างที่อยู่ในกรอบนี้ = ปกติ ห้ามขึ้นคำว่า "เกิน" ให้ HR สับสน
+       ที่เรียกว่าเลยกรอบมีสองแบบ
+         · r.amOT  = OT ก่อน 08:00 หรือหลังเที่ยงคืน — อยู่นอกกรอบทั้งก้อน
+         · r.pmOT  ที่เกิน 6.5 ชม. = มี OT เย็นมากกว่าหนึ่งวันในแถวเดียว
+       กะเช้า/กะกลางคืนยังไม่ได้ตั้งกฎ ตอนนี้จึงติดธงไว้ให้ HR ดูก่อน ไม่ตัดชั่วโมงทิ้ง */
+  var otOut = r.amOT + Math.max(0, r.pmOT - RC.OT_MAX * 60);
+  if (otOut > 0) {
+    bad.push('⚠ OT เลยกรอบ ' + rcDec_(otOut / n) +
+             ' ชม. — กรอบ OT คือ 17:00–19:30 กับ 20:00–00:00');
+  }
   if (r.crossLunch) {
     info.push(tick ? '☑ อนุมัติ OT ผ่าเที่ยงแล้ว · บวกคืนให้ 1 ชม.'
                    : 'ตัดพักเที่ยงให้แล้ว 1 ชม. · ถ้าทำงานจริงให้ติ๊กช่อง AH');
   }
+  if (r.brk) info.push('ตัดพักเย็น 19:30–20:00 ให้แล้ว ' + rcDec_(r.brk / n) + ' ชม.');
   if (r.minApplied) info.push('งานสั้น · คิดขั้นต่ำ 0.5 ชม.');
   return { bad: bad, info: info, flagged: bad.length > 0 };
 }
