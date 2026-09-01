@@ -590,7 +590,12 @@ function doCheckOut(data) {
     Logger.log('คำนวณชั่วโมงตอน Check Out ไม่สำเร็จ: ' + eCalc);
   }
 
-  updateDailyHourAlert(sheet, values, String(data.emp_id), startDate, targetRow);
+  /* ★ ปิดตัวเขียนโน้ต "ขาด/เกิน 8 ชม." ทิ้งแล้ว
+     มันเขียนโน้ตติดเซลล์ V เป็นภาพนิ่ง ณ ตอนสแกนออกแต่ละครั้ง ไม่อัปเดตย้อนหลัง
+     จ๊อบแรกของวันจึงค้างคำว่า "ขาด 4 ชม." ตลอด ทั้งที่ตอนนั้นเพิ่งเที่ยงเอง
+     ดูยอดจริงได้ที่แท็บ สรุปรายคน–รายวัน ซึ่งคำนวณสดเสมอ แม่นกว่า
+     (ฟังก์ชันยังอยู่ในไฟล์ ไม่ได้ลบ เผื่ออยากเปิดกลับ) */
+  // updateDailyHourAlert(sheet, values, String(data.emp_id), startDate, targetRow);
   SpreadsheetApp.flush();   // commit ก่อนปล่อยล็อก คิวถัดไปจะได้เห็นแถวที่เพิ่งเพิ่ม
 
   var totMin = bd.byCodeMin['1']+bd.byCodeMin['2A']+bd.byCodeMin['2B']+bd.byCodeMin['3']+bd.byCodeMin['4'];

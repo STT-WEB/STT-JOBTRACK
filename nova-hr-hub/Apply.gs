@@ -28,7 +28,7 @@
  * ============================================================================
  */
 
-var AP_VER = 'apply v6.0 (2569-08-31)';
+var AP_VER = 'apply v6.1 (2569-09-01)';
 
 /* ตำแหน่งคอลัมน์ (1-based) */
 var AC_ = {
@@ -250,6 +250,11 @@ function runApply(opts) {
     sh.getRange(2, 23, nR, 1).setFormulas(fW);
     sh.getRange(2,  5, nR, 1).setFormulas(fE);
     sh.getRange(2, 22, nR, 1).setFormulas(fV);   /* V = รวมงาน − OT */
+    /* ★ ล้างโน้ต "ขาด/เกิน 8 ชม." ของเก่าที่ค้างอยู่บนคอลัมน์ V ให้เกลี้ยง
+       เป็นภาพนิ่งที่ไม่อัปเดต ทำให้ HR เข้าใจผิดว่าชั่วโมงขาด ทั้งที่ไม่ได้ขาด
+       ยอดจริงดูที่แท็บ สรุปรายคน–รายวัน ซึ่งคำนวณสดเสมอ */
+    sh.getRange(2, 22, nR, 1).clearNote();
+
     sh.getRange(2,  5, nR, 1).setNumberFormat('0.00');
     sh.getRange(2, 22, nR, 2).setNumberFormat('0.00');
     sh.getRange(2, AC_.AM, nR, 7).setNumberFormat('0.00');
